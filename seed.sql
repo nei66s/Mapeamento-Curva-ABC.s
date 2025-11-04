@@ -86,6 +86,18 @@ CREATE TABLE IF NOT EXISTS incidents (
   opened_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- warranty_items
+CREATE TABLE IF NOT EXISTS warranty_items (
+  id SERIAL PRIMARY KEY,
+  item_name TEXT,
+  store_location TEXT,
+  serial_number TEXT,
+  purchase_date TIMESTAMPTZ,
+  warranty_end_date TIMESTAMPTZ,
+  supplier_id TEXT,
+  notes TEXT
+);
+
 -- =========================
 -- Inserções de dados de teste
 -- =========================
