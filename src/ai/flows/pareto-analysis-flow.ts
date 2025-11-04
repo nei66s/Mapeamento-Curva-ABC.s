@@ -1,73 +1,27 @@
-'use server';
+"use server";
 /**
- * @fileOverview Provides an AI-powered Pareto analysis of maintenance incidents.
+ * Lightweight server action wrapper for Pareto analysis.
  *
- * - analyzeIncidentsForPareto - A function that takes a list of incidents and returns a categorized summary for a Pareto chart.
- * - ParetoAnalysisInput - The input type for the function.
- * - ParetoAnalysisOutput - The return type for the function.
+ * This file intentionally avoids importing `genkit` or any @genkit-ai packages
+ * at module scope. Next.js will bundle this file's wrapper for client-server
+ * action support; importing heavy/server-only packages at module scope causes
+ * the bundler to traverse their dependencies (Opentelemetry, require-in-the-middle)
+ * and emits the warnings seen during development. Instead we dynamically import
+ * the server implementation at runtime (server side only).
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
-
-const ParetoAnalysisInputSchema = z.object({
-  incidents: z
-    .array(z.string().describe('A descriptive title or summary of a single maintenance incident.'))
-    .describe('An array of incident descriptions to be analyzed and categorized.'),
-});
-export type ParetoAnalysisInput = z.infer<typeof ParetoAnalysisInputSchema>;
-
-const ParetoAnalysisOutputSchema = z.object({
-  analysis: z
-    .array(
-      z.object({
-        category: z.string().describe('The identified root cause category for a group of incidents (e.g., "Falha Elétrica", "Problema Mecânico", "Erro Operacional").'),
-        count: z.number().describe('The number of incidents belonging to this category.'),
-      })
-    )
-    .describe('An array of incident categories and their counts, sorted in descending order of count.'),
-});
-export type ParetoAnalysisOutput = z.infer<typeof ParetoAnalysisOutputSchema>;
-
+export type ParetoAnalysisInput = { incidents: string[] };
+export type ParetoAnalysisOutput = { analysis: { category: string; count: number }[] };
 
 export async function analyzeIncidentsForPareto(
   input: ParetoAnalysisInput
 ): Promise<ParetoAnalysisOutput> {
-  return paretoAnalysisFlow(input);
+  // Dynamically import the server-only implementation which performs the
+  // Genkit initialization and prompt/flow definitions. This import happens
+  // only at runtime on the server and will not be traversed by the client
+  // bundler.
+  const impl = await import('./pareto-analysis-flow.server');
+  return impl.runParetoAnalysis(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'paretoAnalysisPrompt',
-  input: { schema: ParetoAnalysisInputSchema },
-  output: { schema: ParetoAnalysisOutputSchema },
-  prompt: `You are an expert maintenance analyst specializing in root cause analysis.
-  Your task is to analyze a list of incident descriptions, group them by their most likely root cause category, and count the number of incidents in each category.
-
-  Here is the list of incidents:
-  {{#each incidents}}
-  - {{{this}}}
-  {{/each}}
-
-  Instructions:
-  1. Read all incident descriptions carefully.
-  2. Identify common themes and group them into logical root cause categories (e.g., "Falha Elétrica", "Problema Mecânico", "Desgaste de Peça", "Erro Operacional", "Vazamento", "Obstrução"). Use Portuguese for the categories.
-  3. Count how many incidents fall into each category.
-  4. Return a list of objects, where each object contains the 'category' and its 'count'.
-  5. **Crucially, sort the final list in descending order based on the count.** This is for a Pareto analysis.
-  `,
-});
-
-const paretoAnalysisFlow = ai.defineFlow(
-  {
-    name: 'paretoAnalysisFlow',
-    inputSchema: ParetoAnalysisInputSchema,
-    outputSchema: ParetoAnalysisOutputSchema,
-  },
-  async input => {
-    if (input.incidents.length === 0) {
-      return { analysis: [] };
-    }
-    const { output } = await prompt(input);
-    return output!;
-  }
-);
+// No other exports here; the heavy lifting is in the .server file.

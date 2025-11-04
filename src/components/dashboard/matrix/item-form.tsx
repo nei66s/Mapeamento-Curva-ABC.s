@@ -187,6 +187,14 @@ export function ItemForm({ item, categories, onSubmit, onCancel }: ItemFormProps
                             src={form.getValues('imageUrl') as string}
                             alt={form.getValues('name') || 'Imagem do item'}
                             className="h-20 w-32 rounded object-cover border"
+                            onError={(e) => {
+                              // Fallback to a local placeholder if the image is missing.
+                              const target = e.currentTarget as HTMLImageElement;
+                              if (!target.dataset.fallback) {
+                                target.dataset.fallback = '1';
+                                target.src = '/logo.png';
+                              }
+                            }}
                           />
                           <div className="flex flex-col">
                             <Button
