@@ -21,7 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { WarrantyItem, Supplier, Store, Item as CatalogItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface WarrantyItemFormProps {
@@ -138,7 +138,16 @@ export function WarrantyItemForm({ item, suppliers, stores, catalogItems, onSubm
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button variant="outline" className={cn('pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                        {field.value ? format(field.value, 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
+                        {(() => {
+                          if (!field.value) return <span>Escolha uma data</span>;
+                          try {
+                            const d = field.value instanceof Date ? field.value : (typeof field.value === 'string' ? parseISO(field.value) : null);
+                            if (!d || !isValid(d)) return <span>Escolha uma data</span>;
+                            return format(d, 'PPP', { locale: ptBR });
+                          } catch (err) {
+                            return <span>Escolha uma data</span>;
+                          }
+                        })()}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>
@@ -161,7 +170,16 @@ export function WarrantyItemForm({ item, suppliers, stores, catalogItems, onSubm
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button variant="outline" className={cn('pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                        {field.value ? format(field.value, 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
+                        {(() => {
+                          if (!field.value) return <span>Escolha uma data</span>;
+                          try {
+                            const d = field.value instanceof Date ? field.value : (typeof field.value === 'string' ? parseISO(field.value) : null);
+                            if (!d || !isValid(d)) return <span>Escolha uma data</span>;
+                            return format(d, 'PPP', { locale: ptBR });
+                          } catch (err) {
+                            return <span>Escolha uma data</span>;
+                          }
+                        })()}
                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </FormControl>

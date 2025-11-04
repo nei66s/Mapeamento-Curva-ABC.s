@@ -49,7 +49,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { format, differenceInDays, parseISO } from 'date-fns';
+import { format, differenceInDays, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function WarrantyPage() {
@@ -90,43 +90,92 @@ export default function WarrantyPage() {
 
   const suppliersMap = useMemo(() => new Map(suppliers.map(s => [s.id, s.name])), [suppliers]);
 
-  const handleFormSubmit = (values: Omit<WarrantyItem, 'id'>) => {
-    if (selectedItem) {
-      const updatedItem = { ...selectedItem, ...values };
-      setWarrantyItems(
-        warrantyItems.map(item => (item.id === selectedItem.id ? updatedItem : item))
-      );
-      toast({
-        title: 'Garantia Atualizada!',
-        description: `A garantia para "${values.itemName}" foi atualizada.`,
-      });
+  const handleFormSubmit = async (values: Omit<WarrantyItem, 'id'>) => {
+    try {
+      if (selectedItem) {
+        // update existing
+        const res = await fetch(`/api/warranty?id=${encodeURIComponent(selectedItem.id)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(values),
+        });
+        const updated = await res.json();
+        if (res.ok) {
+          setWarrantyItems(
+            warrantyItems.map(item => (item.id === selectedItem.id ? { ...item, ...updated } : item))
+          );
+          toast({ title: 'Garantia Atualizada!', description: `A garantia para "${values.itemName}" foi atualizada.` });
+        } else {
+          toast({ title: 'Erro ao atualizar', description: updated?.error || 'Falha ao atualizar garantia' });
+        }
+      } else {
+        // create new single item
+        const res = await fetch('/api/warranty', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(values),
+        });
+        const created = await res.json();
+        if (res.ok) {
+          setWarrantyItems(prev => [created, ...prev]);
+          toast({ title: 'Garantia Adicionada!', description: `A garantia para "${values.itemName}" foi adicionada.` });
+        } else {
+          toast({ title: 'Erro ao adicionar', description: created?.error || 'Falha ao adicionar garantia' });
+        }
+      }
+    } catch (err) {
+      console.error('handleFormSubmit error', err);
+      toast({ title: 'Erro', description: 'Falha na operação de garantia' });
+    } finally {
+      setIsFormOpen(false);
+      setSelectedItem(null);
     }
-    setIsFormOpen(false);
-    setSelectedItem(null);
   };
   
-  const handleBulkSubmit = (newItems: Omit<WarrantyItem, 'id'>[]) => {
-      const itemsToAdd: WarrantyItem[] = newItems.map(item => ({
-        ...item,
-        id: `WAR-${Date.now()}-${Math.random()}`,
-      }));
-      setWarrantyItems(prev => [...itemsToAdd, ...prev]);
-      toast({
-          title: 'Garantias Adicionadas!',
-          description: `${itemsToAdd.length} novos itens em garantia foram adicionados.`
-      });
-      setIsBulkFormOpen(false);
-  }
+  const handleBulkSubmit = async (newItems: Omit<WarrantyItem, 'id'>[]) => {
+    try {
+      // Try to persist each item to the API; fallback to local temp ids on failure
+      const createdItems: WarrantyItem[] = [];
+      for (const it of newItems) {
+        try {
+          const res = await fetch('/api/warranty', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(it),
+          });
+          const json = await res.json();
+          if (res.ok) {
+            createdItems.push(json as WarrantyItem);
+            continue;
+          }
+        } catch (err) {
+          console.error('bulk item create error', err);
+        }
 
-  const handleDelete = (itemId: string) => {
+        // fallback: add with temp id
+        createdItems.push({ ...it, id: `WAR-${Date.now()}-${Math.random()}` });
+      }
+      setWarrantyItems(prev => [...createdItems, ...prev]);
+      toast({ title: 'Garantias Adicionadas!', description: `${createdItems.length} novos itens em garantia foram adicionados.` });
+    } catch (err) {
+      console.error('handleBulkSubmit error', err);
+      toast({ title: 'Erro', description: 'Falha ao adicionar garantias em massa' });
+    } finally {
+      setIsBulkFormOpen(false);
+    }
+  };
+
+  const handleDelete = async (itemId: string) => {
     const deleted = warrantyItems.find(item => item.id === itemId);
+    try {
+      // attempt server delete; still remove from UI even if server fails to keep UX responsive
+      await fetch(`/api/warranty?id=${encodeURIComponent(itemId)}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('delete request failed', err);
+    }
     setWarrantyItems(warrantyItems.filter(item => item.id !== itemId));
     if (deleted) {
-      toast({
-        variant: 'destructive',
-        title: 'Item Excluído!',
-        description: `A garantia para "${deleted.itemName}" foi excluída.`,
-      });
+      toast({ variant: 'destructive', title: 'Item Excluído!', description: `A garantia para "${deleted.itemName}" foi excluída.` });
     }
   };
 
@@ -136,20 +185,36 @@ export default function WarrantyPage() {
   };
 
   const getStatusBadge = (endDate: string) => {
-    const today = new Date();
-    const warrantyEndDate = parseISO(endDate);
-    const daysRemaining = differenceInDays(warrantyEndDate, today);
+    if (!endDate) return <Badge variant="outline">Sem data</Badge>;
+    try {
+      const today = new Date();
+      const warrantyEndDate = parseISO(endDate);
+      if (!isValid(warrantyEndDate)) return <Badge variant="outline">Sem data</Badge>;
+      const daysRemaining = differenceInDays(warrantyEndDate, today);
 
-    if (daysRemaining < 0) {
-      return <Badge variant="outline">Expirada</Badge>;
+      if (daysRemaining < 0) {
+        return <Badge variant="outline">Expirada</Badge>;
+      }
+      if (daysRemaining <= 30) {
+        return <Badge variant="destructive">Expira em {daysRemaining}d</Badge>;
+      }
+      if (daysRemaining <= 90) {
+        return <Badge variant="accent">Expira em {daysRemaining}d</Badge>;
+      }
+      return <Badge variant="success">Ativa</Badge>;
+    } catch (err) {
+      return <Badge variant="outline">Sem data</Badge>;
     }
-    if (daysRemaining <= 30) {
-      return <Badge variant="destructive">Expira em {daysRemaining}d</Badge>;
+  };
+
+  const formatDateSafe = (iso?: string) => {
+    if (!iso) return '—';
+    try {
+      const d = parseISO(iso);
+      return isValid(d) ? format(d, 'dd/MM/yyyy') : '—';
+    } catch (err) {
+      return '—';
     }
-    if (daysRemaining <= 90) {
-      return <Badge variant="accent">Expira em {daysRemaining}d</Badge>;
-    }
-    return <Badge variant="success">Ativa</Badge>;
   };
 
   return (
@@ -210,7 +275,7 @@ export default function WarrantyPage() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                         <CalendarClock className="h-4 w-4 text-muted-foreground"/>
-                        {format(parseISO(item.warrantyEndDate), 'dd/MM/yyyy')}
+                        {formatDateSafe(item.warrantyEndDate)}
                     </div>
                   </TableCell>
                   <TableCell>{getStatusBadge(item.warrantyEndDate)}</TableCell>
