@@ -1,0 +1,46 @@
+{
+  "placeholderImages": [
+    {
+      "id": "app-logo",
+      "description": "The main logo for the application",
+      "imageUrl": "/logo.png",
+      "imageHint": "company logo"
+    },
+    {
+      "id": "user-avatar-1",
+      "description": "User avatar placeholder",
+      "imageUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhdmF0YXJ8ZW58MHx8fHwxNzYyMDM5MjI4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person avatar"
+    },
+    {
+      "id": "item-image-1",
+      "description": "Air conditioner",
+      "imageUrl": "https://images.unsplash.com/photo-1601993198415-19d86ae28424?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxhaXIlMjBjb25kaXRpb25lcnxlbnwwfHx8fDE3NjE5ODMwODR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "air conditioner"
+    },
+    {
+      "id": "item-image-2",
+      "description": "Security camera",
+      "imageUrl": "https://images.unsplash.com/photo-1520697830682-bbb6e85e2b0b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8c2VjdXJpdHklMjBjYW1lcmF8ZW58MHx8fHwxNzYxOTI3NDY5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "security camera"
+    },
+    {
+      "id": "item-image-3",
+      "description": "Electrical panel",
+      "imageUrl": "https://images.unsplash.com/photo-1566417108845-5ba9c2f9ea1b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZWxlY3RyaWNhbCUyMHBhbmVsfGVufDB8fHx8MTc2MTk3OTIyNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "electrical panel"
+    },
+    {
+      "id": "item-image-4",
+      "description": "Industrial freezer",
+      "imageUrl": "https://images.unsplash.com/photo-1727947478281-1576560f10aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxpbmR1c3RyaWFsJTIwZnJlZXplcnxlbnwwfHx8fDE3NjIwMDk5MjN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "industrial freezer"
+    },
+    {
+      "id": "item-image-5",
+      "description": "Bakery oven",
+      "imageUrl": "https://images.unsplash.com/photo-1694000103508-2a24d5c7ede1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxiYWtlcnklMjBvdmVufGVufDB8fHx8MTc2MTk4NzM4NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "bakery oven"
+    }
+  ]
+}

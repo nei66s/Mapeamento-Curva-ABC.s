@@ -1,0 +1,20 @@
+export const stores = [
+  { name: "Loja 01 - Americana", city: "Americana" },
+  { name: "Loja 02 - Santa Bárbara", city: "Santa Bárbara d'Oeste" },
+  { name: "Loja 03 - Nova Odessa", city: "Nova Odessa" },
+  { name: "Loja 04 - Campinas", city: "Campinas" },
+  { name: "Loja 05 - Piracicaba", city: "Piracicaba" },
+  { name: "Loja 06 - Sumaré", city: "Sumaré" },
+  { name: "Loja 07 - Hortolândia", city: "Hortolândia" },
+  { name: "Loja 08 - Paulinia", city: "Paulinia" },
+  { name: "Loja 09 - Limeira", city: "Limeira" },
+  { name: "Loja 10 - Araras", city: "Araras" },
+  { name: "Loja 11 - Indaiatuba", city: "Indaiatuba" },
+  { name: "Loja 12 - Tietê", city: "Tietê" },
+  { name: "Loja 13 - Boituva", city: "Boituva" },
+  { name: "Loja 14 - Salto", city: "Salto" },
+  { name: "Loja 15 - Itu", city: "Itu" },
+  { name: "Loja 16 - Sorocaba", city: "Sorocaba" },
+  { name: "Loja 17 - Valinhos", city: "Valinhos" },
+  { name: "Loja 18 - Mogi Mirim", city: "Mogi Mirim" }
+];

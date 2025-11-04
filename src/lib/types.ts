@@ -1,0 +1,173 @@
+import type { ImpactFactor } from './impact-factors';
+
+export type Classification = 'A' | 'B' | 'C';
+export type IncidentStatus = 'Aberto' | 'Em Andamento' | 'Resolvido' | 'Fechado';
+export type UserRole = 'admin' | 'gestor' | 'regional' | 'visualizador' | 'fornecedor';
+export type ComplianceStatus = 'completed' | 'pending' | 'not-applicable';
+export type RncStatus = 'Aberta' | 'Em Análise' | 'Concluída' | 'Cancelada';
+export type RncClassification = 'Crítica' | 'Moderada' | 'Baixa';
+export type ToolStatus = 'Disponível' | 'Em Uso' | 'Em Manutenção';
+export type SettlementStatus = 'Pendente' | 'Recebida';
+
+
+export type Category = {
+  id: string;
+  name: string;
+  description: string;
+  classification: Classification;
+  imageUrl?: string;
+  itemCount: number;
+  riskIndex: number;
+};
+
+export type Item = {
+  id?: string;
+  name: string;
+  category: string;
+  classification: Classification;
+  storeCount: number;
+  impactFactors: string[];
+  status: 'online' | 'offline' | 'maintenance';
+  contingencyPlan: string;
+  leadTime: string;
+  imageUrl?: string;
+};
+
+export type Incident = {
+  id: string;
+  itemName: string;
+  location: string;
+  status: IncidentStatus;
+  openedAt: string; // ISO date string
+  description: string;
+  lat?: number;
+  lng?: number;
+};
+
+export type Store = {
+  id: string;
+  name: string;
+  city: string;
+  lat: number;
+  lng: number;
+};
+
+
+export type ComplianceChecklistItem = {
+    id: string;
+    name: string;
+    classification: Classification;
+};
+
+export type StoreComplianceData = {
+    storeId: string;
+    storeName: string;
+    visitDate: string; // ISO date string for the scheduled visit
+    items: {
+        itemId: string;
+        status: ComplianceStatus;
+    }[];
+};
+
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatarUrl?: string;
+  password?: string;
+  supplierId?: string; // Associated supplier if role is 'fornecedor'
+};
+
+export type AgingCriticidade = {
+  baixa: number;
+  media: number;
+  alta: number;
+  muito_alta: number;
+};
+
+export type MaintenanceIndicator = {
+  id:string;
+  mes: string;
+  sla_mensal: number;
+  meta_sla: number;
+  crescimento_mensal_sla: number;
+  r2_tendencia: number;
+  chamados_abertos: number;
+  chamados_solucionados: number;
+  backlog: number;
+  valor_mensal?: number;
+  valor_orcado?: number;
+  aging: {
+    inferior_30: AgingCriticidade;
+    entre_30_60: AgingCriticidade;
+    entre_60_90: AgingCriticidade;
+    superior_90: AgingCriticidade;
+  };
+  criticidade: { // This might be redundant now or could represent totals
+    baixa: number;
+    media: number;
+    alta: number;
+    muito_alta: number;
+  };
+  prioridade: {
+    baixa: number;
+    media: number;
+    alta: number;
+    muito_alta: number;
+  };
+};
+
+export type Supplier = {
+  id: string;
+  name: string;
+  contactName: string;
+  contactEmail: string;
+  cnpj: string;
+  specialty: string;
+};
+
+export type WarrantyItem = {
+  id: string;
+  itemName: string;
+  storeLocation: string;
+  serialNumber?: string;
+  purchaseDate: string; // ISO date string
+  warrantyEndDate: string; // ISO date string
+  supplierId: string;
+  notes?: string;
+};
+
+export type RNC = {
+    id: string;
+    title: string;
+    supplierId: string;
+    incidentId?: string;
+    description: string;
+    status: RncStatus;
+    classification: RncClassification;
+    createdAt: string; // ISO date string
+};
+
+export type Tool = {
+  id: string;
+  name: string;
+  category: 'Manual' | 'Elétrica' | 'Medição' | 'EPI';
+  serialNumber?: string;
+  status: ToolStatus;
+  assignedTo?: string; // User ID
+  purchaseDate: string; // ISO date string
+  lastMaintenance?: string; // ISO date string
+};
+
+export type SettlementLetter = {
+  id: string;
+  supplierId: string;
+  contractId: string;
+  description: string;
+  requestDate: string; // ISO date string
+  receivedDate?: string; // ISO date string
+  status: SettlementStatus;
+  periodStartDate: string; // ISO date string
+  periodEndDate: string; // ISO date string
+};
