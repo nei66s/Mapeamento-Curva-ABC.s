@@ -1,6 +1,19 @@
 import pool from './db';
 import type { ComplianceChecklistItem, StoreComplianceData, ComplianceStatus } from './types';
 
+// Quote an SQL identifier (table or column) safely. We only accept
+// simple identifiers composed of letters, numbers and underscore to
+// avoid SQL injection via interpolated identifiers.
+function quoteIdent(name: string): string {
+  if (!name || typeof name !== 'string') throw new Error('Invalid identifier');
+  // Allow only a-z, A-Z, 0-9 and underscore
+  if (!/^[A-Za-z0-9_]+$/.test(name)) {
+    throw new Error(`Invalid identifier: ${name}`);
+  }
+  // Double-quote and escape any double quotes (shouldn't be present due to regex)
+  return `"${name.replace(/"/g, '""')}"`;
+}
+
 function toIso(d: any) {
   if (!d) return '';
   try {
@@ -20,7 +33,7 @@ function pickRow(row: any, options: { keys: string[]; asString?: boolean } ) {
   return options.asString ? '' : null;
 }
 
-function normalizeStatus(s: any): ComplianceStatus {
+export function normalizeStatus(s: any): ComplianceStatus {
   if (s == null) return 'pending';
   const str = String(s).trim().toLowerCase();
   if (str === 'completed' || str === 'concluído' || str === 'concluido' || str.includes('concl')) return 'completed';
@@ -69,10 +82,13 @@ export async function addChecklistItem(item: { name: string; classification?: st
   try {
     const cols = await getTableColumns('compliance_checklist_items');
     if (cols && cols.length) {
-      const nameCol = cols.find(c => ['name','item_name','label'].includes(c)) || 'name';
-      const classCol = cols.find(c => ['classification','class'].includes(c));
-      const idCol = cols.find(c => ['id','item_id'].includes(c)) || 'id';
-      const sql = `INSERT INTO compliance_checklist_items (${nameCol}${classCol ? ',' + classCol : ''}) VALUES ($1${classCol ? ', $2' : ''}) RETURNING *`;
+  const nameCol = cols.find(c => ['name','item_name','label'].includes(c)) || 'name';
+  const classCol = cols.find(c => ['classification','class'].includes(c));
+  const idCol = cols.find(c => ['id','item_id'].includes(c)) || 'id';
+  // Quote identifiers
+  const quotedNameCol = quoteIdent(nameCol);
+  const quotedClassCol = classCol ? quoteIdent(classCol) : '';
+  const sql = `INSERT INTO ${quoteIdent('compliance_checklist_items')} (${quotedNameCol}${classCol ? ',' + quotedClassCol : ''}) VALUES ($1${classCol ? ', $2' : ''}) RETURNING *`;
       const params = classCol ? [item.name, item.classification ?? 'C'] : [item.name];
       const res = await pool.query(sql, params);
       const row = res.rows[0];
@@ -95,12 +111,12 @@ export async function deleteChecklistItem(itemId: string): Promise<boolean> {
     const cols = await getTableColumns('compliance_checklist_items');
     if (cols && cols.length) {
       // Build a WHERE clause only using columns that actually exist to avoid SQL errors
-      const candidates = ['id','item_id','itemid','name','item_name','label'];
-      const present = candidates.filter(c => cols.includes(c));
-      if (!present.length) return false;
+    const candidates = ['id','item_id','itemid','name','item_name','label'];
+    const present = candidates.filter(c => cols.includes(c));
+    if (!present.length) return false;
   // Cast both sides to text to avoid operator type mismatches (int vs varchar)
-  const where = present.map(c => `${c}::text = $1::text`).join(' OR ');
-  const sql = `DELETE FROM compliance_checklist_items WHERE ${where} RETURNING *`;
+  const where = present.map(c => `${quoteIdent(c)}::text = $1::text`).join(' OR ');
+  const sql = `DELETE FROM ${quoteIdent('compliance_checklist_items')} WHERE ${where} RETURNING *`;
       const res = await pool.query(sql, [itemId]);
       return res.rowCount > 0;
     }
@@ -223,7 +239,8 @@ export async function scheduleVisit(data: Partial<StoreComplianceData>): Promise
       }
       return val;
     });
-    const sql = `INSERT INTO compliance_visits (${finalCols.join(',')}) VALUES (${finalCols.map((_,i)=>`$${i+1}`).join(',')}) RETURNING *`;
+  const quotedCols = finalCols.map(c => quoteIdent(c));
+  const sql = `INSERT INTO ${quoteIdent('compliance_visits')} (${quotedCols.join(',')}) VALUES (${finalCols.map((_,i)=>`$${i+1}`).join(',')}) RETURNING *`;
     const res = await pool.query(sql, params);
     const row = res.rows[0];
     if (!row) return null;
@@ -253,7 +270,10 @@ export async function scheduleVisit(data: Partial<StoreComplianceData>): Promise
           const s = data.storeId ?? (data.storeName ?? '');
           const v = data.visitDate ?? null;
           const st = 'pending';
-          const sql2 = `INSERT INTO store_compliance_data (${storeCol}, ${visitCol}, ${statusCol || 'status'}) VALUES ($1, $2, $3) RETURNING *`;
+          const quotedStore = quoteIdent(storeCol);
+          const quotedVisit = quoteIdent(visitCol);
+          const quotedStatus = quoteIdent(statusCol || 'status');
+          const sql2 = `INSERT INTO ${quoteIdent('store_compliance_data')} (${quotedStore}, ${quotedVisit}, ${quotedStatus}) VALUES ($1, $2, $3) RETURNING *`;
           const res2 = await pool.query(sql2, [s, v, st]);
           const r = res2.rows[0];
           return {
@@ -304,14 +324,23 @@ export async function updateVisitItemStatus(storeId: string, visitDate: string, 
 
       if (storeCol && visitCol && statusCol && itemCol) {
         // Update specific item row (cast to text to avoid int/text mismatches)
-        const sql = `UPDATE ${tbl} SET ${statusCol}=$1 WHERE ${storeCol}=$2 AND (${visitCol}::text LIKE $3 OR ${visitCol}=$4) AND ${itemCol}::text = $5::text RETURNING *`;
+        const qTbl = quoteIdent(tbl);
+        const qStatus = quoteIdent(statusCol);
+        const qStore = quoteIdent(storeCol);
+        const qVisit = quoteIdent(visitCol);
+        const qItem = quoteIdent(itemCol);
+        const sql = `UPDATE ${qTbl} SET ${qStatus}=$1 WHERE ${qStore}=$2 AND (${qVisit}::text LIKE $3 OR ${qVisit}=$4) AND ${qItem}::text = $5::text RETURNING *`;
         const res = await pool.query(sql, [status, storeId, `${visitDate}%`, visitDate, itemId]);
         if (res.rowCount > 0) return true;
       }
 
       if (storeCol && visitCol && statusCol && !itemCol) {
         // Table records status at visit level: update that row's status
-        const sql = `UPDATE ${tbl} SET ${statusCol}=$1 WHERE ${storeCol}=$2 AND (${visitCol}::text LIKE $3 OR ${visitCol}=$4)`;
+        const qTbl = quoteIdent(tbl);
+        const qStatus = quoteIdent(statusCol);
+        const qStore = quoteIdent(storeCol);
+        const qVisit = quoteIdent(visitCol);
+        const sql = `UPDATE ${qTbl} SET ${qStatus}=$1 WHERE ${qStore}=$2 AND (${qVisit}::text LIKE $3 OR ${qVisit}=$4)`;
         await pool.query(sql, [status, storeId, `${visitDate}%`, visitDate]);
         return true;
       }
@@ -350,7 +379,9 @@ export async function updateVisitItemStatusByVisitId(visitId: string | number, i
       const statusCol = altCols.find(c => ['status','item_status','visit_status'].includes(c));
       if (statusCol) {
         // update by id if itemId matches a row id
-        const res2 = await pool.query(`UPDATE store_compliance_data SET ${statusCol}=$1 WHERE id=$2 RETURNING *`, [status, visitId]);
+        const qStatus = quoteIdent(statusCol);
+        const sql = `UPDATE ${quoteIdent('store_compliance_data')} SET ${qStatus}=$1 WHERE id=$2 RETURNING *`;
+        const res2 = await pool.query(sql, [status, visitId]);
         if (res2.rowCount > 0) return true;
       }
     }
