@@ -192,6 +192,29 @@ INSERT INTO items (name, category_id, image_url) VALUES
 
 -- (adicione mais INSERTs para items conforme quiser; o projeto tem uma lista longa em src/lib/mock-raw.ts)
 
+-- Additional items with full fields for testing (classification A/B/C, impact_factors JSONB, status, contingency_plan, lead_time)
+INSERT INTO items (name, category_id, classification, impact_factors, status, contingency_plan, lead_time, image_url) VALUES
+  ('Monitoramento NVR Primário', (SELECT id FROM categories WHERE name='Segurança / CFTV / Alarme'), 'A', '["safety","brand"]'::jsonb, 'online', 'Utilizar equipamento reserva.', '2 horas', 'https://picsum.photos/seed/item10/200/120'),
+  ('Câmera Caixa Interna', (SELECT id FROM categories WHERE name='Segurança / CFTV / Alarme'), 'B', '["safety"]'::jsonb, 'online', 'Acionar equipe de manutenção interna.', '4 horas', 'https://picsum.photos/seed/item11/200/120'),
+  ('Iluminação Emergência', (SELECT id FROM categories WHERE name='Elétrica / Iluminação'), 'A', '["safety","legal"]'::jsonb, 'online', 'Isolar a área e aguardar o técnico especialista.', 'Imediato', 'https://picsum.photos/seed/item12/200/120'),
+  ('Painel Elétrico Auxiliar', (SELECT id FROM categories WHERE name='Elétrica / Iluminação'), 'B', '["cost","sales"]'::jsonb, 'online', 'Contratar serviço de locação de equipamento similar.', '24 horas', 'https://picsum.photos/seed/item13/200/120'),
+  ('Freezer Expositor 2 portas', (SELECT id FROM categories WHERE name='Refrigeração / Climatização Central'), 'A', '["sales","cost"]'::jsonb, 'online', 'Utilizar equipamento reserva.', '8 horas', 'https://picsum.photos/seed/item14/200/120'),
+  ('Evaporador Reserva', (SELECT id FROM categories WHERE name='Refrigeração / Climatização Central'), 'B', '["sales"]'::jsonb, 'offline', 'Acionar equipe de manutenção interna.', '48 horas', 'https://picsum.photos/seed/item15/200/120'),
+  ('Forno Padaria Industrial', (SELECT id FROM categories WHERE name='Padaria / Confeitaria'), 'A', '["sales","cost"]'::jsonb, 'online', 'Contratar serviço de locação de equipamento similar.', '24 horas', 'https://picsum.photos/seed/item16/200/120'),
+  ('Balcão Refrigerado Hortifrúti', (SELECT id FROM categories WHERE name='Hortifrúti / Floricultura'), 'B', '["sales"]'::jsonb, 'online', 'Utilizar equipamento reserva.', '4 horas', 'https://picsum.photos/seed/item17/200/120'),
+  ('Sistema de Backup de Energia', (SELECT id FROM categories WHERE name='Energização / Geradores / Nobreaks'), 'A', '["safety","sales","cost"]'::jsonb, 'online', 'Utilizar equipamento reserva.', '2 horas', 'https://picsum.photos/seed/item18/200/120'),
+  ('Corta-corrente Estacionamento', (SELECT id FROM categories WHERE name='Estacionamento / Acessos / Cancelas'), 'C', '["brand"]'::jsonb, 'offline', 'Redirecionar fluxo de clientes.', '48 horas', 'https://picsum.photos/seed/item19/200/120'),
+  ('Máquina de Café Refeitório', (SELECT id FROM categories WHERE name='Refeitório / Vestiários / Áreas de Apoio ao Colaborador'), 'C', '["cost"]'::jsonb, 'offline', 'Iniciar operação em modo de contingência manual.', '48 horas', 'https://picsum.photos/seed/item20/200/120'),
+  ('Painel Decorativo LED', (SELECT id FROM categories WHERE name='Logo/ Painéis / Iluminação decorativa'), 'C', '["brand"]'::jsonb, 'online', 'Isolar a área e aguardar o técnico especialista.', '24 horas', 'https://picsum.photos/seed/item21/200/120')
+ON CONFLICT (name) DO UPDATE SET
+  category_id = COALESCE(EXCLUDED.category_id, items.category_id),
+  classification = COALESCE(EXCLUDED.classification, items.classification),
+  impact_factors = COALESCE(EXCLUDED.impact_factors, items.impact_factors),
+  status = COALESCE(EXCLUDED.status, items.status),
+  contingency_plan = COALESCE(EXCLUDED.contingency_plan, items.contingency_plan),
+  lead_time = COALESCE(EXCLUDED.lead_time, items.lead_time),
+  image_url = COALESCE(EXCLUDED.image_url, items.image_url);
+
 -- impact_factors (do migrate-impact-factors.ts)
 INSERT INTO impact_factors (id, label, description) VALUES
   ('safety', 'Segurança', 'Risco de acidentes, lesões ou fatalidades para colaboradores ou clientes.'),
@@ -233,9 +256,11 @@ INSERT INTO placeholder_images (id, description, imageUrl, imageHint) VALUES
   ON CONFLICT (id) DO NOTHING;
 
 -- incidents (inserir um exemplo)
-INSERT INTO incidents (id, item_name, location, description, lat, lng, status, opened_at) VALUES
-  ('inc-0001', 'Exemplo Item A', 'Loja 01 - Americana', 'Incidente de amostra para desenvolvimento', 0, 0, 'Aberto', now())
-  ON CONFLICT (id) DO NOTHING;
+-- incidents (inserir um exemplo)
+-- Insert without explicit id so it works regardless of the incidents.id column type
+INSERT INTO incidents (item_name, location, description, lat, lng, status, opened_at) VALUES
+  ('Exemplo Item A', 'Loja 01 - Americana', 'Incidente de amostra para desenvolvimento', 0, 0, 'Aberto', now())
+  ON CONFLICT DO NOTHING;
 
 -- store_items: associe alguns itens às primeiras lojas (exemplo)
 -- pega ids das stores e items por name (assume inserts acima)
@@ -245,5 +270,27 @@ FROM stores s, items i
 WHERE s.name IN ('Loja 01 - Americana','Loja 02 - Santa Bárbara','Loja 03 - Nova Odessa')
   AND i.name IN ('DVR / NVR Central','Câmeras de frente de loja / cofres','QGBT / Quadro geral')
 ON CONFLICT (store_id, item_id) DO NOTHING;
+
+-- =========================
+-- Settlements (Cartas de Quitação)
+-- =========================
+CREATE TABLE IF NOT EXISTS settlements (
+  id TEXT PRIMARY KEY,
+  supplier_id TEXT NOT NULL,
+  contract_id TEXT NOT NULL,
+  description TEXT,
+  request_date TIMESTAMPTZ NOT NULL DEFAULT now(),
+  received_date TIMESTAMPTZ,
+  status TEXT NOT NULL DEFAULT 'Pendente',
+  period_start_date TIMESTAMPTZ,
+  period_end_date TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Example seed data for settlements
+INSERT INTO settlements (id, supplier_id, contract_id, description, request_date, received_date, status, period_start_date, period_end_date) VALUES
+  ('SET-001', 'supplier-001', 'CT-2024-001', 'Carta de quitação referente ao serviço XYZ', now() - interval '10 days', null, 'Pendente', now() - interval '60 days', now() - interval '30 days'),
+  ('SET-002', 'supplier-002', 'CT-2024-002', 'Quitação parcial referente a manutenção', now() - interval '20 days', now() - interval '5 days', 'Recebida', now() - interval '90 days', now() - interval '60 days')
+ON CONFLICT (id) DO NOTHING;
 
 COMMIT;
