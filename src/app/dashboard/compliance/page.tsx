@@ -120,28 +120,73 @@ export default function CompliancePage() {
   };
   
   const handleAddItem = (itemName: string) => {
-    const newItem: ComplianceChecklistItem = {
-      id: `CHK-${Date.now()}`,
-      name: itemName,
-      classification: 'C' // Default to C
-    };
-    setChecklistItems(prev => [...prev, newItem]);
-    setStoreData(prevData =>
-      prevData.map(store => ({
-        ...store,
-        items: [...store.items, { itemId: newItem.id, status: 'pending' }],
-      }))
-    );
-    toast({
-      title: 'Item Adicionado!',
-      description: `"${itemName}" foi adicionado ao checklist.`,
-    });
+    // Persist to server and update local state. Fall back to local-only if API fails.
+    (async () => {
+      try {
+        const res = await fetch('/api/compliance/items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: itemName, classification: 'C' }),
+        });
+        let itemToAdd: ComplianceChecklistItem;
+        if (res.ok) {
+          itemToAdd = await res.json();
+        } else {
+          // fallback local
+          itemToAdd = { id: `CHK-${Date.now()}`, name: itemName, classification: 'C' };
+        }
+
+        setChecklistItems(prev => [...prev, itemToAdd]);
+        setStoreData(prevData =>
+          prevData.map(store => ({
+            ...store,
+            items: [...store.items, { itemId: itemToAdd.id, status: 'pending' }],
+          }))
+        );
+        toast({
+          title: 'Item Adicionado!',
+          description: `"${itemName}" foi adicionado ao checklist.`,
+        });
+      } catch (err) {
+        console.error('addItem API error', err);
+        const itemToAdd: ComplianceChecklistItem = { id: `CHK-${Date.now()}`, name: itemName, classification: 'C' };
+        setChecklistItems(prev => [...prev, itemToAdd]);
+        setStoreData(prevData =>
+          prevData.map(store => ({
+            ...store,
+            items: [...store.items, { itemId: itemToAdd.id, status: 'pending' }],
+          }))
+        );
+        toast({
+          title: 'Item Adicionado!',
+          description: `"${itemName}" foi adicionado ao checklist.`,
+        });
+      }
+    })();
   };
 
   const handleRemoveItem = (itemId: string) => {
     const itemToRemove = checklistItems.find(item => item.id === itemId);
     if (!itemToRemove) return;
-    setChecklistItems(prev => prev.filter(item => item.id !== itemId));
+    // Attempt server delete, fallback to local removal
+    (async () => {
+      try {
+        const res = await fetch('/api/compliance/items', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ itemId }),
+        });
+        if (res.ok) {
+          setChecklistItems(prev => prev.filter(item => item.id !== itemId));
+        } else {
+          // fallback local
+          setChecklistItems(prev => prev.filter(item => item.id !== itemId));
+        }
+      } catch (err) {
+        console.error('deleteItem API error', err);
+        setChecklistItems(prev => prev.filter(item => item.id !== itemId));
+      }
+    })();
     setStoreData(prevData =>
       prevData.map(store => ({
         ...store,

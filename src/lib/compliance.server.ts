@@ -20,6 +20,14 @@ function pickRow(row: any, options: { keys: string[]; asString?: boolean } ) {
   return options.asString ? '' : null;
 }
 
+function normalizeStatus(s: any): ComplianceStatus {
+  if (s == null) return 'pending';
+  const str = String(s).trim().toLowerCase();
+  if (str === 'completed' || str === 'concluído' || str === 'concluido' || str.includes('concl')) return 'completed';
+  if (str === 'not-applicable' || str === 'não aplicável' || str === 'nao aplicavel' || str.includes('não') || str.includes('nao') || str.includes('not-app')) return 'not-applicable';
+  return 'pending';
+}
+
 async function getTableColumns(table: string) {
   try {
     const res = await pool.query(
@@ -57,6 +65,51 @@ export async function listChecklistItems(): Promise<ComplianceChecklistItem[]> {
   }
 }
 
+export async function addChecklistItem(item: { name: string; classification?: string }): Promise<ComplianceChecklistItem | null> {
+  try {
+    const cols = await getTableColumns('compliance_checklist_items');
+    if (cols && cols.length) {
+      const nameCol = cols.find(c => ['name','item_name','label'].includes(c)) || 'name';
+      const classCol = cols.find(c => ['classification','class'].includes(c));
+      const idCol = cols.find(c => ['id','item_id'].includes(c)) || 'id';
+      const sql = `INSERT INTO compliance_checklist_items (${nameCol}${classCol ? ',' + classCol : ''}) VALUES ($1${classCol ? ', $2' : ''}) RETURNING *`;
+      const params = classCol ? [item.name, item.classification ?? 'C'] : [item.name];
+      const res = await pool.query(sql, params);
+      const row = res.rows[0];
+      if (!row) return null;
+      return {
+        id: String(row[idCol] ?? row.id ?? row.item_id ?? ''),
+        name: pickRow(row, { keys: [nameCol, 'name', 'item_name', 'label'], asString: true }) || '',
+        classification: (pickRow(row, { keys: [classCol || 'classification', 'class'], asString: true }) || 'C') as any,
+      } as ComplianceChecklistItem;
+    }
+  } catch (err) {
+    console.error('addChecklistItem error', err);
+  }
+  // Fallback: return a generated item but not persisted
+  return { id: `CHK-${Date.now()}`, name: item.name, classification: item.classification ?? 'C' } as ComplianceChecklistItem;
+}
+
+export async function deleteChecklistItem(itemId: string): Promise<boolean> {
+  try {
+    const cols = await getTableColumns('compliance_checklist_items');
+    if (cols && cols.length) {
+      // Build a WHERE clause only using columns that actually exist to avoid SQL errors
+      const candidates = ['id','item_id','itemid','name','item_name','label'];
+      const present = candidates.filter(c => cols.includes(c));
+      if (!present.length) return false;
+  // Cast both sides to text to avoid operator type mismatches (int vs varchar)
+  const where = present.map(c => `${c}::text = $1::text`).join(' OR ');
+  const sql = `DELETE FROM compliance_checklist_items WHERE ${where} RETURNING *`;
+      const res = await pool.query(sql, [itemId]);
+      return res.rowCount > 0;
+    }
+  } catch (err) {
+    console.error('deleteChecklistItem error', err);
+  }
+  return false;
+}
+
 export async function listScheduledVisits(): Promise<StoreComplianceData[]> {
   try {
     // Expect a table with visits and visit_items or a denormalized table. Try to be tolerant.
@@ -88,7 +141,7 @@ export async function listScheduledVisits(): Promise<StoreComplianceData[]> {
         storeId: pickRow(row, { keys: ['store_id', 'storeid', 'store'], asString: true }) || '',
         storeName: pickRow(row, { keys: ['store_name', 'storename', 'store_name_text', 'store'], asString: true }) || '',
         visitDate: toIso(visitDateRaw),
-        items: items.map((it: any) => ({ itemId: String(it.itemId || it.id || it.item_id || ''), status: (it.status || 'pending') })) as any,
+        items: items.map((it: any) => ({ itemId: String(it.itemId || it.id || it.item_id || ''), status: normalizeStatus(it.status || it.state || it.status_description) })) as any,
       } as StoreComplianceData;
       });
     }
@@ -103,7 +156,7 @@ export async function listScheduledVisits(): Promise<StoreComplianceData[]> {
           storeName: pickRow(row, { keys: ['store_name','storename'], asString: true }) || String(pickRow(row, { keys: ['store_id','storeid','store'], asString: true }) || ''),
           visitDate: toIso(pickRow(row, { keys: ['visit_date','visitdate','date'], asString: false })),
           // map visit-level status into a single synthetic item so UI can show pending/completed
-          items: [{ itemId: String(row.id != null ? row.id : row.store_id), status: String(row.status || 'pending') }],
+          items: [{ itemId: String(row.id != null ? row.id : row.store_id), status: normalizeStatus(row.status || row.state || 'pending') }],
         } as StoreComplianceData));
       } catch (err) {
         // ignore and fall through
@@ -184,7 +237,7 @@ export async function scheduleVisit(data: Partial<StoreComplianceData>): Promise
       storeId: pickRow(row, { keys: ['store_id', 'storeid', 'store'], asString: true }) || '',
       storeName: pickRow(row, { keys: ['store_name', 'storename', 'store_name_text', 'store'], asString: true }) || '',
       visitDate: toIso(visitDateRaw),
-      items: items.map((it: any) => ({ itemId: String(it.itemId || it.id || it.item_id || ''), status: (it.status || 'pending') })) as any,
+      items: items.map((it: any) => ({ itemId: String(it.itemId || it.id || it.item_id || ''), status: normalizeStatus(it.status || it.state || it.status_description) })) as any,
     } as StoreComplianceData;
   } catch (err) {
     // If compliance_visits doesn't exist or insert failed due to schema differences,
@@ -230,7 +283,10 @@ export async function updateVisitItemStatus(storeId: string, visitDate: string, 
       if (!row) return false;
       let items: any[] = [];
       try { items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []); } catch (err) { items = row.items || []; }
-      const changed = items.map(it => ({ ...it, status: (it.itemId === itemId || it.item_id === itemId || it.id === itemId) ? status : it.status }));
+      const changed = items.map(it => {
+        const key = String(it?.itemId ?? it?.item_id ?? it?.id ?? '');
+        return { ...it, status: key === String(itemId) ? status : it.status };
+      });
       await pool.query(`UPDATE compliance_visits SET items=$1 WHERE id=$2`, [JSON.stringify(changed), row.id]);
       return true;
     }
@@ -247,8 +303,8 @@ export async function updateVisitItemStatus(storeId: string, visitDate: string, 
       const visitCol = tcols.find(c => ['visit_date','visitdate','date'].includes(c));
 
       if (storeCol && visitCol && statusCol && itemCol) {
-        // Update specific item row
-        const sql = `UPDATE ${tbl} SET ${statusCol}=$1 WHERE ${storeCol}=$2 AND (${visitCol}::text LIKE $3 OR ${visitCol}=$4) AND ${itemCol}=$5 RETURNING *`;
+        // Update specific item row (cast to text to avoid int/text mismatches)
+        const sql = `UPDATE ${tbl} SET ${statusCol}=$1 WHERE ${storeCol}=$2 AND (${visitCol}::text LIKE $3 OR ${visitCol}=$4) AND ${itemCol}::text = $5::text RETURNING *`;
         const res = await pool.query(sql, [status, storeId, `${visitDate}%`, visitDate, itemId]);
         if (res.rowCount > 0) return true;
       }
@@ -278,7 +334,10 @@ export async function updateVisitItemStatusByVisitId(visitId: string | number, i
       if (!row) return false;
       let items: any[] = [];
       try { items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []); } catch (err) { items = row.items || []; }
-      const changed = items.map(it => ({ ...it, status: (it.itemId === itemId || it.item_id === itemId || it.id === itemId) ? status : it.status }));
+      const changed = items.map(it => {
+        const key = String(it?.itemId ?? it?.item_id ?? it?.id ?? '');
+        return { ...it, status: key === String(itemId) ? status : it.status };
+      });
       await pool.query(`UPDATE compliance_visits SET items=$1 WHERE id=$2`, [JSON.stringify(changed), visitId]);
       return true;
     }
