@@ -63,6 +63,16 @@ const nextConfig = {
         util: false,
         buffer: false,
       };
+      // Suppress warnings from packages that use dynamic require() which are only
+      // relevant during server-side runtime (opentelemetry / require-in-the-middle).
+      config.ignoreWarnings = config.ignoreWarnings || [];
+      config.ignoreWarnings.push({
+        module: /require-in-the-middle/,
+        message: /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
+      });
+      config.ignoreWarnings.push({
+        module: /@opentelemetry/,
+      });
     }
     // Externalize pg for server-side
     if (isServer) {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { listWarranties, createWarranty, updateWarranty, deleteWarranty } from '@/lib/warranty.server';
+import { listWarranties, createWarranty, updateWarranty, deleteWarranty } from '../../../lib/warranty.server';
 
 export async function GET(req: Request) {
   try {

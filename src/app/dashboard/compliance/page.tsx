@@ -87,6 +87,7 @@ export default function CompliancePage() {
     itemId: string,
     newStatus: ComplianceStatus
   ) => {
+    // optimistic UI + persist
     setStoreData(prevData =>
       prevData.map(store => {
         if (store.storeId === storeId) {
@@ -100,6 +101,22 @@ export default function CompliancePage() {
         return store;
       })
     );
+
+    // find the scheduled visit's date for this store so the server can locate the visit row
+    const store = storeData.find(s => s.storeId === storeId);
+    const visitDateStr = store && store.visitDate ? format(new Date(store.visitDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
+
+    (async () => {
+      try {
+        await fetch('/api/compliance', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storeId, visitDate: visitDateStr, itemId, status: newStatus }),
+        });
+      } catch (err) {
+        console.error('persist status change error', err);
+      }
+    })();
   };
   
   const handleAddItem = (itemName: string) => {
@@ -148,24 +165,50 @@ export default function CompliancePage() {
         items: checklistItems.map(item => ({ itemId: item.id, status: 'pending' })),
     };
 
-    setStoreData(prev => [...prev, newVisit].sort((a, b) => new Date(a.visitDate).getTime() - new Date(b.visitDate).getTime()));
-    toast({
-        title: "Visita agendada!",
-        description: `Visita para a ${storeName} agendada em ${format(visitDate, 'dd/MM/yyyy')}.`,
-    });
-    setIsFormOpen(false);
+    // persist to API
+    (async () => {
+      try {
+        const res = await fetch('/api/compliance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newVisit),
+        });
+        if (res.ok) {
+          const created = await res.json();
+          setStoreData(prev => [...prev, created].sort((a, b) => new Date(a.visitDate).getTime() - new Date(b.visitDate).getTime()));
+          toast({ title: 'Visita agendada!', description: `Visita para a ${storeName} agendada em ${format(visitDate, 'dd/MM/yyyy')}.` });
+        } else {
+          // fallback to local
+          setStoreData(prev => [...prev, newVisit].sort((a, b) => new Date(a.visitDate).getTime() - new Date(b.visitDate).getTime()));
+          toast({ title: 'Visita agendada (local)', description: `Visita para a ${storeName} adicionada localmente.` });
+        }
+      } catch (err) {
+        console.error('schedule API error', err);
+        setStoreData(prev => [...prev, newVisit].sort((a, b) => new Date(a.visitDate).getTime() - new Date(b.visitDate).getTime()));
+        toast({ title: 'Visita agendada (local)', description: `Visita para a ${storeName} adicionada localmente.` });
+      } finally {
+        setIsFormOpen(false);
+      }
+    })();
   };
   
   const handleDeleteVisit = (storeId: string) => {
     const deletedStore = storeData.find(d => d.storeId === storeId);
     if (!deletedStore) return;
 
-    setStoreData(prevData => prevData.filter(d => d.storeId !== storeId));
-    toast({
-      variant: 'destructive',
-      title: 'Visita Removida!',
-      description: `A visita para a loja "${deletedStore.storeName}" foi removida.`,
-    });
+    (async () => {
+      try {
+        const res = await fetch(`/api/compliance?storeId=${encodeURIComponent(storeId)}&visitDate=${encodeURIComponent(deletedStore.visitDate)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete on server');
+        setStoreData(prevData => prevData.filter(d => d.storeId !== storeId));
+        toast({ variant: 'destructive', title: 'Visita Removida!', description: `A visita para a loja "${deletedStore.storeName}" foi removida.` });
+      } catch (err) {
+        console.error('delete visit error', err);
+        // fallback local delete
+        setStoreData(prevData => prevData.filter(d => d.storeId !== storeId));
+        toast({ variant: 'destructive', title: 'Visita Removida (local)', description: `Removida localmente: "${deletedStore.storeName}".` });
+      }
+    })();
   };
 
 
@@ -210,6 +253,22 @@ export default function CompliancePage() {
       }
     };
     load();
+  }, []);
+
+  // Load compliance checklist items and scheduled visits from API
+  useEffect(() => {
+    const loadCompliance = async () => {
+      try {
+        const res = await fetch('/api/compliance');
+        if (!res.ok) throw new Error('Failed to load compliance');
+        const json = await res.json();
+        setChecklistItems(Array.isArray(json.checklistItems) ? json.checklistItems : []);
+        setStoreData(Array.isArray(json.storeData) ? json.storeData : []);
+      } catch (err) {
+        console.error('loadCompliance error', err);
+      }
+    };
+    loadCompliance();
   }, []);
 
   return (
