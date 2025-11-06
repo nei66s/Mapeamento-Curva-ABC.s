@@ -15,15 +15,37 @@ const SUPPLIERS_CACHE_TTL = 5000; // ms
 const suppliersCache = new Map<string, { ts: number; data: any }>();
 
 // Optional Redis client (only created if REDIS_URL is provided)
-let redisClient: Redis | null = null;
-if (process.env.REDIS_URL) {
+// Do NOT create a global Redis client at module import time. Instead,
+// create/connect lazily per-request so connection problems don't cause
+// long-running retries during unrelated requests (see ioredis `maxRetriesPerRequest`).
+// If REDIS_URL is not set, we simply skip Redis.
+const REDIS_URL = process.env.REDIS_URL || null;
+
+async function createRedisClient() {
+  if (!REDIS_URL) return null;
+  let client: Redis | null = null;
   try {
-    redisClient = new Redis(process.env.REDIS_URL);
-    // optional: handle errors
-    redisClient.on('error', (e) => console.error('redis error', e));
+    // Use conservative retry behavior and lazyConnect so we control connect timing.
+    client = new Redis(REDIS_URL, {
+      // avoid very long automatic retries; tune as needed
+      maxRetriesPerRequest: 3,
+      lazyConnect: true,
+      // do not queue commands while offline to fail fast
+      enableOfflineQueue: false,
+    });
+    // attach a minimal error logger
+    client.on('error', (e) => console.error('redis error', e));
+    // attempt an explicit connect; if it fails we'll catch below and return null
+    await client.connect();
+    return client;
   } catch (e) {
-    console.error('Failed to initialize Redis client', e);
-    redisClient = null;
+    console.error('Failed to initialize Redis client (skipping Redis):', e);
+    try {
+      if (client) await client.disconnect();
+    } catch (_) {
+      // ignore
+    }
+    return null;
   }
 }
 
@@ -37,20 +59,32 @@ export async function GET(request: Request) {
 
     const key = `${Number.isFinite(limit) ? limit : 'all'}:${Number.isFinite(offset) ? offset : 0}`;
     const now = Date.now();
-    // Try Redis first (if configured)
-    if (redisClient) {
+    // Try Redis first (if configured). Create a client lazily and connect explicitly.
+    let client: Redis | null = null;
+    if (REDIS_URL) {
       try {
-        const rkey = `suppliers:${key}`;
-        const cachedJson = await redisClient.get(rkey);
-        if (cachedJson) {
-          return NextResponse.json(JSON.parse(cachedJson));
+        client = await createRedisClient();
+        if (client) {
+          try {
+            const rkey = `suppliers:${key}`;
+            const cachedJson = await client.get(rkey);
+            if (cachedJson) {
+              await client.disconnect();
+              return NextResponse.json(JSON.parse(cachedJson));
+            }
+            const suppliers = await listSuppliers({ limit: Number.isFinite(limit) ? limit : undefined, offset: Number.isFinite(offset) ? offset : undefined });
+            // set with TTL in seconds (ceil)
+            await client.setex(rkey, Math.ceil(SUPPLIERS_CACHE_TTL / 1000), JSON.stringify(suppliers));
+            await client.disconnect();
+            return NextResponse.json(suppliers);
+          } catch (e) {
+            console.error('Redis cache error, falling back to in-memory', e);
+            try { await client.disconnect(); } catch (_) { /* ignore */ }
+          }
         }
-        const suppliers = await listSuppliers({ limit: Number.isFinite(limit) ? limit : undefined, offset: Number.isFinite(offset) ? offset : undefined });
-        // set with TTL in seconds (ceil)
-        await redisClient.setex(rkey, Math.ceil(SUPPLIERS_CACHE_TTL / 1000), JSON.stringify(suppliers));
-        return NextResponse.json(suppliers);
       } catch (e) {
-        console.error('Redis cache error, falling back to in-memory', e);
+        console.error('Redis init error, falling back to in-memory', e);
+        try { if (client) await client.disconnect(); } catch (_) { /* ignore */ }
       }
     }
 

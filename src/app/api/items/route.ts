@@ -32,10 +32,16 @@ export async function GET() {
       return NextResponse.json(mock);
     }
 
-    // In production (or other errors) expose a small error detail to help debugging from the client
+    // In production (or other errors) expose a small, sanitized error detail to help debugging from the client
     const body: any = { error: 'Failed to load items' };
-    if (process.env.NODE_ENV !== 'production') {
-      body.detail = String(e?.message ?? e);
+    // Always provide a clear, actionable hint when the error looks like an ioredis/Redis connection
+    // issue. Keep the original message and stack in server logs only.
+    const msg = String(e?.message ?? e);
+    if (msg.includes('maxRetriesPerRequest') || msg.toLowerCase().includes('redis')) {
+      body.detail = 'Redis connection failed (max retries reached). Check REDIS_URL or Redis server availability.';
+    } else if (process.env.NODE_ENV !== 'production') {
+      // In development, expose the raw message to help debugging for other errors
+      body.detail = msg;
     }
     return NextResponse.json(body, { status: 500 });
   }

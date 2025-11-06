@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function PATCH(request: Request, context: any) {
+  const { params } = context || {};
+  const { id } = params || {};
   try {
     const body = await request.json();
     // allow updating status, received_date, file_url
@@ -35,10 +36,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 }
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, context: any) {
   // used as upload endpoint: POST /api/settlements/:id/upload would map to this if placed accordingly.
   try {
-    const { id } = params;
+    const { params } = context || {};
+    const { id } = params || {};
     const body = await request.json();
     const { fileUrl } = body as any;
     if (!fileUrl) return NextResponse.json({ error: 'fileUrl required' }, { status: 400 });
