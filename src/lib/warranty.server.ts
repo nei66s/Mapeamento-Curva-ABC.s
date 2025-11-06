@@ -100,7 +100,7 @@ export async function createWarranty(data: Partial<WarrantyItem>): Promise<Warra
       }
     }
 
-    const finalCols = Object.keys(mapping);
+  const finalCols = Object.keys(mapping || {});
     if (!finalCols.length) {
       // nothing to insert
       return null;
@@ -129,7 +129,7 @@ export async function createWarranty(data: Partial<WarrantyItem>): Promise<Warra
 export async function updateWarranty(id: string, data: Partial<WarrantyItem>): Promise<WarrantyItem | null> {
   try {
     const fields = mapToRowFields(data);
-    const cols = Object.keys(fields);
+  const cols = Object.keys(fields || {});
     const sets = cols.map((c, i) => `${c}=$${i + 1}`);
     const params = Object.values(fields);
     params.push(id);
@@ -171,7 +171,7 @@ export async function updateWarranty(id: string, data: Partial<WarrantyItem>): P
           }
         }
       }
-      const finalCols = Object.keys(mapping);
+  const finalCols = Object.keys(mapping || {});
       if (!finalCols.length) return null;
       const sets = finalCols.map((c, i) => `${c}=$${i + 1}`);
       const params = finalCols.map((c) => mapping[c]);

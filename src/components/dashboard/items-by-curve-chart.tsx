@@ -42,7 +42,8 @@ export function ItemsByCurveChart() {
       try {
         const res = await fetch('/api/items');
         if (!res.ok) {
-          let body: unknown;
+          // Try to read any error body for better debugging
+          let body: unknown = null;
           try {
             body = await res.json();
           } catch (err) {
@@ -52,7 +53,14 @@ export function ItemsByCurveChart() {
               body = null;
             }
           }
-          console.error('Failed to load items', { status: res.status, body });
+          // stringify body safely for console
+          let bodyStr: string;
+          try {
+            bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
+          } catch (e) {
+            bodyStr = String(body);
+          }
+          console.error(`Failed to load items: status=${res.status} body=${bodyStr}`);
           return;
         }
         const items: Item[] = await res.json();
@@ -67,7 +75,7 @@ export function ItemsByCurveChart() {
           { curve: 'C', items: counts.C, fill: chartConfig.C.color },
         ]);
       } catch (e) {
-        console.error(e);
+        console.error('Error loading items', e);
       }
     };
     load();

@@ -215,7 +215,7 @@ export async function scheduleVisit(data: Partial<StoreComplianceData>): Promise
       }
     }
 
-    const finalCols = Object.keys(mapping);
+    const finalCols = Object.keys(mapping || {});
     if (!finalCols.length) return null;
     // Ensure JSON/JSONB columns are passed as JSON strings (Postgres expects proper JSON text)
     const params = finalCols.map((c) => {

@@ -4,10 +4,11 @@ import { NextResponse } from 'next/server';
 
 export async function GET(
   _request: Request,
-  { params }: { params: { path?: string[] } }
+  context: any
 ) {
+  const { params } = context || {};
   try {
-    const parts = params?.path || [];
+  const parts = params?.path || [];
     // Reconstruct the relative path inside public/uploads
     const relPath = parts.join(path.sep);
     const filePath = path.join(process.cwd(), 'public', 'uploads', relPath);

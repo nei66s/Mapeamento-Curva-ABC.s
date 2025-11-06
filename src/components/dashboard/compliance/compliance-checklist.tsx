@@ -61,6 +61,11 @@ const statusLabel: Record<ComplianceStatus, string> = {
   'not-applicable': "Não Aplicável",
 };
 
+// Use an explicit statuses array instead of Object.keys at runtime.
+// This avoids accidental runtime errors if the labels object is unavailable
+// (for example due to bundling or unexpected reassignments).
+const STATUSES: ComplianceStatus[] = ['completed', 'pending', 'not-applicable'];
+
 export function ComplianceChecklist({
   checklistItems,
   storeData,
@@ -145,14 +150,14 @@ export function ComplianceChecklist({
                                             {statusIcon[currentStatus]}
                                         </button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        {(Object.keys(statusLabel) as ComplianceStatus[]).map(status => (
-                                             <DropdownMenuItem key={status} onSelect={() => onStatusChange(store.storeId, checklistItem.id, status)}>
-                                                {statusIcon[status]}
-                                                <span className="ml-2">{statusLabel[status]}</span>
-                                            </DropdownMenuItem>
-                                        ))}
-                                    </DropdownMenuContent>
+          <DropdownMenuContent>
+          {STATUSES.map(status => (
+                       <DropdownMenuItem key={status} onSelect={() => onStatusChange(store.storeId, checklistItem.id, status)}>
+                        {statusIcon[status]}
+                        <span className="ml-2">{statusLabel[status]}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
                                 </DropdownMenu>
                             </TableCell>
                             );
