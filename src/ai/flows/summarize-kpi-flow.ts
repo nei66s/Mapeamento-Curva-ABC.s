@@ -1,5 +1,4 @@
 
-"use server";
 import { z } from 'zod';
 
 // Keep schemas here (zod is safe to import) but delegate heavy Genkit work

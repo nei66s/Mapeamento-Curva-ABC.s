@@ -63,8 +63,14 @@ async function buildFlow() {
       outputSchema: KpiSummaryOutputSchema,
     },
     async (input: KpiSummaryInput) => {
-      const { output } = await kpiSummaryPrompt(input as any);
-      return output!;
+      try {
+        const { output } = await kpiSummaryPrompt(input as any);
+        return output!;
+      } catch (err: any) {
+        console.error('Error running kpiSummaryPrompt:', err);
+        // Rethrow with a friendlier message for the caller/UI
+        throw new Error('Falha ao rodar análise de IA. Verifique as credenciais e veja os logs do servidor para detalhes. ' + (err?.message ?? ''));
+      }
     }
   );
 

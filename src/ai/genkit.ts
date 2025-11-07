@@ -5,12 +5,18 @@ let _ai: any | null = null;
 
 export async function getAi() {
   if (_ai) return _ai;
-  const { genkit } = await import('genkit');
-  const { googleAI } = await import('@genkit-ai/google-genai');
-  _ai = genkit({
-    plugins: [googleAI()],
-    model: 'googleai/gemini-2.5-flash',
-  });
+  try {
+    const { genkit } = await import('genkit');
+    const { googleAI } = await import('@genkit-ai/google-genai');
+    _ai = genkit({
+      plugins: [googleAI()],
+      model: 'googleai/gemini-2.5-flash',
+    });
+  } catch (err: any) {
+    // Provide a clearer error message when Genkit / Google plugin fails to initialize
+    console.error('Failed to initialize Genkit Google plugin. Ensure Google credentials are configured (GOOGLE_API_KEY or GOOGLE_APPLICATION_CREDENTIALS). Error:', err);
+    throw err;
+  }
   return _ai;
 }
 
