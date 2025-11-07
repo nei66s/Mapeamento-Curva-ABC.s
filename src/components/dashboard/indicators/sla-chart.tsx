@@ -35,6 +35,16 @@ export function SlaChart({ data }: SlaChartProps) {
       meta: item.meta_sla,
   }));
 
+  const maxSla = Math.max(...chartData.map(d => d.sla));
+  const minSla = Math.min(...chartData.map(d => d.sla));
+  // compute Y axis domain: if min is high, start the axis a bit below it (but not below 70)
+  let yMin = Math.floor(minSla) - 5;
+  if (minSla >= 70 && yMin < 70) yMin = 70;
+  if (yMin < 0) yMin = 0;
+  let yMax = Math.ceil(maxSla) + 3;
+  if (yMax > 100) yMax = 100;
+  if (yMax <= yMin) yMax = Math.min(100, yMin + 10);
+
   return (
     <Card>
       <CardHeader>
@@ -54,11 +64,12 @@ export function SlaChart({ data }: SlaChartProps) {
                     axisLine={false}
                     tickMargin={8}
                 />
-                <YAxis 
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => `${value}%`}
-                />
+        <YAxis 
+          tickLine={false}
+          axisLine={false}
+          domain={[yMin, yMax]}
+          tickFormatter={(value) => `${value}%`}
+        />
                 <Tooltip 
                     cursor={{ strokeDasharray: '3 3' }}
                     content={
@@ -68,12 +79,12 @@ export function SlaChart({ data }: SlaChartProps) {
                                 const config = chartConfig[key];
                                 if (!config) return null;
                                 
-                                return (
-                                   <div className="flex items-center gap-2">
-                                        <div className={`w-2 h-2 rounded-full`} style={{backgroundColor: config.color}}></div>
-                                        <span>{config.label}: {Number(value).toFixed(2)}%</span>
-                                   </div>
-                                )
+                      return (
+                        <div className="flex items-center gap-2">
+                           <span className="font-medium">{config.label}:</span>
+                           <span>{Number(value).toFixed(2)}%</span>
+                        </div>
+                      )
                             }}
                         />
                     }
@@ -88,16 +99,17 @@ export function SlaChart({ data }: SlaChartProps) {
                     name="SLA Mensal"
                 >
                     <LabelList
-                        dataKey="sla"
-                        position="top"
-                        offset={4}
-                        className="fill-foreground font-medium text-xs"
-                        formatter={(value: number, index: number) => {
-                            if (index === chartData.length - 1) {
-                                return `${value}%`;
-                            }
-                            return '';
-                        }}
+            dataKey="sla"
+            position="top"
+            offset={4}
+            className="fill-foreground font-medium text-xs"
+            formatter={(value: number, index: number) => {
+              // show label only for max and min points to highlight peaks/valleys
+              if (value === maxSla || value === minSla) {
+                return `${value}%`;
+              }
+              return '';
+            }}
                     />
                 </Line>
                  <Line 

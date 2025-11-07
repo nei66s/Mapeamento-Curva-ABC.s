@@ -24,10 +24,11 @@ export default function IndicatorsPage() {
   const [indicators] = useState<MaintenanceIndicator[]>(mockMaintenanceIndicators);
   // Defensive initialization: mockMaintenanceIndicators may be empty during migration.
   // Use the last available month if present, otherwise fall back to current year-month (YYYY-MM).
+  // For development preview, default to August 2025 so Pareto shows populated data
   const lastIndicator = mockMaintenanceIndicators && mockMaintenanceIndicators.length > 0
     ? mockMaintenanceIndicators[mockMaintenanceIndicators.length - 1]
     : undefined;
-  const initialMonth = lastIndicator?.mes ?? new Date().toISOString().slice(0, 7);
+  const initialMonth = '2025-08';
   const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth);
 
   const selectedData = useMemo(() => {
@@ -80,12 +81,12 @@ export default function IndicatorsPage() {
       </PageHeader>
       
       <section>
-        <h2 className="text-2xl font-bold text-primary flex items-center gap-2 mb-4">
+        <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 flex items-center gap-3 mb-4">
             <BarChart3 />
             Indicadores Gerais
         </h2>
         <SummaryCards />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
             <div className="lg:col-span-2">
                 <ClassificationTable />
             </div>
@@ -99,11 +100,12 @@ export default function IndicatorsPage() {
 
       {selectedData && (
         <section>
-             <h2 className="text-2xl font-bold text-primary flex items-center gap-2 mb-4">
-                <LineChart />
-                Indicadores Operacionais do Mês
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+       <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 flex items-center gap-3 mb-4">
+        <LineChart />
+        Indicadores Operacionais do Mês
+      </h2>
+            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <KpiCard
                     title="SLA Mensal"
                     value={`${selectedData.sla_mensal}%`}
@@ -125,6 +127,7 @@ export default function IndicatorsPage() {
                     icon={selectedData.chamados_solucionados > selectedData.chamados_abertos ? ArrowUp : ArrowDown}
                     iconColor={selectedData.chamados_solucionados > selectedData.chamados_abertos ? 'text-green-500' : 'text-red-500'}
                 />
+              </div>
             </div>
             
             <Card className="border-primary border-2 mt-8">
@@ -143,7 +146,7 @@ export default function IndicatorsPage() {
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8">
               <CallsChart data={indicators} />
               <SlaChart data={indicatorsWithGoal} />
             </div>
