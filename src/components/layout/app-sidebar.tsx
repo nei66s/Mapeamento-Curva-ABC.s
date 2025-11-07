@@ -61,6 +61,7 @@ const navSections = [
         links: [
             { href: "/dashboard/suppliers", icon: Users, label: "Fornecedores" },
             { href: "/dashboard/suppliers/technicians", icon: ClipboardPaste, label: "Técnicos" },
+            { href: "/dashboard/vacations", icon: CalendarCheck, label: "Férias" },
             { href: "/dashboard/warranty", icon: ShieldCheck, label: "Garantias" },
             { href: "/dashboard/tools", icon: Construction, label: "Almoxarifado" },
             { href: "/dashboard/settlement", icon: Handshake, label: "Quitação" },

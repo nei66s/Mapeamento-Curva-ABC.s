@@ -1,7 +1,7 @@
 'use client';
 
 import { Bar, BarChart, CartesianGrid, ComposedChart, LabelList, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent, ChartLegendContent } from '@/components/ui/chart';
 
 interface ParetoChartProps {
   data: {
@@ -35,12 +35,12 @@ export function ParetoChart({ data }: ParetoChartProps) {
   });
 
   return (
-    <div className="h-[400px] w-full">
-      <ChartContainer config={chartConfig}>
+    <div className="h-[520px] w-full">
+      <ChartContainer config={chartConfig} aspect={false} className="h-full w-full">
         <ComposedChart
           data={chartData}
           margin={{
-            top: 20,
+            top: 60,
             right: 20,
             bottom: 40,
             left: -10,
@@ -86,7 +86,7 @@ export function ParetoChart({ data }: ParetoChartProps) {
               />
             }
           />
-          <Legend />
+          <Legend content={<ChartLegendContent />} verticalAlign="top" align="right" height={36} />
           <Bar dataKey="count" yAxisId="left" fill="var(--color-count)" radius={[4, 4, 0, 0]}>
             <LabelList dataKey="count" position="top" className="fill-foreground" fontSize={12} />
           </Bar>
