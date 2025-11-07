@@ -64,3 +64,57 @@
     -moz-osx-font-smoothing: grayscale;
   }
 }
+
+/* PDF / A4 helper styles used for html2canvas capture */
+.pdf-a4 {
+  width: 210mm;
+  min-height: 297mm;
+  background: #ffffff;
+  color: #000000;
+  box-sizing: border-box;
+  padding: 2rem;
+  font-family: serif;
+}
+
+.pdf-a4 header,
+.pdf-a4 section,
+.pdf-a4 footer {
+  break-inside: avoid;
+}
+
+/* helper to render element off-screen for html2canvas capture without inline styles */
+.printable-offscreen {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 210mm; /* ensure offscreen copy has same width */
+}
+
+/* Each visual PDF page for print preview */
+.pdf-page {
+  width: 210mm;
+  height: 297mm;
+  box-sizing: border-box;
+  padding: 20mm 16mm;
+  background: #fff;
+  color: #000;
+  page-break-after: always;
+  overflow: hidden;
+}
+
+.pdf-a4 .pdf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #1f2937;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+.pdf-a4 h1 { font-size: 18px; margin: 0; }
+.pdf-a4 h2 { font-size: 13px; margin: 0 0 6px 0; }
+.pdf-a4 p { font-size: 11px; margin: 0 0 6px 0; }
+.pdf-a4 .label { font-weight: 600; color: #374151; }
+.pdf-a4 .value { font-weight: 400; color: #111827; }
+
+.pdf-footer { position: absolute; bottom: 16mm; left: 0; right: 0; text-align: center; font-size: 10px; color: #6b7280; }

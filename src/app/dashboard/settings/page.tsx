@@ -95,7 +95,7 @@ export default function SettingsPage() {
              <RadioGroup 
                 defaultValue="default" 
                 className="flex items-center gap-4"
-                onValueChange={(value) => {
+                onValueChange={(value: string) => {
                   setDensity(value);
                   handleSettingChange('densidade', value);
                 }}

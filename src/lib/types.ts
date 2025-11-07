@@ -79,6 +79,11 @@ export type User = {
   supplierId?: string; // Associated supplier if role is 'fornecedor'
 };
 
+export type Technician = {
+  id: string;
+  name: string;
+  role?: string;
+};
 export type AgingCriticidade = {
   baixa: number;
   media: number;
@@ -170,4 +175,32 @@ export type SettlementLetter = {
   status: SettlementStatus;
   periodStartDate: string; // ISO date string
   periodEndDate: string; // ISO date string
+};
+
+// Technical report types used by the Laudos (technical reports) feature
+export type ReportStatus = 'Pendente' | 'Concluído';
+
+export type TechnicalReport = {
+  id: string;
+  title: string;
+  incidentId?: string;
+  technicianId: string;
+  details: {
+    // fields from the Technical Evaluation form
+    itemDescription?: string;
+    itemPatrimony?: string;
+    itemQuantity?: number;
+    itemLocation?: string;
+    itemState?: 'damaged' | 'partial' | 'obsolete' | 'unused';
+    problemFound: string;
+    itemDiagnosis?: string;
+    repairViable?: 'yes' | 'no';
+    repairCost?: string;
+    recommendations?: 'repair' | 'discard' | 'evaluate' | string;
+    actionsTaken?: string;
+    // who evaluated
+  // technician is referenced by technicianId on the report; name/role are stored on the Technician entity
+  };
+  createdAt: string; // ISO date
+  status: ReportStatus;
 };
