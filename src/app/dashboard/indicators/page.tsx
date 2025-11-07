@@ -1,9 +1,10 @@
 
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
-import type { MaintenanceIndicator, Incident } from '@/lib/types';
+import { mockMaintenanceIndicators, mockIncidents } from '@/lib/mock-data';
+import type { MaintenanceIndicator } from '@/lib/types';
 import { KpiCard } from '@/components/dashboard/indicators/kpi-card';
 import { CallsChart } from '@/components/dashboard/indicators/calls-chart';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,38 +21,17 @@ import { AgingChart } from '@/components/dashboard/indicators/aging-chart';
 
 
 export default function IndicatorsPage() {
-  const [indicators, setIndicators] = useState<MaintenanceIndicator[]>([]);
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState<string>('');
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [indRes, incRes] = await Promise.all([
-          fetch('/api/indicators'),
-          fetch('/api/incidents'),
-        ]);
-        if (!indRes.ok || !incRes.ok) throw new Error('Failed to load data');
-        const [indJson, incJson] = await Promise.all([
-          indRes.json(),
-          incRes.json(),
-        ]);
-        setIndicators(indJson);
-        setIncidents(incJson);
-        if (indJson.length > 0) {
-          setSelectedMonth(indJson[indJson.length - 1].mes);
-        } else {
-          setSelectedMonth('');
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    load();
-  }, []);
+  const [indicators] = useState<MaintenanceIndicator[]>(mockMaintenanceIndicators);
+  // Defensive initialization: mockMaintenanceIndicators may be empty during migration.
+  // Use the last available month if present, otherwise fall back to current year-month (YYYY-MM).
+  const lastIndicator = mockMaintenanceIndicators && mockMaintenanceIndicators.length > 0
+    ? mockMaintenanceIndicators[mockMaintenanceIndicators.length - 1]
+    : undefined;
+  const initialMonth = lastIndicator?.mes ?? new Date().toISOString().slice(0, 7);
+  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth);
 
   const selectedData = useMemo(() => {
-    return indicators.find(d => d.mes === selectedMonth);
+    return indicators.find(d => d.mes === selectedMonth) || indicators[0];
   }, [selectedMonth, indicators]);
 
   const allMonths = useMemo(() => {
@@ -69,13 +49,12 @@ export default function IndicatorsPage() {
   }, [indicators]);
   
   const incidentsForMonth = useMemo(() => {
-    if (!selectedMonth) return [] as Incident[];
     const [year, month] = selectedMonth.split('-');
-    return incidents.filter(incident => {
+    return mockIncidents.filter(incident => {
         const incidentDate = new Date(incident.openedAt);
         return incidentDate.getFullYear() === parseInt(year) && incidentDate.getMonth() === parseInt(month) - 1;
     });
-  }, [selectedMonth, incidents]);
+  }, [selectedMonth]);
 
 
   return (
@@ -85,7 +64,7 @@ export default function IndicatorsPage() {
         description="Análise consolidada dos principais indicadores de desempenho da manutenção."
       >
         <div className="flex items-center gap-2">
-      <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                 <SelectTrigger className="w-[200px]">
                     <SelectValue placeholder="Selecione o mês" />
                 </SelectTrigger>
