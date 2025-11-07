@@ -1,22 +1,25 @@
 import Link from "next/link";
 import {
-  Grid3x3,
-  Settings,
-  ListCollapse,
-  ClipboardCheck,
-  Map,
-  ClipboardList,
-  LineChart,
-  Wrench,
-  Activity,
-  Users,
-  ShieldCheck,
-  Archive,
-  FileWarning,
-  Construction,
-  Info,
-  ClipboardPaste,
-  Handshake,
+    Grid3x3,
+    Settings,
+    ListCollapse,
+    ClipboardCheck,
+    Map,
+    ClipboardList,
+    LineChart,
+    Wrench,
+    Activity,
+    Users,
+    ShieldCheck,
+    Archive,
+    FileWarning,
+    Construction,
+    Info,
+    ClipboardPaste,
+    Handshake,
+    FileText,
+    FileArchive,
+    CalendarCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -33,7 +36,8 @@ const navSections = [
         links: [
             { href: "/dashboard/incidents", icon: Activity, label: "Incidentes" },
             { href: "/dashboard/rncs", icon: FileWarning, label: "Registros de Não Conformidade" },
-            { href: "/dashboard/releases", icon: ClipboardPaste, label: "Lançamentos" },
+            { href: "/dashboard/reports", icon: FileText, label: "Laudos Técnicos" },
+            { href: "/dashboard/releases", icon: FileArchive, label: "Lançamentos" },
         ]
     },
     {
@@ -46,7 +50,7 @@ const navSections = [
     },
     {
         title: "Preventivas",
-        icon: ClipboardList,
+        icon: CalendarCheck,
         links: [
             { href: "/dashboard/compliance", icon: ClipboardCheck, label: "Preventivas" },
         ]
@@ -56,6 +60,7 @@ const navSections = [
         icon: Archive,
         links: [
             { href: "/dashboard/suppliers", icon: Users, label: "Fornecedores" },
+            { href: "/dashboard/suppliers/technicians", icon: ClipboardPaste, label: "Técnicos" },
             { href: "/dashboard/warranty", icon: ShieldCheck, label: "Garantias" },
             { href: "/dashboard/tools", icon: Construction, label: "Almoxarifado" },
             { href: "/dashboard/settlement", icon: Handshake, label: "Quitação" },
