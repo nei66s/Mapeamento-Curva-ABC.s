@@ -77,6 +77,20 @@ export type User = {
   avatarUrl?: string;
   password?: string;
   supplierId?: string; // Associated supplier if role is 'fornecedor'
+  department?: string; // optional department name used by some UI fixtures
+};
+
+export type VacationRequest = {
+  id: string;
+  userId: string;
+  userName: string;
+  userDepartment?: string;
+  status: string;
+  startDate: string; // ISO date
+  endDate: string; // ISO date
+  requestedAt?: string; // ISO date
+  userAvatarUrl?: string;
+  totalDays?: number | null;
 };
 
 export type Technician = {

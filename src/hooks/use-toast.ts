@@ -135,8 +135,19 @@ let memoryState: State = { toasts: [] }
 
 function dispatch(action: Action) {
   memoryState = reducer(memoryState, action)
-  listeners.forEach((listener) => {
-    listener(memoryState)
+  // Notify listeners asynchronously to avoid calling setState during
+  // render of components that haven't mounted yet.
+  // Use a microtask so updates are dispatched soon but after the current
+  // render phase.
+  Promise.resolve().then(() => {
+    listeners.forEach((listener) => {
+      try {
+        listener(memoryState)
+      } catch (e) {
+        // Ignore listener errors to avoid breaking other subscribers
+        // (keeps behavior resilient if a listener throws).
+      }
+    })
   })
 }
 
@@ -175,6 +186,7 @@ function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
   React.useEffect(() => {
+    // Register this hook's setState once on mount and remove on unmount.
     listeners.push(setState)
     return () => {
       const index = listeners.indexOf(setState)
@@ -182,7 +194,7 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+  }, [])
 
   return {
     ...state,
