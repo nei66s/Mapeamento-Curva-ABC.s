@@ -25,7 +25,7 @@ export async function runGetHolidays(year: number, month: number): Promise<Holid
   }));
 }
 
-export function getHolidaysTool() {
+export async function getHolidaysTool() {
   // If a Genkit tool object is required, construct it lazily here using getAi.
   // Many flows won't need this; they can call runGetHolidays directly.
   return {
