@@ -3,16 +3,6 @@ import { useState, useEffect } from 'react';
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from '@/hooks/use-toast';
-// Users are now loaded from the server API
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Select,
@@ -52,58 +42,19 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { UserForm, UserFormData } from '@/components/dashboard/admin/user-form';
+import { PermissionsMatrix } from '@/components/dashboard/admin/permissions-matrix';
+import { cloneDefaultPermissions, moduleDefinitions, roleList } from '@/lib/permissions-config';
 
 
 const currentUserRole: UserRole = 'admin';
 const currentUserId = 'user-001';
 
-const roles: UserRole[] = ['admin', 'gestor', 'regional', 'visualizador', 'fornecedor'];
-
-const modules = [
-    { id: 'indicators', label: 'Painel de Indicadores' },
-    { id: 'releases', label: 'Lançamentos Mensais' },
-    { id: 'incidents', label: 'Registro de Incidentes' },
-    { id: 'rncs', label: 'Registros de Não Conformidade' },
-    { id: 'categories', label: 'Categorias de Itens' },
-    { id: 'matrix', label: 'Matriz de Itens' },
-    { id: 'compliance', label: 'Cronograma de Preventivas' },
-    { id: 'suppliers', label: 'Gestão de Fornecedores' },
-    { id: 'warranty', label: 'Controle de Garantias' },
-    { id: 'tools', label: 'Almoxarifado de Ferramentas' },
-    { id: 'settlement', label: 'Cartas de Quitação' },
-    { id: 'profile', label: 'Meu Perfil' },
-    { id: 'settings', label: 'Configurações' },
-    { id: 'about', label: 'Sobre a Plataforma' },
-];
-
-const initialPermissions: Record<UserRole, Record<string, boolean>> = {
-  admin: Object.fromEntries(modules.map(m => [m.id, true])),
-  gestor: {
-    'indicators': true, 'releases': true, 'incidents': true, 'rncs': true,
-    'categories': true, 'matrix': true, 'compliance': true, 'suppliers': true,
-    'warranty': true, 'tools': true, 'settlement': true, 'profile': true, 'settings': true, 'about': true,
-  },
-  regional: {
-    'indicators': true, 'releases': false, 'incidents': true, 'rncs': true,
-    'categories': false, 'matrix': true, 'compliance': true, 'suppliers': false,
-    'warranty': true, 'tools': true, 'settlement': false, 'profile': true, 'settings': true, 'about': true,
-  },
-  visualizador: {
-    'indicators': true, 'releases': false, 'incidents': false, 'rncs': false,
-    'categories': false, 'matrix': false, 'compliance': false, 'suppliers': false,
-    'warranty': false, 'tools': false, 'settlement': false, 'profile': true, 'settings': false, 'about': true,
-  },
-  fornecedor: {
-    'indicators': false, 'releases': false, 'incidents': false, 'rncs': false,
-    'categories': false, 'matrix': false, 'compliance': false, 'suppliers': false,
-    'warranty': false, 'tools': false, 'settlement': true, 'profile': true, 'settings': true, 'about': true,
-  },
-};
+const roles: UserRole[] = roleList;
 
 
 export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const [permissions, setPermissions] = useState(initialPermissions);
+  const [permissions, setPermissions] = useState(() => cloneDefaultPermissions());
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const { toast } = useToast();
   const [isUserFormOpen, setIsUserFormOpen] = useState(false);
@@ -116,6 +67,7 @@ export default function AdminPage() {
         setSuppliers(Array.isArray(data) ? data : []);
       } catch (e) {
         console.error('Failed to load suppliers', e);
+        toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao carregar fornecedores.' });
       }
     };
     loadSuppliers();
@@ -130,17 +82,41 @@ export default function AdminPage() {
         console.error('Failed to load users', e);
         // fallback to empty array
         setUsers([]);
+        toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao carregar usuários.' });
       }
     };
     loadUsers();
+    // load persisted permissions
+    const loadPermissions = async () => {
+      try {
+        const res = await fetch('/api/permissions');
+        if (res.ok) {
+          const json = await res.json();
+          const serverPerms = (json && json.permissions) || {};
+          const merged = cloneDefaultPermissions();
+          (Object.keys(serverPerms) as UserRole[]).forEach(role => {
+            if (!merged[role]) merged[role] = {};
+            Object.keys(serverPerms[role]).forEach(moduleId => {
+              merged[role][moduleId] = Boolean(serverPerms[role][moduleId]);
+            });
+          });
+          setPermissions(merged);
+        }
+      } catch (e) {
+        console.error('Failed to load permissions', e);
+      }
+    };
+    loadPermissions();
   }, []);
 
-  const handleRoleChange = (userId: string, newRole: UserRole) => {
-    setUsers(users.map(u => (u.id === userId ? { ...u, role: newRole, supplierId: newRole === 'fornecedor' ? u.supplierId : undefined } : u)));
-    toast({
-      title: 'Perfil Atualizado!',
-      description: `O perfil do usuário foi atualizado para ${newRole}.`,
-    });
+  const handleRoleChange = async (userId: string, newRole: UserRole) => {
+    setUsers(prev => prev.map(u => (u.id === userId ? { ...u, role: newRole, supplierId: newRole === 'fornecedor' ? u.supplierId : undefined } : u)));
+    try {
+      await fetch('/api/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: userId, role: newRole }) });
+    } catch (e) {
+      console.error('update role failed', e);
+    }
+    toast({ title: 'Perfil Atualizado!', description: `O perfil do usuário foi atualizado para ${newRole}.` });
   };
 
   const handlePermissionChange = (role: UserRole, moduleId: string, checked: boolean) => {
@@ -158,49 +134,62 @@ export default function AdminPage() {
       title: 'Permissão Alterada!',
       description: `O acesso do perfil ${role} ao módulo foi ${checked ? 'concedido' : 'revogado'}.`,
     });
+    // persist to API (fire-and-forget)
+    (async () => {
+      try {
+        await fetch('/api/permissions', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role, moduleId, allowed: Boolean(checked) }) });
+      } catch (e) {
+        console.error('Failed to persist permission', e);
+      }
+    })();
   };
 
-  const handleAddUser = (data: UserFormData) => {
-    const newUser: User = {
-        id: `user-${Date.now()}`,
+  const handleAddUser = async (data: UserFormData) => {
+    try {
+      const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
         name: data.name,
         email: data.email,
         password: data.password,
         role: data.role,
         supplierId: data.role === 'fornecedor' ? data.supplierId : undefined,
         avatarUrl: `https://picsum.photos/seed/user${users.length + 1}/100/100`,
-    };
-    setUsers(prev => [newUser, ...prev]);
-    setIsUserFormOpen(false);
-    toast({
-        title: "Usuário Criado!",
-        description: `O usuário ${data.name} foi adicionado com sucesso.`
-    });
+      })});
+      if (!res.ok) throw new Error('create failed');
+      const created: User = await res.json();
+      setUsers(prev => [created, ...prev]);
+      setIsUserFormOpen(false);
+      toast({ title: 'Usuário Criado!', description: `O usuário ${data.name} foi adicionado com sucesso.` });
+    } catch (e) {
+      console.error('create user failed', e);
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível criar o usuário.' });
+    }
   };
 
-  const handleResetPassword = (userId: string) => {
+  const handleResetPassword = async (userId: string) => {
     const user = users.find(u => u.id === userId);
     if (!user) return;
-    
-    // In a real app, this would be an API call
     const newPassword = 'paguemenos';
-    user.password = newPassword;
-    toast({
-      title: 'Senha Redefinida!',
-      description: `A senha de ${user.name} foi redefinida para "${newPassword}".`,
-    });
+    try {
+      await fetch('/api/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: userId, password: newPassword }) });
+      toast({ title: 'Senha Redefinida!', description: `A senha de ${user.name} foi redefinida para "${newPassword}".` });
+    } catch (e) {
+      console.error('reset password failed', e);
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível redefinir a senha.' });
+    }
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     const userToDelete = users.find(u => u.id === userId);
     if (!userToDelete) return;
-
-    setUsers(prev => prev.filter(u => u.id !== userId));
-    toast({
-        variant: 'destructive',
-        title: "Usuário Excluído!",
-        description: `O usuário ${userToDelete.name} foi removido do sistema.`
-    });
+    try {
+      const res = await fetch(`/api/users?id=${encodeURIComponent(String(userId))}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('delete failed');
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      toast({ variant: 'destructive', title: 'Usuário Excluído!', description: `O usuário ${userToDelete.name} foi removido do sistema.` });
+    } catch (e) {
+      console.error('delete user failed', e);
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível excluir o usuário.' });
+    }
   };
 
   if (currentUserRole !== 'admin') {
@@ -234,32 +223,13 @@ export default function AdminPage() {
           <CardDescription>Defina quais módulos cada perfil de usuário pode acessar.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[250px]">Módulo</TableHead>
-                {roles.map(role => (
-                  <TableHead key={role} className="text-center capitalize">{role}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {modules.map(module => (
-                <TableRow key={module.id}>
-                  <TableCell className="font-medium">{module.label}</TableCell>
-                  {roles.map(role => (
-                    <TableCell key={role} className="text-center">
-                      <Checkbox 
-                        checked={permissions[role]?.[module.id] ?? false}
-                        onCheckedChange={(checked) => handlePermissionChange(role, module.id, Boolean(checked))}
-                        disabled={role === 'admin'}
-                      />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <PermissionsMatrix
+            permissions={permissions}
+            roles={roles}
+            modules={moduleDefinitions}
+            onToggle={handlePermissionChange}
+            disabledRoles={['admin']}
+          />
         </CardContent>
       </Card>
 

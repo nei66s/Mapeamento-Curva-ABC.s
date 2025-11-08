@@ -65,6 +65,12 @@ export default function IncidentsPage() {
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
 
+  useEffect(() => {
+    if (!isFormOpen) {
+      setSelectedIncident(null);
+    }
+  }, [isFormOpen]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilters, setStatusFilters] = useState<Set<IncidentStatus>>(new Set());
   const [classificationFilters, setClassificationFilters] = useState<Set<Classification>>(new Set());
@@ -154,59 +160,52 @@ export default function IncidentsPage() {
     }).sort((a, b) => new Date(b.openedAt).getTime() - new Date(a.openedAt).getTime());
   }, [incidents, searchTerm, statusFilters, classificationFilters, itemsMap]);
 
-  const handleFormSubmit = (values: Omit<Incident, 'id' | 'openedAt' | 'status'|'lat'|'lng'>) => {
+  const handleFormSubmit = async (values: Omit<Incident, 'id' | 'openedAt' | 'status'|'lat'|'lng'>) => {
     const store = stores.find(s => s.name === values.location);
-
-    if (selectedIncident) {
-      const updatedIncident = { 
-        ...selectedIncident, 
-        ...values,
-        lat: store?.lat || selectedIncident.lat,
-        lng: store?.lng || selectedIncident.lng,
-      };
-      setIncidents(incidents.map(inc => inc.id === selectedIncident.id ? updatedIncident : inc));
-      toast({
-        title: 'Incidente Atualizado!',
-        description: `O incidente para o item "${values.itemName}" foi atualizado.`,
-      });
-    } else {
-      const newIncident: Incident = {
-        ...values,
-        id: `INC-${Date.now()}`,
-        openedAt: new Date().toISOString(),
-        status: 'Aberto',
-        lat: store?.lat || 0,
-        lng: store?.lng || 0,
-      };
-      setIncidents([newIncident, ...incidents]);
-      toast({
-        title: 'Incidente Registrado!',
-        description: `O incidente para o item "${values.itemName}" foi aberto.`,
-      });
+    try {
+      if (selectedIncident) {
+        const body = {
+          id: selectedIncident.id,
+          ...values,
+          lat: store?.lat || selectedIncident.lat || 0,
+          lng: store?.lng || selectedIncident.lng || 0,
+        } as any;
+        const res = await fetch('/api/incidents', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!res.ok) throw new Error('update failed');
+        const updated: Incident = await res.json();
+        setIncidents(prev => prev.map(inc => inc.id === updated.id ? updated : inc));
+        setSelectedIncident(updated);
+        toast({ title: 'Incidente Atualizado!', description: `O incidente para o item "${values.itemName}" foi atualizado.` });
+      } else {
+        const body = { ...values, lat: store?.lat || 0, lng: store?.lng || 0 } as any;
+        const res = await fetch('/api/incidents', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (!res.ok) throw new Error('create failed');
+        const created: Incident = await res.json();
+        setIncidents(prev => [created, ...prev]);
+        setSelectedIncident(created);
+        toast({ title: 'Incidente Registrado!', description: `O incidente para o item "${values.itemName}" foi aberto.` });
+      }
+    } catch (err) {
+      console.error('incident save error', err);
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar o incidente.' });
     }
-    
-    setIsFormOpen(false);
-    setSelectedIncident(null);
   };
   
-  const handleBulkSubmit = (newIncidents: Omit<Incident, 'id' | 'openedAt' | 'status'>[]) => {
-      const incidentsToAdd: Incident[] = newIncidents.map(inc => {
-          const store = stores.find(s => s.name === inc.location);
-          return {
-            ...inc,
-            id: `INC-${Date.now()}-${Math.random()}`,
-            openedAt: new Date().toISOString(),
-            status: 'Aberto',
-            lat: store?.lat || 0,
-            lng: store?.lng || 0,
-          }
-      });
-      setIncidents(prev => [...incidentsToAdd, ...prev]);
-      toast({
-          title: 'Incidentes Registrados!',
-          description: `${incidentsToAdd.length} novos incidentes foram adicionados.`
-      });
-      setIsBulkFormOpen(false);
+  const handleBulkSubmit = async (newIncidents: Omit<Incident, 'id' | 'openedAt' | 'status'>[]) => {
+    const created: Incident[] = [];
+    for (const inc of newIncidents) {
+      try {
+        const store = stores.find(s => s.name === inc.location);
+        const body = { ...inc, lat: store?.lat || 0, lng: store?.lng || 0 } as any;
+        const res = await fetch('/api/incidents', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (res.ok) created.push(await res.json());
+      } catch (e) {
+        console.error('bulk create incident failed', e);
+      }
+    }
+    setIncidents(prev => [...created, ...prev]);
+    toast({ title: 'Incidentes Registrados!', description: `${created.length} novos incidentes foram adicionados.` });
+    setIsBulkFormOpen(false);
   }
 
 
@@ -225,12 +224,14 @@ export default function IncidentsPage() {
     setIsAnalysisOpen(true);
   }
   
-  const handleChangeStatus = (incidentId: string, newStatus: IncidentStatus) => {
-    setIncidents(incidents.map(inc => inc.id === incidentId ? { ...inc, status: newStatus } : inc));
-    toast({
-      title: 'Status Atualizado!',
-      description: `O status do incidente foi alterado para "${newStatus}".`,
-    });
+  const handleChangeStatus = async (incidentId: string, newStatus: IncidentStatus) => {
+    setIncidents(prev => prev.map(inc => inc.id === incidentId ? { ...inc, status: newStatus } : inc));
+    try {
+      await fetch('/api/incidents', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: incidentId, status: newStatus }) });
+    } catch (e) {
+      console.error('persist status failed', e);
+    }
+    toast({ title: 'Status Atualizado!', description: `O status do incidente foi alterado para "${newStatus}".` });
   };
 
   const toggleFilter = <T,>(set: Set<T>, value: T) => {

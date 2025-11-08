@@ -23,8 +23,7 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ReportForm } from '@/components/dashboard/reports/report-form';
-import { mockTechnicalReports, mockIncidents } from '@/lib/mock-data';
-import type { TechnicalReport } from '@/lib/types';
+import type { TechnicalReport, Incident } from '@/lib/types';
 import { PlusCircle, Clock, Download, Workflow, User, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -34,53 +33,70 @@ import html2canvas from 'html2canvas';
 import { ReportPdfDocument } from '@/components/dashboard/reports/report-pdf-document';
 
 export default function ReportsPage() {
-  const [reports, setReports] = useState<TechnicalReport[]>(mockTechnicalReports);
+  const [reports, setReports] = useState<TechnicalReport[]>([]);
   const [technicians, setTechnicians] = useState<Array<{id:string;name:string;role?:string}>>([]);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<TechnicalReport | null>(null);
   const { toast } = useToast();
   const [reportToPrint, setReportToPrint] = useState<TechnicalReport | null>(null);
 
   const usersMap = useMemo(() => new Map(technicians.map(u => [u.id, u.name])), [technicians]);
-  const incidentsMap = useMemo(() => new Map(mockIncidents.map(i => [i.id, i])), []);
+  const incidentsMap = useMemo(() => new Map(incidents.map(i => [i.id, i])), [incidents]);
   const techRoleMap = useMemo(() => new Map(technicians.map(t => [t.id, t.role])), [technicians]);
 
-  // fetch technicians from API on mount
+  // fetch technicians, reports and incidents from API on mount
   useEffect(() => {
     let mounted = true;
-    fetch('/api/technicians')
-      .then(r => r.json())
-      .then((data) => {
+    (async () => {
+      try {
+        const [techRes, repRes, incRes] = await Promise.all([
+          fetch('/api/technicians'),
+          fetch('/api/reports'),
+          fetch('/api/incidents'),
+        ]);
         if (!mounted) return;
-        setTechnicians(Array.isArray(data) ? data : []);
-      })
-      .catch(() => setTechnicians([]));
+        const [tech, rep, inc] = await Promise.all([
+          techRes.json().catch(() => []),
+          repRes.json().catch(() => []),
+          incRes.json().catch(() => []),
+        ]);
+        setTechnicians(Array.isArray(tech) ? tech : []);
+        setReports(Array.isArray(rep) ? rep : []);
+        setIncidents(Array.isArray(inc) ? inc : []);
+      } catch (err) {
+        if (!mounted) return;
+        setTechnicians([]);
+        setReports([]);
+        setIncidents([]);
+        toast({ variant: 'destructive', title: 'Falha ao carregar laudos', description: 'Não foi possível carregar dados de laudos e técnicos.' });
+      }
+    })();
     return () => { mounted = false; };
   }, []);
 
-  const handleFormSubmit = (values: Omit<TechnicalReport, 'id' | 'createdAt' | 'status'>) => {
-    if (selectedReport) {
-      const updatedReport = { ...selectedReport, ...values };
-      setReports(reports.map(rep => (rep.id === selectedReport.id ? updatedReport : rep)));
-      toast({
-        title: 'Laudo Atualizado!',
-        description: `O laudo "${values.title}" foi atualizado com sucesso.`,
-      });
-    } else {
-      const newReport: TechnicalReport = {
-        ...values,
-        id: `LTD-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        status: 'Pendente',
-      };
-      setReports([newReport, ...reports]);
-      toast({
-        title: 'Laudo Técnico Criado!',
-        description: `O laudo "${values.title}" foi registrado com sucesso.`,
-      });
+  const handleFormSubmit = async (values: Omit<TechnicalReport, 'id' | 'createdAt' | 'status'>) => {
+    try {
+      if (selectedReport) {
+        const res = await fetch('/api/reports', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: selectedReport.id, ...values }) });
+        if (!res.ok) throw new Error('Failed to update report');
+        const updated: TechnicalReport = await res.json();
+        setReports(prev => prev.map(r => r.id === updated.id ? updated : r));
+        toast({ title: 'Laudo Atualizado!', description: `O laudo "${values.title}" foi atualizado com sucesso.` });
+      } else {
+        const res = await fetch('/api/reports', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(values) });
+        if (!res.ok) throw new Error('Failed to create report');
+        const created: TechnicalReport = await res.json();
+        setReports(prev => [created, ...prev]);
+        toast({ title: 'Laudo Técnico Criado!', description: `O laudo "${values.title}" foi registrado com sucesso.` });
+      }
+    } catch (err) {
+      console.error('report save error', err);
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar o laudo.' });
+    } finally {
+      setIsFormOpen(false);
+      setSelectedReport(null);
     }
-    setIsFormOpen(false);
-    setSelectedReport(null);
   };
   
   // status removed per request — no-op for completion
@@ -181,8 +197,8 @@ export default function ReportsPage() {
                 </DialogHeader>
                 <ReportForm
                     report={selectedReport}
-                    incidents={mockIncidents}
-          technicians={technicians}
+                    incidents={incidents}
+                    technicians={technicians}
                     onSubmit={handleFormSubmit}
                     onCancel={() => setIsFormOpen(false)}
                 />

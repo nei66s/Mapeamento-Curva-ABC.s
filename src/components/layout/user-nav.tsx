@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,41 +11,31 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { mockUsers } from "@/lib/users";
 import Link from 'next/link';
+import { useCurrentUser } from '@/hooks/use-current-user';
 
 export function UserNav() {
-  // Start with undefined so server and initial client render match
-  const [user, setUser] = useState<any | undefined>(undefined);
+  const { user, setUser } = useCurrentUser();
 
   useEffect(() => {
-    // keep in sync if localStorage changes in the session
-    try {
-      const handleStorage = () => {
-        try {
-          const raw = localStorage.getItem('pm_user');
-          if (raw) {
-            setUser(JSON.parse(raw));
-            return;
-          }
-        } catch (e) {
-          // ignore parse errors
+    const handleStorage = () => {
+      try {
+        const raw = localStorage.getItem('pm_user');
+        if (raw) {
+          setUser(JSON.parse(raw));
+        } else {
+          setUser(null);
         }
-
-        // Fallback for dev: use mockUsers only after mount (so it doesn't affect SSR)
-        const fallback = mockUsers.find((u) => u.role === 'admin');
-        if (fallback) setUser(fallback);
-      };
-
-      // Read once on mount (no storage event fires in same window)
-      handleStorage();
-
+      } catch (err) {
+        console.warn('Failed to sync pm_user from storage', err);
+      }
+    };
+    if (typeof window !== 'undefined') {
       window.addEventListener('storage', handleStorage);
       return () => window.removeEventListener('storage', handleStorage);
-    } catch (e) {
-      // ignore
     }
-  }, []);
+    return () => {};
+  }, [setUser]);
 
   return (
     <DropdownMenu>
@@ -57,7 +47,7 @@ export function UserNav() {
         >
           <Avatar className="h-8 w-8">
             {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt="User avatar" data-ai-hint="person avatar"/>}
-            <AvatarFallback>{user ? user.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+            <AvatarFallback>{user?.name ? user.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>

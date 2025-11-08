@@ -21,7 +21,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { SettlementForm } from '@/components/dashboard/settlement/settlement-form';
 import type { SettlementLetter, SettlementStatus, User, Supplier } from '@/lib/types';
-import { mockUsers } from '@/lib/users';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import { PlusCircle, Clock, Check, Download, Handshake, UploadCloud } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -29,6 +29,7 @@ import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { SettlementPdfDocument } from '@/components/dashboard/settlement/settlement-pdf-document';
+import styles from './settlement-page.module.css';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const statusVariantMap: Record<SettlementStatus, 'success' | 'accent'> = {
@@ -36,21 +37,15 @@ const statusVariantMap: Record<SettlementStatus, 'success' | 'accent'> = {
   Pendente: 'accent',
 };
 
-// Mock a logged-in user. In a real app, this would come from an auth context.
-const getCurrentUser = (): User | undefined => {
-    // To test the supplier view, change this to 'user-006'
-    return mockUsers.find(u => u.id === 'user-001'); 
-};
-
-
 export default function SettlementPage() {
+  const { user: authUser } = useCurrentUser();
   const [letters, setLetters] = useState<SettlementLetter[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [letterToPrint, setLetterToPrint] = useState<SettlementLetter | null>(null);
   const { toast } = useToast();
   
-  const currentUser = getCurrentUser();
+  const currentUser = authUser;
 
   useEffect(() => {
     const loadAll = async () => {
@@ -271,7 +266,7 @@ export default function SettlementPage() {
         </Tabs>
       
       {letterToPrint && (
-        <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+        <div className={styles.offscreen}>
           <SettlementPdfDocument 
             letter={letterToPrint} 
             supplier={suppliers.find((s: Supplier) => s.id === letterToPrint.supplierId)}

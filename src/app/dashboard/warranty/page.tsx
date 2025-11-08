@@ -72,10 +72,10 @@ export default function WarrantyPage() {
           fetch('/api/items'),
         ]);
         const [w, s, st, i] = await Promise.all([
-          wRes.json(),
-          sRes.json(),
-          stRes.json(),
-          iRes.json(),
+          wRes.json().catch(() => []),
+          sRes.json().catch(() => []),
+          stRes.json().catch(() => []),
+          iRes.json().catch(() => []),
         ]);
         setWarrantyItems(Array.isArray(w) ? w : []);
         setSuppliers(Array.isArray(s) ? s : []);
@@ -83,6 +83,7 @@ export default function WarrantyPage() {
         setCatalogItems(Array.isArray(i) ? i : []);
       } catch (e) {
         console.error('Failed to load warranty dependencies', e);
+        toast({ variant: 'destructive', title: 'Falha ao carregar dados', description: 'Não foi possível carregar garantias e dependências.' });
       }
     };
     loadAll();

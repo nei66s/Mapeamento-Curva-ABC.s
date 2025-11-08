@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getUsers, createUser, updateUser } from '@/lib/users.server';
+import { getUsers, createUser, updateUser, deleteUser } from '@/lib/users.server';
 
 type UpdatePayload = {
   id?: string;
@@ -7,6 +7,9 @@ type UpdatePayload = {
   email?: string;
   avatarUrl?: string | null;
   role?: string;
+  supplierId?: string | null;
+  department?: string | null;
+  password?: string | null;
 };
 
 export async function GET() {
@@ -24,13 +27,14 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, role = 'admin', avatarUrl } = body;
+    const { name, email, role = 'admin', avatarUrl, supplierId, department, password = '' } = body;
     if (!name || !email) {
       return NextResponse.json({ error: 'Nome e email são obrigatórios.' }, { status: 400 });
     }
 
-    const created = await createUser({ name, email, role, password: '', avatarUrl });
-    const { password, ...safe } = created as any;
+  const created = await createUser({ name, email, role, password, avatarUrl, supplierId, department });
+  // Avoid shadowing the earlier `password` variable by aliasing during destructure
+  const { password: _omitted, ...safe } = created as any;
     return NextResponse.json(safe, { status: 201 });
   } catch (error) {
     console.error('Erro ao criar usuário:', error);
@@ -52,5 +56,19 @@ export async function PUT(request: Request) {
   } catch (error) {
     console.error('Erro ao atualizar usuário:', error);
     return NextResponse.json({ error: 'Erro ao atualizar usuário' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'id é obrigatório' }, { status: 400 });
+    const ok = await deleteUser(id);
+    if (!ok) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error('Erro ao excluir usuário:', error);
+    return NextResponse.json({ error: 'Erro ao excluir usuário' }, { status: 500 });
   }
 }

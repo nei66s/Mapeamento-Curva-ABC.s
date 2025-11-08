@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import type { MaintenanceIndicator } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -21,6 +21,16 @@ export default function ReleasesPage() {
   const [annualSlaGoal, setAnnualSlaGoal] = useState<number>(80);
   const [isAddMonthOpen, setIsAddMonthOpen] = useState(false);
   const { toast } = useToast();
+  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const summarizeCriticidade = (aging: MaintenanceIndicator['aging']) => {
+    return {
+      baixa: aging.inferior_30.baixa + aging.entre_30_60.baixa + aging.entre_60_90.baixa + aging.superior_90.baixa,
+      media: aging.inferior_30.media + aging.entre_30_60.media + aging.entre_60_90.media + aging.superior_90.media,
+      alta: aging.inferior_30.alta + aging.entre_30_60.alta + aging.entre_60_90.alta + aging.superior_90.alta,
+      muito_alta: aging.inferior_30.muito_alta + aging.entre_30_60.muito_alta + aging.entre_60_90.muito_alta + aging.superior_90.muito_alta,
+    } as MaintenanceIndicator['criticidade'];
+  };
 
   useEffect(() => {
     const loadIndicators = async () => {
@@ -31,6 +41,7 @@ export default function ReleasesPage() {
         if (Array.isArray(data) && data.length > 0) {
           const last = data[data.length - 1];
           if (last?.mes) setSelectedMonth(last.mes);
+          if (typeof last?.meta_sla === 'number') setAnnualSlaGoal(last.meta_sla);
         }
       } catch (e) {
         console.error('Failed to load indicators', e);
@@ -62,7 +73,7 @@ export default function ReleasesPage() {
     }
 
     const newIndicator: MaintenanceIndicator = {
-        id: String(indicators.length + 1),
+        id: monthString,
         mes: monthString,
         sla_mensal: 0,
         meta_sla: annualSlaGoal,
@@ -81,21 +92,75 @@ export default function ReleasesPage() {
         prioridade: { baixa: 0, media: 0, alta: 0, muito_alta: 0 },
     };
 
-    setIndicators(prev => [...prev, newIndicator].sort((a, b) => new Date(a.mes).getTime() - new Date(b.mes).getTime()));
-    setIsAddMonthOpen(false);
-    toast({
-        title: 'Mês Adicionado!',
-        description: `O mês ${new Date(monthString + '-02').toLocaleString('default', { month: 'long', year: 'numeric' })} foi adicionado.`,
-    });
+    // Persist to backend then update local state
+    (async () => {
+      try {
+        const res = await fetch('/api/indicators', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newIndicator),
+        });
+        const saved = await res.json();
+        setIndicators(prev => [...prev, saved].sort((a, b) => new Date(a.mes).getTime() - new Date(b.mes).getTime()));
+        setIsAddMonthOpen(false);
+        toast({
+          title: 'Mês Adicionado!',
+          description: `O mês ${new Date(monthString + '-02').toLocaleString('default', { month: 'long', year: 'numeric' })} foi adicionado.`,
+        });
+      } catch (err) {
+        console.error('Failed to save new month', err);
+        toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao salvar o mês no servidor.' });
+      }
+    })();
   };
   
-  const handleAgingUpdate = (updatedAging: MaintenanceIndicator['aging']) => {
-    setIndicators(prevIndicators => prevIndicators.map(indicator => 
-        indicator.mes === selectedMonth 
-        ? { ...indicator, aging: updatedAging } 
-        : indicator
-    ));
+  const scheduleSave = (updated: MaintenanceIndicator) => {
+    const key = updated.mes;
+    if (saveTimers.current[key]) clearTimeout(saveTimers.current[key]);
+    saveTimers.current[key] = setTimeout(async () => {
+      try {
+        await fetch('/api/indicators', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updated),
+        });
+      } catch (err) {
+        console.error('autosave error', err);
+      } finally {
+        delete saveTimers.current[key];
+      }
+    }, 500);
   };
+
+  const handleAgingUpdate = (updatedAging: MaintenanceIndicator['aging']) => {
+    setIndicators(prevIndicators => {
+      const next = prevIndicators.map(indicator => 
+        indicator.mes === selectedMonth 
+        ? { ...indicator, aging: updatedAging, criticidade: summarizeCriticidade(updatedAging) } 
+        : indicator
+      );
+      const updated = next.find(i => i.mes === selectedMonth);
+      if (updated) scheduleSave(updated);
+      return next;
+    });
+  };
+
+  // Autosave updates from SLA and Calls tables
+  const handleItemChange = (updated: MaintenanceIndicator) => {
+    scheduleSave(updated);
+  };
+
+  // When meta anual muda, aplica a todos os meses e salva automaticamente (debounced por mês)
+  useEffect(() => {
+    setIndicators(prev => {
+      const changed = prev.some(i => i.meta_sla !== annualSlaGoal);
+      if (!changed) return prev;
+      const next = prev.map(i => ({ ...i, meta_sla: annualSlaGoal }));
+      next.forEach(ind => scheduleSave(ind));
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [annualSlaGoal]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -144,11 +209,19 @@ export default function ReleasesPage() {
                   setData={setIndicators} 
                   annualSlaGoal={annualSlaGoal}
                   setAnnualSlaGoal={setAnnualSlaGoal}
+                  onChangeItem={handleItemChange}
                 />
-                <EditableCallsTable data={indicators} setData={setIndicators} />
+                <EditableCallsTable 
+                  data={indicators} 
+                  setData={setIndicators} 
+                  onChangeItem={handleItemChange}
+                />
             </div>
             <div >
-                <EditableAgingTableByCriticism indicator={selectedData} onUpdate={handleAgingUpdate} />
+                <EditableAgingTableByCriticism 
+                  indicator={selectedData} 
+                  onUpdate={handleAgingUpdate} 
+                />
             </div>
         </section>
       )}

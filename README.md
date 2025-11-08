@@ -62,3 +62,16 @@ Se quiser, eu abro um PR com essa alteração e uma pequena descrição do commi
 ---
 
 Última modificação: correção aplicada na branch atual. Se precisar que eu mova isso para outra branch ou crie um PR, diga o destino (ex: `main` ou `develop`).
+
+## Remoção de avatar de usuário
+
+Foi adicionada a funcionalidade para remover a foto de perfil (avatar) de um usuário.
+
+- Endpoint: `DELETE /api/users/avatar?id=<USER_ID>`
+- Comportamento do backend:
+  - Busca o usuário pelo `id`.
+  - Se a URL do avatar apontar para `public/uploads/...`, tenta apagar o arquivo físico com segurança.
+  - Atualiza o registro do usuário definindo `avatarUrl = NULL`.
+  - Retorna o usuário atualizado (sem a senha).
+
+No front-end (página "Meu Perfil"), há um botão "Remover Foto" que chama esse endpoint e atualiza o estado do usuário imediatamente.
