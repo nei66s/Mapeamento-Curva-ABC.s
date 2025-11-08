@@ -157,7 +157,34 @@ export function VacationPageComponent({ initialVacations, allUsers }: VacationPa
     }
 
 
-    const newVacation: VacationRequest = {
+    try {
+      const res = await fetch('/api/vacations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: data.userId, startDate: data.startDate, endDate: data.endDate, totalDays }),
+      });
+      let created: VacationRequest | null = null;
+      if (res.ok) {
+        created = await res.json();
+      } else {
+        // fallback local if API falhar
+        created = {
+          ...data,
+          id: `vac-${Date.now()}`,
+          requestedAt: new Date().toISOString(),
+          status: 'Aprovado',
+          userName: user.name,
+          userDepartment: user.department || 'N/A',
+          userAvatarUrl: user.avatarUrl,
+          totalDays,
+        } as VacationRequest;
+      }
+      setAllVacations(prev => [...prev, created!]);
+      setIsFormOpen(false);
+      toast({ title: 'Férias Agendadas!', description: `As férias de ${user.name} foram agendadas com sucesso.` });
+    } catch (e) {
+      console.error('create vacation error', e);
+      const local: VacationRequest = {
         ...data,
         id: `vac-${Date.now()}`,
         requestedAt: new Date().toISOString(),
@@ -165,15 +192,12 @@ export function VacationPageComponent({ initialVacations, allUsers }: VacationPa
         userName: user.name,
         userDepartment: user.department || 'N/A',
         userAvatarUrl: user.avatarUrl,
-        totalDays: totalDays,
-    };
-    
-    setAllVacations(prev => [...prev, newVacation]);
-    setIsFormOpen(false);
-    toast({
-        title: 'Férias Agendadas!',
-        description: `As férias de ${user.name} foram agendadas com sucesso.`
-    });
+        totalDays,
+      };
+      setAllVacations(prev => [...prev, local]);
+      setIsFormOpen(false);
+      toast({ title: 'Férias Agendadas (local)', description: 'Não foi possível persistir no servidor.' });
+    }
   };
 
   return (

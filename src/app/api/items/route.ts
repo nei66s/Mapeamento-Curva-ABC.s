@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import { listItems } from '@/lib/items.server';
+import { listItems, createItem, createItemsBulk, updateItem, deleteItem } from '@/lib/items.server';
 // Dev-only mocks when DB schema is incomplete
 import { itemNames, itemCategoryMap } from '@/lib/mock-raw';
-import { createItem, createItemsBulk } from '@/lib/items.server';
 
 export async function GET() {
   try {
@@ -60,5 +59,33 @@ export async function POST(req: Request) {
     const e: any = err;
     console.error('POST /api/items error', e?.message ?? e, e?.stack ?? 'no-stack');
     return NextResponse.json({ error: 'Failed to create item', details: String(e?.message ?? e) }, { status: 500 });
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    const body = await req.json();
+    if (!body?.id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    const updated = await updateItem(body.id, body);
+    if (!updated) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    return NextResponse.json(updated);
+  } catch (err) {
+    const e: any = err;
+    console.error('PUT /api/items error', e?.message ?? e);
+    return NextResponse.json({ error: 'Failed to update item', details: String(e?.message ?? e) }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const url = new URL(req.url);
+    const id = url.searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    const ok = await deleteItem(id);
+    if (!ok) return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error('DELETE /api/items error', err);
+    return NextResponse.json({ error: 'Failed to delete item' }, { status: 500 });
   }
 }

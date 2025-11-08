@@ -25,19 +25,23 @@ interface EditableSlaTableProps {
   setData: React.Dispatch<React.SetStateAction<MaintenanceIndicator[]>>;
   annualSlaGoal: number;
   setAnnualSlaGoal: (value: number) => void;
+  onChangeItem?: (updated: MaintenanceIndicator) => void;
 }
 
-export function EditableSlaTable({ data, setData, annualSlaGoal, setAnnualSlaGoal }: EditableSlaTableProps) {
+export function EditableSlaTable({ data, setData, annualSlaGoal, setAnnualSlaGoal, onChangeItem }: EditableSlaTableProps) {
   const handleSlaChange = (
     id: string,
     value: string
   ) => {
     const newValue = parseFloat(value) || 0;
-    setData(prevData =>
-      prevData.map(item =>
+    setData(prevData => {
+      const next = prevData.map(item =>
         item.id === id ? { ...item, sla_mensal: newValue } : item
-      )
-    );
+      );
+      const updated = next.find(i => i.id === id);
+      if (updated && onChangeItem) onChangeItem(updated);
+      return next;
+    });
   };
   
   const handleGoalChange = (value: string) => {

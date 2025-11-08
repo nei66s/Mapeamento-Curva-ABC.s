@@ -118,3 +118,28 @@
 .pdf-a4 .value { font-weight: 400; color: #111827; }
 
 .pdf-footer { position: absolute; bottom: 16mm; left: 0; right: 0; text-align: center; font-size: 10px; color: #6b7280; }
+
+/* Map locate control and user marker styles */
+.leaflet-control-locate { display: inline-block; }
+.leaflet-control-locate button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: none; background: white; border-radius: 8px; cursor: pointer; }
+.leaflet-control-locate button:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.12); }
+.leaflet-control-locate button.locate-active { background: #16a34a; color: white; }
+
+/* Pulsing user marker - applies to Leaflet circleMarker SVG path via className */
+.user-circle { animation: pulse 1.8s infinite ease-out; }
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.6); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* professional pin icon for user location (divIcon) */
+.user-pin-wrapper { display: inline-block; position: relative; width: 36px; height: 36px; line-height: 0; }
+/* Position the visual pin so its tip is at the bottom center of the wrapper
+  (this makes the Leaflet iconAnchor [18,36] align with the pin tip). */
+.user-pin { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); }
+.user-pin .pin-svg { width: 28px; height: 28px; display: block; }
+/* Pulse should be centered on the tip of the pin (bottom center). We position
+  the pulse's center at the bottom edge of the wrapper by using bottom: 0 and
+  translateY(50%), so the pulse's center aligns with the pin tip. */
+.user-pin-pulse { display: none; }

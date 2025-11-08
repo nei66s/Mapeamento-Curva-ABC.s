@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -11,9 +11,11 @@ import { Moon, Sun, Bell, Languages, AppWindow, Rows3 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useCurrentUser } from '@/hooks/use-current-user';
 
 
 export default function SettingsPage() {
+  const { user } = useCurrentUser();
   const [theme, setTheme] = useState('light');
   const [notifications, setNotifications] = useState({
     incidents: true,
@@ -27,6 +29,42 @@ export default function SettingsPage() {
 
   const { toast } = useToast();
 
+  // Load user settings from API
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!user?.id) return;
+        const res = await fetch(`/api/settings?userId=${encodeURIComponent(String(user.id))}`);
+        if (!res.ok) return; // keep defaults
+        const s = await res.json();
+        if (s.theme) setTheme(s.theme);
+        if (s.language) setLanguage(s.language);
+        if (s.density) setDensity(s.density);
+        if (s.defaultPage) setDefaultPage(s.defaultPage);
+        if (s.notifications) setNotifications({
+          incidents: Boolean(s.notifications.incidents),
+          compliance: Boolean(s.notifications.compliance),
+          reports: Boolean(s.notifications.reports),
+        });
+      } catch (e) {
+        console.error('Failed to load user settings', e);
+      }
+    })();
+  }, [user?.id]);
+
+  const persistSettings = async (changes: Partial<{ theme: string; language: string; density: string; defaultPage: string; notifications: any }>) => {
+    try {
+      if (!user?.id) return;
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, ...changes }),
+      });
+    } catch (e) {
+      console.error('Failed to save settings', e);
+    }
+  };
+
   const handleThemeChange = (isDark: boolean) => {
     const newTheme = isDark ? 'dark' : 'light';
     setTheme(newTheme);
@@ -36,6 +74,7 @@ export default function SettingsPage() {
       title: 'Tema Alterado!',
       description: `O tema foi alterado para ${isDark ? 'Escuro' : 'Claro'}.`,
     });
+    persistSettings({ theme: newTheme });
   };
 
   const handleNotificationChange = (id: keyof typeof notifications, value: boolean) => {
@@ -44,6 +83,7 @@ export default function SettingsPage() {
       title: 'Notificação Alterada!',
       description: 'Sua preferência de notificação foi salva.',
     });
+    persistSettings({ notifications: { ...notifications, [id]: value } });
   };
 
   const handleSettingChange = (settingName: string, value: string) => {
@@ -51,6 +91,9 @@ export default function SettingsPage() {
       title: 'Configuração Salva!',
       description: `Sua preferência de ${settingName} foi atualizada.`,
     });
+    if (settingName === 'idioma') persistSettings({ language: value });
+    if (settingName === 'densidade') persistSettings({ density: value });
+    if (settingName === 'página inicial') persistSettings({ defaultPage: value });
   };
 
   return (

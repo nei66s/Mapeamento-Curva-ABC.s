@@ -38,8 +38,7 @@ import {
 import { PageHeader } from '@/components/shared/page-header';
 import { ToolForm } from '@/components/dashboard/tools/tool-form';
 import { ToolBulkForm } from '@/components/dashboard/tools/tool-bulk-form';
-import { mockUsers } from '@/lib/users';
-import type { Tool, ToolStatus } from '@/lib/types';
+import type { Tool, ToolStatus, User } from '@/lib/types';
 import { PlusCircle, MoreHorizontal, Pencil, Wrench, User, CircleOff, AlertCircle, CalendarCheck2, Search, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -62,6 +61,7 @@ const allStatuses: ToolStatus[] = ['Disponível', 'Em Uso', 'Em Manutenção'];
 export default function ToolsPage() {
   const [tools, setTools] = useState<Tool[]>([]);
   const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const [isBulkFormOpen, setIsBulkFormOpen] = useState(false);
   const { toast } = useToast();
@@ -69,15 +69,17 @@ export default function ToolsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showNeedsReview, setShowNeedsReview] = useState(false);
 
-  const usersMap = useMemo(() => new Map(mockUsers.map(u => [u.id, u.name])), []);
+  const usersMap = useMemo(() => new Map(users.map(u => [u.id, u.name])), [users]);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/api/tools');
-        if (!res.ok) throw new Error('Failed to load tools');
-        const data: Tool[] = await res.json();
-        setTools(data);
+        const [tRes, uRes] = await Promise.all([
+          fetch('/api/tools'),
+          fetch('/api/users'),
+        ]);
+        if (tRes.ok) setTools(await tRes.json());
+        if (uRes.ok) setUsers(await uRes.json());
       } catch (e) {
         console.error(e);
       }
@@ -96,31 +98,39 @@ export default function ToolsPage() {
   }, [tools, searchTerm, showNeedsReview]);
 
 
+  const persist = async (tool: Tool) => {
+    try {
+      await fetch('/api/tools', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tool) });
+    } catch (e) {
+      console.error('Failed to persist tool', e);
+    }
+  };
+
   const handleEditSubmit = (values: Omit<Tool, 'id' | 'status' | 'assignedTo' | 'lastMaintenance'>) => {
     if (selectedTool) {
-      const updatedTool = { ...selectedTool, ...values };
-      setTools(tools.map(tool => (tool.id === selectedTool.id ? updatedTool : tool)));
-      toast({
-        title: 'Ferramenta Atualizada!',
-        description: `A ferramenta "${values.name}" foi atualizada.`,
-      });
+      const updatedTool = { ...selectedTool, ...values } as Tool;
+      setTools(prev => prev.map(tool => (tool.id === selectedTool.id ? updatedTool : tool)));
+      persist(updatedTool);
+      toast({ title: 'Ferramenta Atualizada!', description: `A ferramenta "${values.name}" foi atualizada.` });
     }
     setIsEditFormOpen(false);
     setSelectedTool(null);
   };
   
-  const handleBulkSubmit = (newTools: Omit<Tool, 'id'|'status'>[]) => {
-      const toolsToAdd: Tool[] = newTools.map(t => ({
-          ...t,
-          id: `TOOL-${Date.now()}-${Math.random()}`,
-          status: 'Disponível',
-      }));
-      setTools(prev => [...toolsToAdd, ...prev]);
-      toast({
-          title: 'Ferramentas Adicionadas!',
-          description: `${toolsToAdd.length} novas ferramentas foram adicionadas ao almoxarifado.`
-      });
+  const handleBulkSubmit = async (newTools: Omit<Tool, 'id'|'status'>[]) => {
+    try {
+      const payload = newTools.map(t => ({ ...t, status: 'Disponível' as const }));
+      const res = await fetch('/api/tools', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error('Failed to create tools');
+      const created: Tool[] = await res.json();
+      setTools(prev => [...created, ...prev]);
+      toast({ title: 'Ferramentas Adicionadas!', description: `${created.length} novas ferramentas foram adicionadas ao almoxarifado.` });
+    } catch (e) {
+      console.error('bulk tools create error', e);
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível adicionar as ferramentas.' });
+    } finally {
       setIsBulkFormOpen(false);
+    }
   }
 
   const openEditDialog = (tool: Tool) => {
@@ -130,25 +140,29 @@ export default function ToolsPage() {
 
   const handleStatusChange = (toolId: string, status: ToolStatus) => {
     setTools(prev =>
-      prev.map(tool =>
-        tool.id === toolId
-          ? {
-              ...tool,
-              status,
-              assignedTo: status !== 'Em Uso' ? undefined : tool.assignedTo,
-              lastMaintenance: status === 'Em Manutenção' ? new Date().toISOString() : tool.lastMaintenance,
-            }
-          : tool
-      )
+      prev.map(tool => {
+        if (tool.id !== toolId) return tool;
+        const updated = {
+          ...tool,
+          status,
+          assignedTo: status !== 'Em Uso' ? undefined : tool.assignedTo,
+          lastMaintenance: status === 'Em Manutenção' ? new Date().toISOString() : tool.lastMaintenance,
+        } as Tool;
+        persist(updated);
+        return updated;
+      })
     );
     toast({ title: 'Status Alterado', description: `O status da ferramenta foi alterado para "${status}".` });
   };
   
   const handleAssignUser = (toolId: string, userId: string) => {
     setTools(prev =>
-      prev.map(tool =>
-        tool.id === toolId ? { ...tool, assignedTo: userId, status: 'Em Uso' } : tool
-      )
+      prev.map(tool => {
+        if (tool.id !== toolId) return tool;
+        const updated = { ...tool, assignedTo: userId, status: 'Em Uso' } as Tool;
+        persist(updated);
+        return updated;
+      })
     );
     const userName = usersMap.get(userId) || 'Desconhecido';
     toast({ title: 'Ferramenta Atribuída', description: `A ferramenta foi atribuída a ${userName}.` });
@@ -156,18 +170,24 @@ export default function ToolsPage() {
   
   const handleUnassignUser = (toolId: string) => {
      setTools(prev =>
-      prev.map(tool =>
-        tool.id === toolId ? { ...tool, assignedTo: undefined, status: 'Disponível' } : tool
-      )
+      prev.map(tool => {
+        if (tool.id !== toolId) return tool;
+        const updated = { ...tool, assignedTo: undefined, status: 'Disponível' } as Tool;
+        persist(updated);
+        return updated;
+      })
     );
     toast({ title: 'Ferramenta Devolvida', description: 'A ferramenta agora está disponível no almoxarifado.' });
   }
 
   const handleRegisterReview = (toolId: string) => {
      setTools(prev =>
-      prev.map(tool =>
-        tool.id === toolId ? { ...tool, lastMaintenance: new Date().toISOString() } : tool
-      )
+      prev.map(tool => {
+        if (tool.id !== toolId) return tool;
+        const updated = { ...tool, lastMaintenance: new Date().toISOString() } as Tool;
+        persist(updated);
+        return updated;
+      })
     );
     toast({ title: 'Revisão Registrada!', description: 'A data da última revisão da ferramenta foi atualizada.' });
   }
@@ -306,7 +326,7 @@ export default function ToolsPage() {
                                     <DropdownMenuItem onSelect={() => handleUnassignUser(tool.id)} disabled={!tool.assignedTo}>
                                         <CircleOff className="mr-2"/> Devolver ao estoque
                                     </DropdownMenuItem>
-                                    {mockUsers.map(user => (
+                                    {users.map(user => (
                                     <DropdownMenuItem key={user.id} onSelect={() => handleAssignUser(tool.id, user.id)} disabled={tool.assignedTo === user.id}>
                                         {user.name}
                                     </DropdownMenuItem>

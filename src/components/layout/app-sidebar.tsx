@@ -97,7 +97,7 @@ export default function AppSidebar() {
             className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full text-lg font-semibold text-primary-foreground md:h-12 md:w-12 md:text-base mb-2"
           >
             <LogoImage className="h-8 w-8 transition-all group-hover:scale-110" />
-            <span className="sr-only">Manutenção Pague Menos</span>
+            <span className="sr-only">Fixly</span>
           </Link>
 
           {allLinksGroups.map((group, groupIndex) => (

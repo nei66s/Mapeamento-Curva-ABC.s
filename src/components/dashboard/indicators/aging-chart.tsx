@@ -2,6 +2,7 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, ComposedChart, LabelList, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ReferenceArea } from 'recharts';
 import {
   Card,
   CardContent,
@@ -25,11 +26,12 @@ const chartConfig = {
 };
 
 export function AgingChart({ data }: AgingChartProps) {
+    
     const agingRanges = [
         { key: 'inferior_30', label: 'Inferior a 30 dias' },
-        { key: 'entre_30_60', label: 'Entre 30 e 60 dias' },
-        { key: 'entre_60_90', label: 'Entre 60 e 90 dias' },
-        { key: 'superior_90', label: 'Superior a 90 dias' },
+        { key: 'entre_30_60', label: '30 a 60 dias' },
+        { key: 'entre_60_90', label: '60 a 90 dias' },
+        { key: 'superior_90', label: 'Acima de 90 dias' },
     ];
 
     const totalChamados = agingRanges.reduce((acc, range) => {
@@ -39,13 +41,14 @@ export function AgingChart({ data }: AgingChartProps) {
 
     const chartData = agingRanges.map(range => {
         const rangeData = data[range.key as keyof typeof data];
-        const totalInRange = rangeData.baixa + rangeData.media + rangeData.alta + rangeData.muito_alta;
+        const totalInRange = (rangeData && (rangeData.baixa + rangeData.media + rangeData.alta + rangeData.muito_alta)) || 0;
         return {
-            name: `${range.label} == ${totalInRange}`,
-            baixa: rangeData.baixa,
-            media: rangeData.media,
-            alta: rangeData.alta,
-            muitoAlta: rangeData.muito_alta,
+            key: range.key,
+            name: `${range.label}`,
+            baixa: rangeData?.baixa || 0,
+            media: rangeData?.media || 0,
+            alta: rangeData?.alta || 0,
+            muitoAlta: rangeData?.muito_alta || 0,
             proporcao: totalChamados > 0 ? (totalInRange / totalChamados) * 100 : 0,
         };
     });
@@ -58,7 +61,14 @@ export function AgingChart({ data }: AgingChartProps) {
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[400px] w-full">
-            <ComposedChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: -10 }}>
+            <ComposedChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: -10 }} barCategoryGap={20} barGap={6}>
+                {/* Highlight the first two ranges (inferior_30 and entre_30_60) */}
+                {chartData[0] && (
+                    <ReferenceArea x1={chartData[0].name} x2={chartData[0].name} strokeOpacity={0} fill="rgba(59,130,246,0.06)" />
+                )}
+                {chartData[1] && (
+                    <ReferenceArea x1={chartData[1].name} x2={chartData[1].name} strokeOpacity={0} fill="rgba(234,88,12,0.06)" />
+                )}
                 <CartesianGrid vertical={false} />
                 <XAxis 
                     dataKey="name"
@@ -135,6 +145,7 @@ export function AgingChart({ data }: AgingChartProps) {
                 </Line>
             </ComposedChart>
         </ChartContainer>
+                {/* debug removed */}
       </CardContent>
     </Card>
   );

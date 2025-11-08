@@ -18,8 +18,7 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import type { MaintenanceIndicator, AgingCriticidade } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+// no explicit save button; autosave on change
 
 interface EditableAgingTableProps {
     indicator: MaintenanceIndicator;
@@ -31,7 +30,6 @@ type CriticidadeKey = keyof AgingCriticidade;
 
 export function EditableAgingTableByCriticism({ indicator, onUpdate }: EditableAgingTableProps) {
   const [agingData, setAgingData] = useState(indicator.aging);
-  const { toast } = useToast();
 
   useEffect(() => {
     setAgingData(indicator.aging);
@@ -51,14 +49,8 @@ export function EditableAgingTableByCriticism({ indicator, onUpdate }: EditableA
         }
     };
     setAgingData(newData);
-  };
-
-  const handleSaveChanges = () => {
-    onUpdate(agingData);
-    toast({
-        title: 'Dados de Aging Salvos!',
-        description: 'A distribuição de criticidade por aging foi atualizada.',
-    })
+    // autosave upstream on every change
+    onUpdate(newData);
   };
 
   const agingRanges: { key: AgingRange, label: string }[] = [
@@ -85,7 +77,6 @@ export function EditableAgingTableByCriticism({ indicator, onUpdate }: EditableA
                 Preencha a distribuição dos chamados por tempo e criticidade para o mês selecionado.
                 </CardDescription>
             </div>
-            <Button onClick={handleSaveChanges}>Salvar Alterações</Button>
         </div>
       </CardHeader>
       <CardContent>

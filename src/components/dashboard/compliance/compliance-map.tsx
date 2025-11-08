@@ -1,11 +1,12 @@
 
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Store, StoreComplianceData } from '@/lib/types';
 import { isBefore, startOfDay } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 // Import marker icons
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -58,6 +59,12 @@ export default function ComplianceMap({ allStores, scheduledVisits }: Compliance
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.LayerGroup>(new L.LayerGroup());
+  const userMarkerRef = useRef<L.CircleMarker | L.Marker | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const watchIdRef = useRef<number | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (mapContainerRef.current && !mapRef.current) {
@@ -69,15 +76,90 @@ export default function ComplianceMap({ allStores, scheduledVisits }: Compliance
             shadowUrl: shadowUrl.src,
         });
         
-        const map = L.map(mapContainerRef.current).setView([-22.8, -47.2], 9);
-        mapRef.current = map;
+  const map = L.map(mapContainerRef.current).setView([-22.8, -47.2], 9);
+  mapRef.current = map;
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         }).addTo(map);
 
         markersRef.current.addTo(map);
+
+        // Try to obtain the user's current position once on load and place the marker (do not change the map center)
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+          try {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                setUserLocation({ lat, lng });
+                // add marker without centering
+                if (mapRef.current) {
+                  if (userMarkerRef.current && typeof (userMarkerRef.current as any).setLatLng === 'function') {
+                    (userMarkerRef.current as any).setLatLng([lat, lng]);
+                  } else {
+                    const pinHtml = `
+                      <div class="user-pin-wrapper" style="width:36px;height:36px;line-height:0;position:relative;">
+                        <div class="user-pin">
+                          <svg class="pin-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#16a34a"/>
+                            <circle cx="12" cy="9" r="2.5" fill="#fff" />
+                          </svg>
+                        </div>
+                      </div>`;
+                    const divIcon = L.divIcon({ html: pinHtml, className: '', iconSize: [36, 36], iconAnchor: [18, 36] });
+                    const marker = L.marker([lat, lng], { icon: divIcon });
+                    marker.bindPopup('<b>Você está aqui</b>');
+                    marker.addTo(mapRef.current as L.Map);
+                    userMarkerRef.current = marker;
+                  }
+                }
+              },
+              (err) => { /* ignore */ },
+              { enableHighAccuracy: true, timeout: 8000 }
+            );
+          } catch (e) {}
+        }
+
+        // Create locate control (icon-only) and attach
+        const LocateControlClass = (L.Control as any).extend({
+          onAdd: function () {
+            const container = L.DomUtil.create('div', 'leaflet-control-locate');
+            const btn = L.DomUtil.create('button', 'p-2 bg-white rounded-md shadow-sm', container) as HTMLButtonElement;
+            btn.title = 'Minha localização';
+            // accessibility
+            btn.setAttribute('aria-label', 'Minha localização');
+            btn.setAttribute('role', 'button');
+            btn.setAttribute('aria-pressed', 'false');
+            btn.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.07a7 7 0 015.657 5.657H18a1 1 0 110 2h-1.343A7 7 0 0111 16.93V18a1 1 0 11-2 0v-1.07a7 7 0 01-5.657-5.657H2a1 1 0 110-2h1.343A7 7 0 009 4.07V3a1 1 0 011-1zM10 7a3 3 0 100 6 3 3 0 000-6z" clip-rule="evenodd" />
+              </svg>
+            `;
+                L.DomEvent.on(btn, 'click', (e: any) => {
+                  L.DomEvent.stopPropagation(e);
+                  // call centerOnUser or toggle follow (defined below)
+                  try { (map as any)._toggleFollow ? (map as any)._toggleFollow() : ((map as any)._centerOnUser && (map as any)._centerOnUser()); } catch (err) {}
+                });
+            L.DomEvent.disableClickPropagation(container);
+            return container;
+          }
+        });
+  const locateControl = new LocateControlClass({ position: 'bottomright' });
+  locateControl.addTo(map);
+  (map as any)._locateControl = locateControl;
+
+        // expose center & toggle functions on map (will be set later via effect)
+        // stop watch when map removed/unmounted (best effort) - exposed on map removal earlier
     }
+  }, []);
+
+  // cleanup watcher on unmount
+  useEffect(() => {
+    return () => {
+      try { if (watchIdRef.current != null && navigator.geolocation) navigator.geolocation.clearWatch(watchIdRef.current as number); } catch (e) {}
+      watchIdRef.current = null;
+    };
   }, []);
 
 
@@ -121,14 +203,102 @@ export default function ComplianceMap({ allStores, scheduledVisits }: Compliance
             .bindPopup(popupText)
             .addTo(markersRef.current);
     });
+    // If user location exists, add/update a distinct divIcon pin (professional)
+    if (userLocation) {
+      if (userMarkerRef.current && typeof (userMarkerRef.current as any).setLatLng === 'function') {
+        (userMarkerRef.current as any).setLatLng([userLocation.lat, userLocation.lng]);
+      } else {
+        const pinHtml = `
+          <div class="user-pin-wrapper" style="width:36px;height:36px;line-height:0;position:relative;">
+            <div class="user-pin">
+              <svg class="pin-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#16a34a"/>
+                <circle cx="12" cy="9" r="2.5" fill="#fff" />
+              </svg>
+            </div>
+          </div>`;
+        const divIcon = L.divIcon({ html: pinHtml, className: '', iconSize: [36, 36], iconAnchor: [18, 36] });
+        const marker = L.marker([userLocation.lat, userLocation.lng], { icon: divIcon });
+        marker.bindPopup('<b>Você está aqui</b>');
+        marker.addTo(map);
+        userMarkerRef.current = marker;
+      }
+    }
 
   }, [allStores, scheduledVisits]);
 
+  const centerOnUser = () => {
+    const isMapAttached = (m?: L.Map | null) => {
+      try { return !!m && typeof m.getContainer === 'function' && document.contains(m.getContainer()); } catch (e) { return false; }
+    };
+
+    // If we already have the user's coordinates, just center on them and open popup
+    if (userLocation && mapRef.current && isMapAttached(mapRef.current)) {
+      try {
+        mapRef.current.setView([userLocation.lat, userLocation.lng], 14);
+        if (userMarkerRef.current && typeof (userMarkerRef.current as any).openPopup === 'function') {
+          try { (userMarkerRef.current as any).openPopup(); } catch (e) {}
+        }
+      } catch (e) {
+        console.warn('Failed to center on known userLocation, falling back to getCurrentPosition');
+      }
+      return;
+    }
+
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      toast({ title: 'Geolocalização indisponível', description: 'Seu navegador não suporta Geolocation.' });
+      return;
+    }
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setUserLocation({ lat, lng });
+        if (mapRef.current && isMapAttached(mapRef.current)) {
+          mapRef.current.setView([lat, lng], 14);
+          if (userMarkerRef.current && typeof (userMarkerRef.current as any).setLatLng === 'function') {
+            (userMarkerRef.current as any).setLatLng([lat, lng]);
+            try { (userMarkerRef.current as any).openPopup(); } catch (e) {}
+          } else {
+            const pinHtml = `
+              <div class="user-pin-wrapper" style="width:36px;height:36px;line-height:0;position:relative;">
+                <div class="user-pin">
+                  <svg class="pin-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#16a34a"/>
+                    <circle cx="12" cy="9" r="2.5" fill="#fff" />
+                  </svg>
+                </div>
+              </div>`;
+            const divIcon = L.divIcon({ html: pinHtml, className: '', iconSize: [36, 36], iconAnchor: [18, 36] });
+            const marker = L.marker([lat, lng], { icon: divIcon });
+            marker.addTo(mapRef.current).bindPopup('<b>Você está aqui</b>').openPopup();
+            userMarkerRef.current = marker;
+          }
+        }
+        setLocating(false);
+        toast({ title: 'Localização obtida', description: 'Centralizado na sua posição.' });
+      },
+      (err) => {
+        console.error('Geolocation error:', err);
+        setLocating(false);
+        toast({ title: 'Erro ao obter localização', description: err.message || 'Permissão negada ou tempo esgotado.' });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+  // Expose centerOnUser on the map object so the control can call it
+  useEffect(() => {
+    if (mapRef.current) {
+      (mapRef.current as any)._centerOnUser = centerOnUser;
+    }
+  }, [mapRef.current]);
+
   return (
-    <div 
-      ref={mapContainerRef} 
-      style={{ height: '400px', width: '100%', borderRadius: 'var(--radius)' }}
-    />
+    <div className="relative">
+      <div ref={mapContainerRef} className="h-[400px] w-full rounded-lg" />
+    </div>
   );
 }
 

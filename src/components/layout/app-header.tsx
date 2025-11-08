@@ -49,7 +49,7 @@ export default function AppHeader() {
               className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
             >
               <LogoImage className="h-8 w-8" />
-              <span className="sr-only">Manutenção Pague Menos</span>
+              <span className="sr-only">Fixly</span>
             </Link>
             
             <Separator />
@@ -191,7 +191,7 @@ export default function AppHeader() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/dashboard">Dashboard</Link>
+              <Link href="/dashboard">Fixly</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
         </BreadcrumbList>

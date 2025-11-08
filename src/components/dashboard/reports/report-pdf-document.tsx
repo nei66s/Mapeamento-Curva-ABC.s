@@ -37,7 +37,7 @@ export function ReportPdfDocument({ report, technicianName, technicianRole, inci
           <div className="flex items-center gap-4">
             <LogoImage className="h-16 w-16" />
             <div>
-              <h1>Manutenção Pague Menos</h1>
+              <h1>Fixly</h1>
               <div className="text-sm text-muted-foreground">Laudo Técnico</div>
             </div>
           </div>
@@ -141,7 +141,7 @@ export function ReportPdfDocument({ report, technicianName, technicianRole, inci
           </div>
         </section>
 
-        <div className="pdf-footer">Manutenção Pague Menos — Laudo Técnico</div>
+  <div className="pdf-footer">Fixly — Laudo Técnico</div>
       </div>
     </div>
   );

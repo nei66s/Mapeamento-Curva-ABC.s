@@ -24,7 +24,7 @@ export function SettlementPdfDocument({ letter, supplier }: SettlementPdfDocumen
         <div className="flex items-center gap-4">
           <LogoImage className="h-16 w-16" />
           <div>
-            <h1 className="text-xl font-bold text-gray-800">Manutenção Pague Menos</h1>
+            <h1 className="text-xl font-bold text-gray-800">Fixly</h1>
           </div>
         </div>
         <div className="text-right text-sm">

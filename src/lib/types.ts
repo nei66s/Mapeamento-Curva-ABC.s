@@ -157,6 +157,19 @@ export type WarrantyItem = {
   notes?: string;
 };
 
+export type UnsalvageableStatus = 'Pendente' | 'Aprovado' | 'Descarte' | 'Concluído';
+
+export type UnsalvageableItem = {
+  id: string;
+  itemName: string;
+  quantity: number;
+  reason: string;
+  requestDate: string; // ISO date string
+  requesterId?: string;
+  status: UnsalvageableStatus;
+  disposalDate?: string; // ISO date string when disposal happened
+};
+
 export type RNC = {
     id: string;
     title: string;
