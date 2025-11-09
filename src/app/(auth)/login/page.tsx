@@ -17,6 +17,7 @@ import { KeyRound, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { cloneDefaultPermissions, moduleDefinitions } from '@/lib/permissions-config';
+import type { UserRole } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LogoImage } from '@/components/icons/logo-image';
 
