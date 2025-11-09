@@ -14,7 +14,24 @@ const pool = new Pool({
   host: process.env.PGHOST || 'localhost',
   port: Number(process.env.PGPORT || 5432),
   user: process.env.PGUSER || 'postgres',
-  password: process.env.PGPASSWORD || 'admin',
+  // In production we require PGPASSWORD to be explicitly provided to avoid
+  // committing credentials or connecting with weak defaults. In development
+  // emit a warning and allow a safe local fallback so developer UX isn't blocked.
+  password: (() => {
+    const isProd = process.env.NODE_ENV === 'production';
+    if (isProd) {
+      if (!process.env.PGPASSWORD) {
+        throw new Error('PGPASSWORD environment variable is not set. Set PGPASSWORD to connect to the DB (production).');
+      }
+      return process.env.PGPASSWORD as string;
+    }
+    // development: warn and allow local fallback for convenience
+    if (!process.env.PGPASSWORD) {
+      // eslint-disable-next-line no-console
+      console.warn("PGPASSWORD not set; using 'admin' fallback for development only. Do not use in production.");
+    }
+    return process.env.PGPASSWORD || 'admin';
+  })(),
   database: process.env.PGDATABASE || 'postgres',
 });
 

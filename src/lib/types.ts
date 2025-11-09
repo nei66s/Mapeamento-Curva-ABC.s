@@ -231,3 +231,9 @@ export type TechnicalReport = {
   createdAt: string; // ISO date
   status: ReportStatus;
 };
+
+export const userRoles = ['admin', 'gestor', 'regional', 'visualizador', 'fornecedor'] as const;
+
+export function isValidUserRole(role: any): role is UserRole {
+  return userRoles.includes(role);
+}

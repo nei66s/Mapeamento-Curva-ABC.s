@@ -1,3 +1,4 @@
+"use client";
 import Link from "next/link";
 import {
   PanelLeft,
@@ -31,8 +32,20 @@ import { UserNav } from "@/components/layout/user-nav";
 import { Separator } from "../ui/separator";
 import { LogoImage } from "../icons/logo-image";
 import { ThemeToggle } from "./theme-toggle";
+import { usePathname } from 'next/navigation';
 
 export default function AppHeader() {
+  const pathname = usePathname();
+  // Minimal header on auth pages: only show theme toggle to allow dark mode switching
+  if (pathname && pathname.startsWith('/login')) {
+    return (
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-card px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+        <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
+        </div>
+      </header>
+    );
+  }
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-card px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <Sheet>

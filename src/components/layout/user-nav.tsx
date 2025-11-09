@@ -30,9 +30,22 @@ export function UserNav() {
         console.warn('Failed to sync pm_user from storage', err);
       }
     };
+
+    const handlePmUserChanged = (ev: Event) => {
+      try {
+        const detail = (ev as CustomEvent).detail;
+        if (detail) setUser(detail as any);
+        else setUser(null);
+      } catch (e) {}
+    };
+
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', handleStorage);
-      return () => window.removeEventListener('storage', handleStorage);
+      window.addEventListener('pm_user_changed', handlePmUserChanged as EventListener);
+      return () => {
+        window.removeEventListener('storage', handleStorage);
+        window.removeEventListener('pm_user_changed', handlePmUserChanged as EventListener);
+      };
     }
     return () => {};
   }, [setUser]);

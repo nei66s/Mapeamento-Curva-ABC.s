@@ -15,6 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { KeyRound, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrentUser } from '@/hooks/use-current-user';
+import { cloneDefaultPermissions, moduleDefinitions } from '@/lib/permissions-config';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LogoImage } from '@/components/icons/logo-image';
 
@@ -23,6 +25,7 @@ import { LogoImage } from '@/components/icons/logo-image';
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { setUser } = useCurrentUser();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -51,14 +54,52 @@ export default function LoginPage() {
         });
         try {
           // Persistir usuário no localStorage para uso nas páginas cliente
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('pm_user', JSON.stringify(data.user));
-          }
+          // Use the shared hook to persist user state + cookie/localStorage.
+          // This ensures other mounted components receive the updated user immediately.
+          setUser?.(data.user);
         } catch (e) {
           // não bloquear o fluxo de login se storage falhar
           console.warn('Não foi possível salvar usuário no localStorage', e);
         }
-        router.push('/dashboard');
+
+        // Decide where to navigate based on role permissions. Prefer the first
+        // allowed module (using server mapping when available, falling back to defaults).
+        (async () => {
+          try {
+            const permRes = await fetch('/api/permissions');
+            const permJson = await permRes.json();
+            const role = data.user.role;
+            const serverPerms = (permJson && permJson.permissions) || {};
+            const rolePerms = serverPerms[role as UserRole] ?? cloneDefaultPermissions()[role as UserRole] ?? {};
+
+            const firstAllowed = moduleDefinitions.find((m) => rolePerms[m.id]);
+
+            const routeForModule = (id: string) => {
+              switch (id) {
+                case 'indicators': return '/dashboard/indicators';
+                case 'releases': return '/dashboard/releases';
+                case 'incidents': return '/dashboard/incidents';
+                case 'rncs': return '/dashboard/rncs';
+                case 'categories': return '/dashboard/categories';
+                case 'matrix': return '/dashboard/matrix';
+                case 'compliance': return '/dashboard/compliance';
+                case 'suppliers': return '/dashboard/suppliers';
+                case 'warranty': return '/dashboard/warranty';
+                case 'tools': return '/dashboard/tools';
+                case 'settlement': return '/dashboard/settlement';
+                case 'profile': return '/dashboard/profile';
+                case 'settings': return '/dashboard/settings';
+                case 'about': return '/';
+                default: return '/dashboard';
+              }
+            };
+
+            const target = firstAllowed ? routeForModule(firstAllowed.id) : '/dashboard';
+            router.push(target);
+          } catch (e) {
+            router.push('/dashboard');
+          }
+        })();
       } else {
         setError(data.error || 'Email ou senha inválidos. Tente novamente.');
         toast({
