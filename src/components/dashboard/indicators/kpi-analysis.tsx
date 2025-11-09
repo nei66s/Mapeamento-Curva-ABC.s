@@ -22,17 +22,20 @@ export function KpiAnalysis({ indicator }: KpiAnalysisProps) {
     setLoading(true);
     setError(null);
     setSummary(null);
-
     // Cache by month in sessionStorage so analysis is not re-generated while
-    // the user remains on the page. Use key kpi-analysis:{mes}.
+    // the user remains on the page. Use key kpi-analysis:{mes} and a TTL.
+    const CACHE_TTL_MS = 1000 * 60 * 60 * 24; // 24 hours
     const cacheKey = `kpi-analysis:${currentIndicator.mes}`;
     try {
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (parsed && parsed.summary) {
-          setSummary(parsed.summary);
-          return;
+        if (parsed && parsed.summary && parsed.ts) {
+          const age = Date.now() - parsed.ts;
+          if (age < CACHE_TTL_MS) {
+            setSummary(parsed.summary);
+            return;
+          }
         }
       }
 

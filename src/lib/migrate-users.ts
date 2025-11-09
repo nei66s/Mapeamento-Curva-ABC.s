@@ -1,4 +1,5 @@
 import pool from './db';
+import bcrypt from 'bcryptjs';
 
 const users = [
   {
@@ -33,14 +34,19 @@ const users = [
 
 async function migrate() {
   for (const user of users) {
+    // Hash password before inserting. Use bcryptjs for portability.
+    const hashed = await bcrypt.hash(user.password, 10);
     await pool.query(
       'INSERT INTO users (name, email, role, password, avatarUrl) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (email) DO NOTHING',
-      [user.name, user.email, user.role, user.password, user.avatarUrl]
+      [user.name, user.email, user.role, hashed, user.avatarUrl]
     );
-    console.log(`Usuário ${user.name} migrado.`);
+    console.log(`Usuário ${user.name} migrado (email=${user.email}).`);
   }
   await pool.end();
-  console.log('Migração concluída.');
+  console.log('Migração concluída. Senhas foram armazenadas como hashes. Recomenda-se forçar reset de senha via UI ao provisionar usuários.');
 }
 
-migrate().catch(console.error);
+migrate().catch(err => {
+  console.error('Erro na migração de usuários:', err);
+  process.exit(1);
+});
