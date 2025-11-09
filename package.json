@@ -57,7 +57,7 @@
     "jspdf": "^2.5.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.475.0",
-    "next": "^16.0.2-canary.10",
+  "next": "15.3.3",
     "patch-package": "^8.0.0",
     "pdfkit": "^0.13.0",
     "pg": "^8.16.3",
