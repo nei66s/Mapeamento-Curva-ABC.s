@@ -16,7 +16,25 @@ jobs:
           node-version: 18
       - name: Install dependencies
         run: npm ci
+      # This step requires repository secrets to be configured: PGHOST, PGUSER, PGPASSWORD, PGDATABASE, PGPORT
+      - name: Check DB secrets
+        id: check_secrets
+        env:
+          PGHOST: ${{ secrets.PGHOST }}
+          PGUSER: ${{ secrets.PGUSER }}
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+          PGDATABASE: ${{ secrets.PGDATABASE }}
+          PGPORT: ${{ secrets.PGPORT }}
+        run: |
+          if [ -z "$PGHOST" ] || [ -z "$PGUSER" ] || [ -z "$PGPASSWORD" ] || [ -z "$PGDATABASE" ] || [ -z "$PGPORT" ]; then
+            echo "One or more DB secrets are missing; skipping DB sync step"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run DB sync and build (requires DB credentials in secrets)
+        if: steps.check_secrets.outputs.skip == 'false'
         env:
           PGHOST: ${{ secrets.PGHOST }}
           PGUSER: ${{ secrets.PGUSER }}

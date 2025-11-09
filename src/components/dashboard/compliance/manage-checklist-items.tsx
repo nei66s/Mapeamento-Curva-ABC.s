@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlusCircle, Trash2 } from "lucide-react";
 import type { ComplianceChecklistItem } from "@/lib/types";
+import type { Item } from '@/lib/types';
+import { ClassificationBadge } from '@/components/shared/risk-badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   AlertDialog,
@@ -21,17 +23,40 @@ import {
 
 interface ManageChecklistItemsProps {
   items: ComplianceChecklistItem[];
-  onAddItem: (itemName: string) => void;
+  onAddItem: (item: { id?: string; name: string; classification?: string }) => void;
   onRemoveItem: (itemId: string) => void;
 }
 
 export function ManageChecklistItems({ items, onAddItem, onRemoveItem }: ManageChecklistItemsProps) {
-  const [newItemName, setNewItemName] = useState('');
+  const [query, setQuery] = useState('');
+  const [available, setAvailable] = useState<Item[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/items');
+        if (!res.ok) throw new Error('failed');
+        const data: Item[] = await res.json();
+        if (mounted) setAvailable(data);
+      } catch (err) {
+        console.error('failed to load items for checklist selector', err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  const filtered = query.trim()
+    ? available.filter(i => i.name.toLowerCase().includes(query.toLowerCase()))
+    : available.slice(0, 20);
 
   const handleAddClick = () => {
-    if (newItemName.trim()) {
-      onAddItem(newItemName.trim());
-      setNewItemName('');
+    const item = available.find(i => i.id === selectedId) || available.find(i => i.name.toLowerCase() === query.toLowerCase());
+    if (item) {
+      onAddItem({ id: item.id, name: item.name, classification: item.classification });
+      setQuery('');
+      setSelectedId(null);
     }
   };
 
@@ -43,13 +68,35 @@ export function ManageChecklistItems({ items, onAddItem, onRemoveItem }: ManageC
       </CardHeader>
       <CardContent>
         <div className="flex gap-2 mb-4">
-          <Input
-            value={newItemName}
-            onChange={e => setNewItemName(e.target.value)}
-            placeholder="Nome do novo item..."
-            onKeyDown={(e) => e.key === 'Enter' && handleAddClick()}
-          />
-          <Button onClick={handleAddClick} size="icon" disabled={!newItemName.trim()}>
+          <div className="flex-1">
+            <Input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Buscar item da Matriz (digite para filtrar)..."
+              onKeyDown={(e) => e.key === 'Enter' && handleAddClick()}
+            />
+            {query.trim() && (
+              <div className="mt-1 max-h-40 overflow-auto rounded-md border bg-background">
+                  {filtered.length === 0 ? (
+                  <div className="p-2 text-sm text-muted-foreground">Nenhum item encontrado.</div>
+                ) : (
+                  filtered.map(it => (
+                    <button
+                      key={it.id}
+                      onClick={() => { setSelectedId(it.id ?? null); setQuery(it.name); }}
+                      className={`w-full text-left p-2 hover:bg-muted ${selectedId === it.id ? 'bg-muted/30' : ''}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="truncate">{it.name}</span>
+                        <ClassificationBadge classification={it.classification} />
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+          <Button onClick={handleAddClick} size="icon" disabled={!query.trim()} title="Adicionar item selecionado">
             <PlusCircle className="h-4 w-4"/>
           </Button>
         </div>
@@ -57,7 +104,10 @@ export function ManageChecklistItems({ items, onAddItem, onRemoveItem }: ManageC
            <div className="space-y-2">
             {items.map(item => (
               <div key={item.id} className="flex items-center justify-between rounded-md border p-2">
-                <span className="text-sm">{item.name}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">{item.name}</span>
+                  <ClassificationBadge classification={item.classification} />
+                </div>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8">

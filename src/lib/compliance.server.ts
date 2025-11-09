@@ -162,18 +162,40 @@ export async function listScheduledVisits(): Promise<StoreComplianceData[]> {
       });
     }
 
-    // If no denormalized table rows, try an alternative normalized table that stores per-visit status
+    // If no denormalized table rows, try an alternative normalized table that stores per-visit or per-item rows
     const altCols = await getTableColumns('store_compliance_data');
     if (altCols && altCols.length) {
       try {
         const r2 = await pool.query(`SELECT * FROM store_compliance_data`);
-        return r2.rows.map((row: any) => ({
-          storeId: pickRow(row, { keys: ['store_id','storeid','store'], asString: true }) || '',
-          storeName: pickRow(row, { keys: ['store_name','storename'], asString: true }) || String(pickRow(row, { keys: ['store_id','storeid','store'], asString: true }) || ''),
-          visitDate: toIso(pickRow(row, { keys: ['visit_date','visitdate','date'], asString: false })),
-          // map visit-level status into a single synthetic item so UI can show pending/completed
-          items: [{ itemId: String(row.id != null ? row.id : row.store_id), status: normalizeStatus(row.status || row.state || 'pending') }],
-        } as StoreComplianceData));
+        if (!r2.rows || !r2.rows.length) return [];
+
+        // Aggregate rows by storeId + visitDate so we return one StoreComplianceData per store visit
+        const map = new Map<string, StoreComplianceData>();
+        for (const row of r2.rows) {
+          const storeId = pickRow(row, { keys: ['store_id','storeid','store'], asString: true }) || '';
+          const storeName = pickRow(row, { keys: ['store_name','storename'], asString: true }) || storeId;
+          const visitDateRaw = pickRow(row, { keys: ['visit_date','visitdate','date'], asString: false });
+          const visitDate = toIso(visitDateRaw);
+
+          const itemId = String(pickRow(row, { keys: ['item_id','itemid','checklist_item_id','id'], asString: true }) || row.id || '');
+          const status = normalizeStatus(pickRow(row, { keys: ['status','item_status','visit_status','state'], asString: true }) || 'pending');
+
+          const key = `${storeId}||${visitDate}`;
+          const existing = map.get(key);
+          if (existing) {
+            // append item
+            existing.items.push({ itemId, status } as any);
+          } else {
+            map.set(key, {
+              storeId,
+              storeName,
+              visitDate,
+              items: [{ itemId, status } as any],
+            } as StoreComplianceData);
+          }
+        }
+
+        return Array.from(map.values());
       } catch (err) {
         // ignore and fall through
       }

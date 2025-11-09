@@ -45,7 +45,7 @@ export default function AppHeader() {
         <SheetContent side="left" className="sm:max-w-xs">
           <nav className="grid gap-6 text-lg font-medium">
             <Link
-              href="/dashboard"
+              href="/"
               className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
             >
               <LogoImage className="h-8 w-8" />
@@ -55,7 +55,7 @@ export default function AppHeader() {
             <Separator />
             
             <Link
-              href="/dashboard/indicators"
+              href="/indicators"
               className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
             >
               <LineChart className="h-5 w-5" />
@@ -69,21 +69,21 @@ export default function AppHeader() {
               </h2>
                <div className="grid gap-2">
                 <Link
-                  href="/dashboard/incidents"
+                  href="/incidents"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <Activity className="h-5 w-5" />
                   Incidentes
                 </Link>
                 <Link
-                  href="/dashboard/rncs"
+                  href="/rncs"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <FileWarning className="h-5 w-5" />
                   Registros de Não Conformidade
                 </Link>
                 <Link
-                  href="/dashboard/releases"
+                  href="/releases"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <ClipboardPaste className="h-5 w-5" />
@@ -99,14 +99,14 @@ export default function AppHeader() {
               </h2>
                <div className="grid gap-2">
                 <Link
-                  href="/dashboard/categories"
+                  href="/categories"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <ListCollapse className="h-5 w-5" />
                   Categorias
                 </Link>
                 <Link
-                  href="/dashboard/matrix"
+                  href="/matrix"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <Grid3x3 className="h-5 w-5" />
@@ -122,7 +122,7 @@ export default function AppHeader() {
               </h2>
                <div className="grid gap-2">
                  <Link
-                  href="/dashboard/compliance"
+                  href="/compliance"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <ClipboardCheck className="h-5 w-5" />
@@ -138,28 +138,28 @@ export default function AppHeader() {
               </h2>
                <div className="grid gap-2">
                  <Link
-                  href="/dashboard/suppliers"
+                  href="/suppliers"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <Users className="h-5 w-5" />
                   Fornecedores
                 </Link>
                  <Link
-                  href="/dashboard/warranty"
+                  href="/warranty"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <ShieldCheck className="h-5 w-5" />
                   Garantias
                 </Link>
                 <Link
-                  href="/dashboard/tools"
+                  href="/tools"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <Construction className="h-5 w-5" />
                   Almoxarifado
                 </Link>
                 <Link
-                  href="/dashboard/settlement"
+                  href="/settlement"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <Handshake className="h-5 w-5" />
@@ -171,14 +171,14 @@ export default function AppHeader() {
             <Separator />
             
             <Link
-              href="/dashboard/admin"
+              href="/admin"
               className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
             >
               <Settings className="h-5 w-5" />
               Administração
             </Link>
              <Link
-              href="/dashboard/about"
+              href="/about"
               className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
             >
               <Info className="h-5 w-5" />
@@ -189,9 +189,9 @@ export default function AppHeader() {
       </Sheet>
       <Breadcrumb className="hidden md:flex">
         <BreadcrumbList>
-          <BreadcrumbItem>
+              <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/dashboard">Fixly</Link>
+              <Link href="/">Fixly</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
         </BreadcrumbList>

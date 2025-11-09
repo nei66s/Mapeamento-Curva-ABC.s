@@ -61,12 +61,12 @@ export function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <Link href="/dashboard/profile" passHref>
-            <DropdownMenuItem>Perfil</DropdownMenuItem>
-        </Link>
-        <Link href="/dashboard/settings" passHref>
-            <DropdownMenuItem>Configurações</DropdownMenuItem>
-        </Link>
+    <Link href="/profile" passHref>
+      <DropdownMenuItem>Perfil</DropdownMenuItem>
+    </Link>
+    <Link href="/settings" passHref>
+      <DropdownMenuItem>Configurações</DropdownMenuItem>
+    </Link>
         <DropdownMenuSeparator />
          <Link href="/login" passHref>
             <DropdownMenuItem>Sair</DropdownMenuItem>

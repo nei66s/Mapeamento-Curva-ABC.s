@@ -103,12 +103,14 @@ export function AgingChart({ data }: AgingChartProps) {
                             
                             const displayValue = key === 'proporcao' ? `${Number(value).toFixed(2)}%` : value;
 
-                            return (
-                               <div className="flex items-center gap-2">
-                                    <div className={`w-2 h-2 rounded-full`} style={{backgroundColor: config.color}}></div>
-                                    <span>{config.label}: {displayValue}</span>
-                               </div>
-                            )
+                                     // Use Tailwind arbitrary value background to avoid inline styles
+                                     const bgClass = `bg-[${config.color}]`;
+                                     return (
+                                         <div className="flex items-center gap-2">
+                                                <div className={`w-2 h-2 rounded-full ${bgClass}`} />
+                                                <span>{config.label}: {displayValue}</span>
+                                         </div>
+                                     )
                         }}
                     />}
                 />
