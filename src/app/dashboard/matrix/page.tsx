@@ -111,19 +111,30 @@ export default function MatrixPage() {
     return items.filter(item => item.category === categoryFilter);
   }, [items, categoryFilter]);
 
-  const handleFormSubmit = (values: Item) => {
-    // This is for single edit, bulk add is separate
-    if (selectedItem) {
-      setItems(
-        items.map(item => (item.id === selectedItem.id ? values : item))
-      );
-      toast({
-        title: 'Item Atualizado!',
-        description: `O item "${values.name}" foi atualizado com sucesso.`,
-      });
+  const handleFormSubmit = async (values: Item) => {
+    if (!selectedItem || !selectedItem.id) {
+      setIsFormOpen(false);
+      setSelectedItem(null);
+      return;
     }
-    setIsFormOpen(false);
-    setSelectedItem(null);
+    try {
+      const payload = { ...values, id: selectedItem.id } as any;
+      const res = await fetch('/api/items', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Failed to update item');
+      const updated: Item = await res.json();
+      setItems(prev => prev.map(it => (it.id === selectedItem.id ? updated : it)));
+      toast({ title: 'Item Atualizado!', description: `O item "${updated.name}" foi atualizado com sucesso.` });
+    } catch (err) {
+      console.error('update item error', err);
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível atualizar o item.' });
+    } finally {
+      setIsFormOpen(false);
+      setSelectedItem(null);
+    }
   };
   
   const handleBulkFormSubmit = (newItems: Item[]) => {
@@ -136,15 +147,16 @@ export default function MatrixPage() {
   }
 
 
-  const handleDeleteItem = (itemId: string) => {
+  const handleDeleteItem = async (itemId: string) => {
     const deletedItem = items.find(item => item.id === itemId);
-    setItems(items.filter(item => item.id !== itemId));
-    if (deletedItem) {
-      toast({
-        variant: 'destructive',
-        title: 'Item Excluído!',
-        description: `O item "${deletedItem.name}" foi excluído.`,
-      });
+    try {
+      const res = await fetch(`/api/items?id=${encodeURIComponent(String(itemId))}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('delete failed');
+      setItems(prev => prev.filter(item => item.id !== itemId));
+      if (deletedItem) toast({ variant: 'destructive', title: 'Item Excluído!', description: `O item "${deletedItem.name}" foi excluído.` });
+    } catch (err) {
+      console.error('delete item error', err);
+      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível excluir o item.' });
     }
   };
 

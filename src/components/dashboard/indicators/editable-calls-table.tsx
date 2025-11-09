@@ -22,20 +22,24 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 interface EditableCallsTableProps {
   data: MaintenanceIndicator[];
   setData: React.Dispatch<React.SetStateAction<MaintenanceIndicator[]>>;
+  onChangeItem?: (updated: MaintenanceIndicator) => void;
 }
 
-export function EditableCallsTable({ data, setData }: EditableCallsTableProps) {
+export function EditableCallsTable({ data, setData, onChangeItem }: EditableCallsTableProps) {
   const handleChange = (
     id: string,
     field: keyof Pick<MaintenanceIndicator, 'chamados_abertos' | 'chamados_solucionados' | 'backlog'>,
     value: string
   ) => {
     const newValue = parseInt(value, 10) || 0;
-    setData(prevData =>
-      prevData.map(item =>
+    setData(prevData => {
+      const next = prevData.map(item =>
         item.id === id ? { ...item, [field]: newValue } : item
-      )
-    );
+      );
+      const updated = next.find(i => i.id === id);
+      if (updated && onChangeItem) onChangeItem(updated);
+      return next;
+    });
   };
 
   return (

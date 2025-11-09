@@ -40,8 +40,8 @@ export async function POST(request: NextRequest) {
   // Salva o arquivo
   await writeFile(filePath, buffer);
 
-  // Retorna a URL pública do arquivo (pasta categories)
-  const imageUrl = `/uploads/categories/${fileName}`;
+  // Retorna a URL pública do arquivo (usa a pasta solicitada de forma segura)
+  const imageUrl = `/uploads/${safeDest}/${fileName}`;
 
     return NextResponse.json({ imageUrl });
   } catch (error) {

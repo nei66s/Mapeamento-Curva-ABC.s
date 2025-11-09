@@ -5,6 +5,7 @@ import { LogoImage } from '@/components/icons/logo-image';
 import { RNC } from '@/lib/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import styles from './rnc-pdf-document.module.css';
 
 interface RncPdfDocumentProps {
   rnc: RNC;
@@ -13,12 +14,12 @@ interface RncPdfDocumentProps {
 
 export function RncPdfDocument({ rnc, supplierName }: RncPdfDocumentProps) {
   return (
-    <div id={`pdf-content-${rnc.id}`} className="bg-white text-black p-10 font-sans" style={{ width: '210mm', minHeight: '297mm' }}>
+    <div id={`pdf-content-${rnc.id}`} className={`${styles.page} bg-white text-black p-10 font-sans`}>
       <header className="flex items-center justify-between border-b-2 border-gray-800 pb-4">
         <div className="flex items-center gap-4">
           <LogoImage className="h-20 w-20" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Manutenção Pague Menos</h1>
+            <h1 className="text-2xl font-bold text-gray-800">Fixly</h1>
             <p className="text-gray-600">Documento de Não Conformidade</p>
           </div>
         </div>
@@ -82,7 +83,7 @@ export function RncPdfDocument({ rnc, supplierName }: RncPdfDocumentProps) {
                 <p className="mt-2">Assinatura do Fornecedor</p>
             </div>
         </div>
-        <p className="mt-12">Este é um documento gerado automaticamente pela Plataforma de Manutenção Pague Menos.</p>
+  <p className="mt-12">Este é um documento gerado automaticamente pela Plataforma Fixly.</p>
       </footer>
     </div>
   );

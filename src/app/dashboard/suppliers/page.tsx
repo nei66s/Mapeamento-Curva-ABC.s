@@ -69,6 +69,7 @@ export default function SuppliersPage() {
         setSuppliers(data);
       } catch (e) {
         console.error(e);
+        toast({ variant: 'destructive', title: 'Falha ao carregar fornecedores', description: 'Não foi possível carregar a lista de fornecedores.' });
       }
     };
     load();

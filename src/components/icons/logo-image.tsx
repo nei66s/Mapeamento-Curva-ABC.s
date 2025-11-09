@@ -12,7 +12,7 @@ export const LogoImage = ({ className }: { className?: string }) => {
   return (
     <Image
       src={logo.imageUrl}
-      alt="Manutenção Pague Menos Logo"
+      alt="Fixly Logo"
       width={40}
       height={40}
       className={cn(className)}

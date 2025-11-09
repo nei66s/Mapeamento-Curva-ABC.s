@@ -1,6 +1,31 @@
 import pool from './db';
 import type { Item } from './types';
 
+function mapDbItem(row: any): Item {
+  const impactFactors = (() => {
+    const value = row.impact_factors;
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    try {
+      return JSON.parse(value);
+    } catch (err) {
+      return [];
+    }
+  })();
+  return {
+    id: String(row.id),
+    name: row.name,
+    category: row.category || row.category_name || 'Sem Categoria',
+    classification: row.classification || 'C',
+    storeCount: parseInt(row.store_count || row.storecount || 0, 10) || 0,
+    impactFactors,
+    status: row.status || 'offline',
+    contingencyPlan: row.contingency_plan || '',
+    leadTime: row.lead_time || '',
+    imageUrl: row.image_url || undefined,
+  };
+}
+
 export async function listItems(): Promise<Item[]> {
   const res = await pool.query(`
     SELECT 
@@ -21,18 +46,7 @@ export async function listItems(): Promise<Item[]> {
     ORDER BY i.name ASC
   `);
 
-  return res.rows.map((row: any) => ({
-    id: String(row.id),
-    name: row.name,
-    category: row.category || 'Sem Categoria',
-    classification: row.classification,
-    storeCount: parseInt(row.store_count) || 0,
-    impactFactors: row.impact_factors || [],
-    status: row.status || 'offline',
-    contingencyPlan: row.contingency_plan || '',
-    leadTime: row.lead_time || '',
-    imageUrl: row.image_url,
-  }));
+  return res.rows.map(mapDbItem);
 }
 
 export type NewItem = {
@@ -81,16 +95,7 @@ export async function createItem(data: NewItem): Promise<Item> {
   }
 
   return {
-    id: String(row.id),
-    name: row.name,
-    category: categoryName,
-    classification: row.classification,
-    storeCount: 0,
-    impactFactors: row.impact_factors || [],
-    status: row.status || 'offline',
-    contingencyPlan: row.contingency_plan || '',
-    leadTime: row.lead_time || '',
-    imageUrl: row.image_url,
+    ...mapDbItem({ ...row, category: categoryName, store_count: 0 }),
   };
 }
 
@@ -101,4 +106,55 @@ export async function createItemsBulk(items: NewItem[]): Promise<Item[]> {
     created.push(c);
   }
   return created;
+}
+
+export async function getItemById(id: string): Promise<Item | null> {
+  const res = await pool.query(
+    `SELECT i.*, c.name AS category_name,
+        (SELECT COUNT(*) FROM store_items si WHERE si.item_id = i.id) AS store_count
+     FROM items i
+     LEFT JOIN categories c ON c.id = i.category_id
+     WHERE i.id = $1`,
+    [id]
+  );
+  if (!res.rows[0]) return null;
+  return mapDbItem(res.rows[0]);
+}
+
+export async function updateItem(id: string, data: Partial<NewItem>): Promise<Item | null> {
+  const sets: string[] = [];
+  const params: any[] = [];
+  let idx = 1;
+
+  const push = (fragment: string, value?: any) => {
+    sets.push(fragment.replace('??', `$${idx++}`));
+    if (value !== undefined) params.push(value);
+  };
+
+  if (data.name !== undefined) push('name = ??', data.name);
+  if (data.category !== undefined) {
+    if (data.category) {
+      push('category_id = (SELECT id FROM categories WHERE name = ??)', data.category);
+    } else {
+      sets.push('category_id = NULL');
+    }
+  }
+  if (data.classification !== undefined) push('classification = ??', data.classification);
+  if (data.impactFactors !== undefined) push('impact_factors = ??', JSON.stringify(data.impactFactors || []));
+  if (data.status !== undefined) push('status = ??', data.status);
+  if (data.contingencyPlan !== undefined) push('contingency_plan = ??', data.contingencyPlan);
+  if (data.leadTime !== undefined) push('lead_time = ??', data.leadTime);
+  if (data.imageUrl !== undefined) push('image_url = ??', data.imageUrl || null);
+
+  if (!sets.length) return getItemById(id);
+
+  params.push(id);
+  const res = await pool.query(`UPDATE items SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`, params);
+  if (!res.rows[0]) return null;
+  return getItemById(String(res.rows[0].id));
+}
+
+export async function deleteItem(id: string): Promise<boolean> {
+  const res = await pool.query('DELETE FROM items WHERE id = $1', [id]);
+  return res.rowCount > 0;
 }

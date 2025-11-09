@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -50,6 +50,25 @@ export function IncidentForm({ items, incident, onSubmit, onCancel }: IncidentFo
       description: incident?.description || '',
     },
   });
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const handleAutoSave = useCallback(
+    async (data: IncidentFormData) => {
+      setSaveStatus('saving');
+      setSaveError(null);
+      try {
+        await onSubmit(data);
+        setSaveStatus('saved');
+      } catch (err) {
+        console.error('incident autosave error', err);
+        setSaveStatus('error');
+        setSaveError('Não foi possível salvar este incidente.');
+      }
+    },
+    [onSubmit]
+  );
 
   useEffect(() => {
     const load = async () => {
@@ -69,8 +88,8 @@ export function IncidentForm({ items, incident, onSubmit, onCancel }: IncidentFo
     if (incident) {
       form.reset({
         itemName: incident.itemName,
-        location: incident.location,
-        description: incident.description,
+        location: incident.location ?? '',
+        description: incident.description ?? '',
       });
     } else {
        form.reset({
@@ -79,15 +98,26 @@ export function IncidentForm({ items, incident, onSubmit, onCancel }: IncidentFo
         description: '',
       });
     }
-  }, [incident, form]);
+  }, [form, incident]);
 
-  const handleSubmit = (data: IncidentFormData) => {
-    onSubmit(data);
-  };
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      if (!form.formState.isDirty) return;
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = setTimeout(() => {
+        void form.handleSubmit(handleAutoSave)();
+      }, 900);
+    });
+
+    return () => {
+      subscription.unsubscribe?.();
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    };
+  }, [form, handleAutoSave]);
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="grid gap-4 py-4">
+      <form onSubmit={event => event.preventDefault()} className="grid gap-4 py-4">
         <div className="grid grid-cols-2 gap-4">
             <FormField
             control={form.control}
@@ -158,11 +188,19 @@ export function IncidentForm({ items, incident, onSubmit, onCancel }: IncidentFo
           )}
         />
         
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="flex items-center justify-between gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onCancel}>
                 Cancelar
             </Button>
-            <Button type="submit">{incident ? 'Salvar Alterações' : 'Registrar Incidente'}</Button>
+            <p className="text-xs text-muted-foreground" aria-live="polite">
+              {saveStatus === 'saving'
+                ? 'Salvando automaticamente...'
+                : saveStatus === 'saved'
+                  ? 'Alterações salvas automaticamente.'
+                  : saveStatus === 'error'
+                    ? saveError ?? 'Erro ao salvar o incidente.'
+                    : 'As alterações serão salvas automaticamente.'}
+            </p>
         </div>
       </form>
     </Form>

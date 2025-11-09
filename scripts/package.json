@@ -1,0 +1,13 @@
+{
+  "name": "lancamentos-check",
+  "version": "1.0.0",
+  "description": "Checks basic stats for lancamentos_mensais using node pg (no psql required)",
+  "main": "check_lancamentos_stats.js",
+  "scripts": {
+    "start": "node check_lancamentos_stats.js"
+  },
+  "dependencies": {
+    "pg": "^8.11.0",
+    "csv-parse": "^5.3.6"
+  }
+}

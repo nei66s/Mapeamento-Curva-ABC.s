@@ -21,7 +21,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { SettlementForm } from '@/components/dashboard/settlement/settlement-form';
 import type { SettlementLetter, SettlementStatus, User, Supplier } from '@/lib/types';
-import { mockUsers } from '@/lib/users';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import { PlusCircle, Clock, Check, Download, Handshake, UploadCloud } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -29,6 +29,7 @@ import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { SettlementPdfDocument } from '@/components/dashboard/settlement/settlement-pdf-document';
+import styles from './settlement-page.module.css';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const statusVariantMap: Record<SettlementStatus, 'success' | 'accent'> = {
@@ -36,21 +37,15 @@ const statusVariantMap: Record<SettlementStatus, 'success' | 'accent'> = {
   Pendente: 'accent',
 };
 
-// Mock a logged-in user. In a real app, this would come from an auth context.
-const getCurrentUser = (): User | undefined => {
-    // To test the supplier view, change this to 'user-006'
-    return mockUsers.find(u => u.id === 'user-001'); 
-};
-
-
 export default function SettlementPage() {
+  const { user: authUser } = useCurrentUser();
   const [letters, setLetters] = useState<SettlementLetter[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [letterToPrint, setLetterToPrint] = useState<SettlementLetter | null>(null);
   const { toast } = useToast();
   
-  const currentUser = getCurrentUser();
+  const currentUser = authUser;
 
   useEffect(() => {
     const loadAll = async () => {
@@ -81,34 +76,70 @@ export default function SettlementPage() {
   const pendingLetters = useMemo(() => visibleLetters.filter(l => l.status === 'Pendente').sort((a,b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime()), [visibleLetters]);
   const receivedLetters = useMemo(() => visibleLetters.filter(l => l.status === 'Recebida').sort((a,b) => new Date(b.receivedDate!).getTime() - new Date(a.receivedDate!).getTime()), [visibleLetters]);
 
-  const handleFormSubmit = (values: Omit<SettlementLetter, 'id' | 'requestDate' | 'status'>) => {
-    const newLetter: SettlementLetter = {
-      ...values,
-      id: `SET-${Date.now()}`,
-      requestDate: new Date().toISOString(),
-      status: 'Pendente',
-    };
-    setLetters([newLetter, ...letters]);
-    toast({
-      title: 'Solicitação Registrada!',
-      description: `A solicitação de quitação para o contrato "${values.contractId}" foi criada.`,
-    });
-    setIsFormOpen(false);
+  const handleFormSubmit = async (values: Omit<SettlementLetter, 'id' | 'requestDate' | 'status'>) => {
+    try {
+      const res = await fetch('/api/settlements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+      if (!res.ok) throw new Error('Failed to create');
+      const created: SettlementLetter = await res.json();
+      setLetters(prev => [created, ...prev]);
+      toast({
+        title: 'Solicitação Registrada!',
+        description: `A solicitação de quitação para o contrato "${values.contractId}" foi criada.`,
+      });
+      setIsFormOpen(false);
+    } catch (err) {
+      console.error('Failed to create settlement', err);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao Registrar',
+        description: 'Não foi possível registrar a solicitação. Tente novamente.',
+      });
+    }
   };
   
   const handleMarkAsReceived = (letterId: string) => {
-      setLetters(prev => prev.map(l => l.id === letterId ? { ...l, status: 'Recebida', receivedDate: new Date().toISOString() } : l));
+      // call API to mark received
+      (async () => {
+        try {
+          const res = await fetch(`/api/settlements/${letterId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'Recebida' }),
+          });
+          if (!res.ok) throw new Error('failed');
+          const updated = await res.json();
+          setLetters(prev => prev.map(l => l.id === letterId ? ({ ...l, status: updated.status || 'Recebida', receivedDate: updated.received_date || new Date().toISOString() }) : l));
+          toast({ title: 'Carta marcada como recebida' });
+        } catch (err) {
+          console.error('Failed to mark received', err);
+          toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível marcar como recebida' });
+        }
+      })();
   };
   
   const handleFileUploadSimulation = (letterId: string) => {
-      // In a real application, this would open a file dialog and upload the file
-      // to a server or a cloud storage service like Firebase Storage.
-      // Here, we just simulate the successful action.
-      handleMarkAsReceived(letterId);
-       toast({
-          title: 'Arquivo "Enviado"!',
-          description: 'O documento foi marcado como recebido. Em uma aplicação real, o upload seria feito aqui.',
-      });
+      // Simulate upload: call upload endpoint to store a fake URL and mark as received
+      (async () => {
+        try {
+          const fakeUrl = `https://example.com/uploads/quitacao-${letterId}.pdf`;
+          const res = await fetch(`/api/settlements/${letterId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileUrl: fakeUrl }),
+          });
+          if (!res.ok) throw new Error('upload failed');
+          const updated = await res.json();
+          setLetters(prev => prev.map(l => l.id === letterId ? ({ ...l, status: updated.status || 'Recebida', receivedDate: updated.received_date || new Date().toISOString(), fileUrl: updated.file_url || fakeUrl }) : l));
+          toast({ title: 'Arquivo "Enviado"!', description: 'O documento foi marcado como recebido e link gravado.' });
+        } catch (err) {
+          console.error('Simulated upload failed', err);
+          toast({ variant: 'destructive', title: 'Erro no Upload', description: 'Não foi possível enviar o arquivo.' });
+        }
+      })();
   }
 
   const handleDownloadPdf = async (letter: SettlementLetter) => {
@@ -148,10 +179,10 @@ export default function SettlementPage() {
             <div className="flex items-start justify-between">
                 <div className="flex-1">
                     <CardTitle className="text-lg">{letter.contractId}</CardTitle>
-                    <CardDescription className="flex items-center gap-2 pt-1">
-                        <Handshake className="h-4 w-4" /> 
-                        {suppliersMap.get(letter.supplierId) || 'Fornecedor desconhecido'}
-                    </CardDescription>
+          <CardDescription className="flex items-center gap-2 pt-1">
+            <Handshake className="h-4 w-4" /> 
+            {suppliersMap.get(String(letter.supplierId)) || 'Fornecedor desconhecido'}
+          </CardDescription>
                 </div>
                 <Badge variant={statusVariantMap[letter.status]}>
                     {letter.status}
@@ -235,7 +266,7 @@ export default function SettlementPage() {
         </Tabs>
       
       {letterToPrint && (
-        <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+        <div className={styles.offscreen}>
           <SettlementPdfDocument 
             letter={letterToPrint} 
             supplier={suppliers.find((s: Supplier) => s.id === letterToPrint.supplierId)}
