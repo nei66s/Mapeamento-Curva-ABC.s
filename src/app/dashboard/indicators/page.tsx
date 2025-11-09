@@ -44,19 +44,41 @@ export default function IndicatorsPage() {
     };
     load();
   }, []);
-  // Defensive initialization: mockMaintenanceIndicators may be empty during migration.
-  // Use the last available month if present, otherwise fall back to current year-month (YYYY-MM).
-  // For development preview, default to August 2025 so Pareto shows populated data
-  const lastIndicator = indicators && indicators.length > 0
-    ? indicators[indicators.length - 1]
-    : undefined;
-  const initialMonth = indicators.length > 0 ? indicators[indicators.length - 1].mes : '2025-08';
+  const lastIndicator = indicators && indicators.length > 0 ? indicators[indicators.length - 1] : undefined;
+  const now = new Date();
+  const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  // Always default to current year-month so selector shows current month even if empty
+  const initialMonth = currentYm;
   const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth);
   const [isSyncing, setIsSyncing] = useState(false);
 
   const selectedData = useMemo(() => {
-    return indicators.find(d => d.mes === selectedMonth) || indicators[0];
+    return indicators.find(d => d.mes === selectedMonth) || undefined;
   }, [selectedMonth, indicators]);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const syncRes = await fetch('/api/sync-lancamentos', { method: 'POST', body: JSON.stringify({}) });
+      const syncJson = await syncRes.json();
+      if (!syncJson || !syncJson.ok) throw new Error(syncJson?.error || 'Sync failed');
+
+      const buildRes = await fetch('/api/build-indicators', { method: 'POST' });
+      const buildJson = await buildRes.json();
+      if (!buildJson || !buildJson.ok) throw new Error(buildJson?.error || 'Build failed');
+
+      const res = await fetch('/api/indicators');
+      const data = await res.json();
+      setIndicators(Array.isArray(data) ? data : []);
+
+      toast({ title: 'Sincronização concluída', description: `Sync: ${JSON.stringify(syncJson.result)} — rebuild: ${JSON.stringify(buildJson.result)}` });
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: 'Erro na sincronização', description: String(err?.message || err) });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const allMonths = useMemo(() => {
     return indicators.map(d => ({
@@ -104,35 +126,7 @@ export default function IndicatorsPage() {
                 </SelectContent>
             </Select>
             <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                className="ml-2"
-                onClick={async () => {
-                  setIsSyncing(true);
-                  try {
-                    const syncRes = await fetch('/api/sync-lancamentos', { method: 'POST', body: JSON.stringify({}) });
-                    const syncJson = await syncRes.json();
-                    if (!syncJson || !syncJson.ok) throw new Error(syncJson?.error || 'Sync failed');
-
-                    const buildRes = await fetch('/api/build-indicators', { method: 'POST' });
-                    const buildJson = await buildRes.json();
-                    if (!buildJson || !buildJson.ok) throw new Error(buildJson?.error || 'Build failed');
-
-                    // reload indicators
-                    const res = await fetch('/api/indicators');
-                    const data = await res.json();
-                    setIndicators(Array.isArray(data) ? data : []);
-
-                    toast({ title: 'Sincronização concluída', description: `Sync: ${JSON.stringify(syncJson.result)} — rebuild: ${JSON.stringify(buildJson.result)}` });
-                  } catch (err: any) {
-                    console.error(err);
-                    toast({ title: 'Erro na sincronização', description: String(err?.message || err) });
-                  } finally {
-                    setIsSyncing(false);
-                  }
-                }}
-                disabled={isSyncing}
-              >
+              <Button size="sm" className="ml-2" onClick={handleSync} disabled={isSyncing}>
                 {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
               </Button>
 
@@ -196,6 +190,26 @@ export default function IndicatorsPage() {
       </section>
 
       <Separator />
+
+      {!selectedData && (
+        <section>
+          <Card className="border border-gray-100 rounded-2xl shadow-sm p-6">
+            <CardHeader>
+              <CardTitle>Sem dados para este mês</CardTitle>
+              <CardDescription>
+                Não foram encontrados indicadores para o mês selecionado ({selectedMonth}).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={handleSync} disabled={isSyncing}>
+                  {isSyncing ? 'Sincronizando...' : 'Sincronizar agora'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {selectedData && (
         <section>

@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import AppHeader from '@/components/layout/app-header';
 import AppSidebar from '@/components/layout/app-sidebar';
 import RequirePermission from '@/components/auth/RequirePermission.client';
+import { CurrentUserProvider } from '@/hooks/use-current-user';
 
 
 export const metadata: Metadata = {
@@ -37,9 +38,11 @@ export default function RootLayout({
             <AppHeader />
             <main className="flex-1 gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
               <div className="mx-auto w-full max-w-7xl">
-                <RequirePermission>
-                  {children}
-                </RequirePermission>
+                <CurrentUserProvider>
+                  <RequirePermission>
+                    {children}
+                  </RequirePermission>
+                </CurrentUserProvider>
               </div>
             </main>
           </div>

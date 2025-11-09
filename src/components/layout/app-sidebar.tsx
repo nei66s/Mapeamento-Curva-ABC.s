@@ -82,6 +82,8 @@ const bottomLinks = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  // Hide sidebar on auth pages (login/register) — those live under the (auth) route group
+  if (pathname && pathname.startsWith('/login')) return null;
   const { user } = useCurrentUser();
   const [perms, setPerms] = useState<Record<string, Record<string, boolean>> | null>(null);
 
@@ -120,10 +122,15 @@ export default function AppSidebar() {
     return Boolean(defaults[role]?.[moduleId]);
   };
 
+  // Build groups filtered by access so we don't render empty groups/dividers
+  const visibleGroups = allLinksGroups.map(group => group.filter(link => canAccess((link as any).moduleId)));
+  const renderedGroups = visibleGroups.filter(g => g.length > 0);
+
   return (
     <TooltipProvider delayDuration={0}>
-      <aside className="fixed inset-y-0 left-0 z-10 hidden w-16 flex-col border-r bg-card sm:flex">
-        <nav className="flex flex-col items-center gap-2 px-2 sm:py-4">
+      {/* Fixed narrow sidebar: make the main nav scrollable when items overflow */}
+      <aside className="fixed inset-y-0 left-0 z-10 hidden w-16 flex-col border-r bg-card sm:flex overflow-hidden">
+        <nav className="flex flex-1 flex-col items-center gap-2 px-2 py-2 sm:py-4 overflow-y-auto">
           <Link
             href="/"
             className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full text-lg font-semibold text-primary-foreground md:h-12 md:w-12 md:text-base mb-2"
@@ -132,32 +139,30 @@ export default function AppSidebar() {
             <span className="sr-only">Fixly</span>
           </Link>
 
-          {allLinksGroups.map((group, groupIndex) => (
-            <React.Fragment key={groupIndex}>
-                {groupIndex > 0 && <div className="h-[1px] w-full bg-border my-1" />}
-                {group.map((link) => (
-                    canAccess((link as any).moduleId) && (
-                    <Tooltip key={link.href}>
-                    <TooltipTrigger asChild>
-                        <Link
-                        href={link.href}
-                        className={cn(
-                            'flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-primary hover:bg-muted',
-                            isActive(link.href) && 'bg-primary/10 text-primary'
-                        )}
-                        >
-                        <link.icon className="h-5 w-5" />
-                        <span className="sr-only">{link.label}</span>
-                        </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">{link.label}</TooltipContent>
-                    </Tooltip>
-                    )
-                ))}
+          {renderedGroups.map((group, gIndex) => (
+            <React.Fragment key={gIndex}>
+              {gIndex > 0 && <div className="h-[1px] w-full bg-border my-1" />}
+              {group.map((link) => (
+                <Tooltip key={link.href}>
+                  <TooltipTrigger asChild>
+                    <Link
+                      href={link.href}
+                      className={cn(
+                        'flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-primary hover:bg-muted',
+                        isActive(link.href) && 'bg-primary/10 text-primary'
+                      )}
+                    >
+                      <link.icon className="h-5 w-5" />
+                      <span className="sr-only">{link.label}</span>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{link.label}</TooltipContent>
+                </Tooltip>
+              ))}
             </React.Fragment>
           ))}
         </nav>
-        <nav className="mt-auto flex flex-col items-center gap-2 px-2 sm:py-4">
+  <nav className="mt-auto flex flex-col items-center gap-2 px-2 sm:py-4">
            {bottomLinks.map(link => (
                 canAccess((link as any).moduleId) && (
                 <Tooltip key={link.href}>

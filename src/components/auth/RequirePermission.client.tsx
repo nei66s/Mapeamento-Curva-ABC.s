@@ -50,23 +50,32 @@ export default function RequirePermission({ children }: { children: React.ReactN
 
   const moduleId = getModuleId(pathname);
 
-  if (loading) return null; // while we know user
-  // if moduleId not mapped, allow access
-  if (!moduleId) return <>{children}</>;
+  // Do not return early here: hooks must be registered in the same order every render.
+  // We'll perform the early-return after all hooks/effects are registered below.
 
   const role = user?.role ?? 'visualizador';
 
-  const allowed = perms?.[role]?.[moduleId] ?? (cloneDefaultPermissions()[role]?.[moduleId] ?? false);
-
-  if (allowed) return <>{children}</>;
-
-  // redirect to dashboard with access denied toast could be added
+  const mId = moduleId as string | undefined;
+  const allowed = (mId ? perms?.[role]?.[mId] : undefined) ?? (mId ? cloneDefaultPermissions()[role]?.[mId] : undefined) ?? false;
+  // Always register the redirect effect in the same hook order.
+  // Effect will early-return when not applicable to avoid changing behavior.
   useEffect(() => {
+    if (loading) return; // wait for user
+    if (!moduleId) return; // no module mapping, allow access
+    if (allowed) return; // user allowed, no redirect
     // prevent endless redirect if already in root/dashboard area
     if (!pathname) return;
     if (pathname === '/' || pathname === '/dashboard') return;
     router.replace('/');
-  }, [pathname, router]);
+  }, [loading, moduleId, allowed, pathname, router]);
+
+  // Now that hooks and effects are registered consistently, apply the same
+  // early-return logic that previously existed.
+  if (loading) return null; // while we know user
+  // if moduleId not mapped, allow access
+  if (!moduleId) return <>{children}</>;
+
+  if (allowed) return <>{children}</>;
 
   return (
     <Card>
