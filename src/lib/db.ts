@@ -25,12 +25,19 @@ const pool = new Pool({
       }
       return process.env.PGPASSWORD as string;
     }
-    // development: warn and allow local fallback for convenience
+    // development: only allow a default fallback if explicitly opted-in via
+    // DEV_ALLOW_DEFAULT_PG_PASSWORD=true to avoid accidental use of weak
+    // credentials. This makes the behavior explicit for local dev.
     if (!process.env.PGPASSWORD) {
-      // eslint-disable-next-line no-console
-      console.warn("PGPASSWORD not set; using 'admin' fallback for development only. Do not use in production.");
+      const allowDefault = String(process.env.DEV_ALLOW_DEFAULT_PG_PASSWORD || '').toLowerCase() === 'true';
+      if (allowDefault) {
+        // eslint-disable-next-line no-console
+        console.warn("DEV_ALLOW_DEFAULT_PG_PASSWORD=true — using 'admin' fallback for development only. Do not use in production.");
+        return 'admin';
+      }
+      throw new Error('PGPASSWORD not set. In development you can run scripts/dev-setup.ps1 or set DEV_ALLOW_DEFAULT_PG_PASSWORD=true to allow a local fallback.');
     }
-    return process.env.PGPASSWORD || 'admin';
+    return process.env.PGPASSWORD as string;
   })(),
   database: process.env.PGDATABASE || 'postgres',
 });

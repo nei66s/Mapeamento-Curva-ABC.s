@@ -39,3 +39,10 @@ Observações finais
   3) duplicações de código-fonte com conteúdo diferente (necessária revisão manual)
 
 Posso gerar um CSV com todas as duplicações por basename e caminhos completos se quiser — isso facilita revisão em massa.
+
+Atualização (ações aplicadas):
+
+- Copiei os SQLs listados para `sql/` como fonte canônica nesta branch (`sql/apply-indexes.sql`, `sql/migrate-rncs.sql`, `sql/migrate-add-category-fields.sql`, `sql/list-unused-tables.sql`, `sql/drop-unused-by-whitelist.sql`, `sql/seed.sql`).
+- Os arquivos originais em `scripts/` e na raiz foram mantidos por segurança. Próximo passo recomendado: atualizar os scripts que chamam os caminhos antigos para apontar para `sql/` e, após validação, remover os duplicados.
+
+Se quiser, eu faço um commit adicional atualizando os scripts JS/PS1 para usar `sql/` como fonte de verdade (opção segura: criar um helper `scripts/sync-sql-to-sqldir.js` em vez de mover imediatamente). 

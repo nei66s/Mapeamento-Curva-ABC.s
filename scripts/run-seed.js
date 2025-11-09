@@ -3,9 +3,11 @@ const path = require('path');
 const { Client } = require('pg');
 
 async function main() {
-  const sqlPath = path.resolve(__dirname, '..', 'seed.sql');
+  const preferred = path.resolve(__dirname, '..', 'sql', 'seed.sql');
+  const fallback = path.resolve(__dirname, '..', 'seed.sql');
+  const sqlPath = fs.existsSync(preferred) ? preferred : fallback;
   if (!fs.existsSync(sqlPath)) {
-    console.error('seed.sql file not found:', sqlPath);
+    console.error('seed.sql file not found (tried sql/ then root):', sqlPath);
     process.exit(1);
   }
   const sql = fs.readFileSync(sqlPath, 'utf8');
