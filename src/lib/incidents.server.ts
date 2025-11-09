@@ -24,7 +24,7 @@ export async function getIncidents(): Promise<Incident[]> {
   return res.rows.map(mapIncident);
 }
 
-export type IncidentInput = Omit<Incident, 'id' | 'openedAt' | 'status'> & { status?: Incident['status']; openedAt?: string };
+export type IncidentInput = Omit<Incident, 'openedAt' | 'status'> & { id?: string; status?: Incident['status']; openedAt?: string };
 
 export async function createIncident(incident: IncidentInput): Promise<Incident> {
   const id = incident.id || `INC-${randomUUID()}`;

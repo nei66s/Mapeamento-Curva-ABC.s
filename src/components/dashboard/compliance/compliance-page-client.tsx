@@ -70,6 +70,34 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
     return { scheduledDates: Array.from(scheduled), completedDates: Array.from(completed), pendingDates: Array.from(pending), futureDates: Array.from(future) };
   }, [storeData]);
 
+  // Normalize compliance status values coming from the server or from legacy data
+  const normalizeComplianceStatus = (s: any) => {
+    // Map many possible legacy/localized variants to the canonical union type
+    if (!s && s !== '') return 'pending';
+    const v = String(s).trim().toLowerCase();
+    // completed variants: completed, complete, concluído, concluido, conclu, concl, done, feito, ok
+    if (
+      v === 'completed' ||
+      v === 'complete' ||
+      v.includes('concl') ||
+      v === 'done' ||
+      v === 'feito' ||
+      v === 'ok' ||
+      v.includes('comp')
+    ) return 'completed';
+    // not-applicable variants
+    if (
+      v === 'not-applicable' ||
+      v.includes('nao aplic') ||
+      v.includes('não aplic') ||
+      v === 'n/a' ||
+      v === 'na' ||
+      v === 'nao' ||
+      v === 'nao_aplicavel'
+    ) return 'not-applicable';
+    return 'pending';
+  };
+
   const filteredStoreData = useMemo(() => {
     if (selectedDate) {
        return storeData.filter(d => format(new Date(d.visitDate), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'));
@@ -93,7 +121,7 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
           return {
             ...store,
             items: store.items.map(item =>
-              item.itemId === itemId ? { ...item, status: newStatus } : item
+              String(item.itemId) === String(itemId) ? { ...item, status: newStatus } : item
             ),
           };
         }
@@ -102,7 +130,7 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
     );
 
     // find the scheduled visit's date for this store so the server can locate the visit row
-    const store = storeData.find(s => s.storeId === storeId);
+  const store = storeData.find(s => s.storeId === storeId);
     const visitDateStr = store && store.visitDate ? format(new Date(store.visitDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
 
     (async () => {
@@ -118,21 +146,22 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
     })();
   };
   
-  const handleAddItem = (itemName: string) => {
+  const handleAddItem = (it: { id?: string; name: string; classification?: string } | string) => {
+    const payload = typeof it === 'string' ? { name: it, classification: 'C' } : { name: it.name, classification: it.classification ?? 'C' };
     // Persist to server and update local state. Fall back to local-only if API fails.
     (async () => {
       try {
         const res = await fetch('/api/compliance/items', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: itemName, classification: 'C' }),
+          body: JSON.stringify(payload),
         });
         let itemToAdd: ComplianceChecklistItem;
         if (res.ok) {
           itemToAdd = await res.json();
         } else {
           // fallback local
-          itemToAdd = { id: `CHK-${Date.now()}`, name: itemName, classification: 'C' };
+          itemToAdd = { id: `CHK-${Date.now()}`, name: payload.name, classification: payload.classification as any };
         }
 
         setChecklistItems(prev => [...prev, itemToAdd]);
@@ -144,11 +173,11 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
         );
         toast({
           title: 'Item Adicionado!',
-          description: `"${itemName}" foi adicionado ao checklist.`,
+          description: `"${payload.name}" foi adicionado ao checklist.`,
         });
       } catch (err) {
         console.error('addItem API error', err);
-        const itemToAdd: ComplianceChecklistItem = { id: `CHK-${Date.now()}`, name: itemName, classification: 'C' };
+  const itemToAdd: ComplianceChecklistItem = { id: `CHK-${Date.now()}`, name: payload.name, classification: payload.classification as any };
         setChecklistItems(prev => [...prev, itemToAdd]);
         setStoreData(prevData =>
           prevData.map(store => ({
@@ -158,7 +187,7 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
         );
         toast({
           title: 'Item Adicionado!',
-          description: `"${itemName}" foi adicionado ao checklist.`,
+          description: `"${payload.name}" foi adicionado ao checklist.`,
         });
       }
     })();
@@ -189,7 +218,7 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
     setStoreData(prevData =>
       prevData.map(store => ({
         ...store,
-        items: store.items.filter(item => item.itemId !== itemId),
+        items: store.items.filter(item => String(item.itemId) !== String(itemId)),
       }))
     );
     toast({
@@ -206,7 +235,7 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
         storeId: storeDetails?.id || `LOJA-${Date.now()}`,
         storeName: storeName,
         visitDate: visitDate.toISOString(),
-        items: checklistItems.map(item => ({ itemId: item.id, status: 'pending' })),
+    items: checklistItems.map(item => ({ itemId: String(item.id), status: 'pending' })),
     };
 
     // persist to API
@@ -219,7 +248,8 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
         });
         if (res.ok) {
           const created = await res.json();
-          setStoreData(prev => [...prev, created].sort((a, b) => new Date(a.visitDate).getTime() - new Date(b.visitDate).getTime()));
+          const normalized = { ...created, items: Array.isArray(created.items) ? created.items.map((it: any) => ({ itemId: String(it.itemId ?? it.id ?? it.item), status: normalizeComplianceStatus(it.status) })) : [] };
+          setStoreData(prev => [...prev, normalized].sort((a, b) => new Date(a.visitDate).getTime() - new Date(b.visitDate).getTime()));
           toast({ title: 'Visita agendada!', description: `Visita para a ${storeName} agendada em ${format(visitDate, 'dd/MM/yyyy')}.` });
         } else {
           // fallback to local
@@ -307,7 +337,10 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
         if (!res.ok) throw new Error('Failed to load compliance');
         const json = await res.json();
         setChecklistItems(Array.isArray(json.checklistItems) ? json.checklistItems : []);
-        setStoreData(Array.isArray(json.storeData) ? json.storeData : []);
+        setStoreData(Array.isArray(json.storeData) ? json.storeData.map((s: any) => ({
+          ...s,
+          items: Array.isArray(s.items) ? s.items.map((it: any) => ({ itemId: String(it.itemId ?? it.id ?? it.item), status: normalizeComplianceStatus(it.status) })) : [],
+        })) : []);
       } catch (err) {
         console.error('loadCompliance error', err);
       }

@@ -25,7 +25,7 @@ export async function getTechnicalReport(id: string): Promise<TechnicalReport | 
   return mapReport(res.rows[0]);
 }
 
-type ReportInput = Omit<TechnicalReport, 'id' | 'createdAt'> & { id?: string };
+type ReportInput = Omit<TechnicalReport, 'id' | 'createdAt'> & { id?: string; createdAt?: string };
 
 export async function createTechnicalReport(data: ReportInput): Promise<TechnicalReport> {
   const id = data.id ?? `LTD-${randomUUID()}`;

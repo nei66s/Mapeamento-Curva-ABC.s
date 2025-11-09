@@ -27,8 +27,20 @@ export function useCurrentUser() {
       if (typeof window === 'undefined') return;
       if (value) {
         localStorage.setItem('pm_user', JSON.stringify(value));
+        try {
+          // also persist a cookie so server-side middleware can read role
+          const cookieVal = encodeURIComponent(JSON.stringify({ id: value.id, role: value.role, name: value.name }));
+          // set cookie for 7 days
+          document.cookie = `pm_user=${cookieVal}; path=/; max-age=${60 * 60 * 24 * 7}`;
+        } catch (e) {
+          // ignore cookie set failures
+        }
       } else {
         localStorage.removeItem('pm_user');
+        try {
+          // remove cookie
+          document.cookie = 'pm_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        } catch (e) {}
       }
     } catch (err) {
       console.warn('Failed to persist pm_user', err);

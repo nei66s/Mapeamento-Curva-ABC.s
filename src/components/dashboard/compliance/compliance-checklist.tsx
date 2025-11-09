@@ -66,6 +66,18 @@ const statusLabel: Record<ComplianceStatus, string> = {
 // (for example due to bundling or unexpected reassignments).
 const STATUSES: ComplianceStatus[] = ['completed', 'pending', 'not-applicable'];
 
+// Defensive normalization for incoming status values. Some rows in the DB use
+// localized or legacy strings (e.g. 'Concluído', 'concluido', 'done'). Normalize
+// them to the canonical ComplianceStatus so the UI (icons/labels) updates
+// correctly.
+const normalizeStatus = (s: any): ComplianceStatus => {
+  if (!s && s !== '') return 'pending';
+  const v = String(s).trim().toLowerCase();
+  if (v === 'completed' || v.includes('concl') || v === 'done') return 'completed';
+  if (v === 'not-applicable' || v.includes('nao aplic') || v.includes('não aplic') || v === 'n/a') return 'not-applicable';
+  return 'pending';
+};
+
 export function ComplianceChecklist({
   checklistItems,
   storeData,
@@ -110,9 +122,9 @@ export function ComplianceChecklist({
                         ))}
                     </TableRow>
                     </TableHeader>
-                    <TableBody>
-                    {storeData.length > 0 ? storeData.map(store => (
-                        <TableRow key={store.storeId}>
+          <TableBody>
+          {storeData.length > 0 ? storeData.map((store, idx) => (
+            <TableRow key={`${store.storeId}-${idx}`}>
                         <TableCell className="sticky left-0 bg-card z-10 font-medium w-[200px]">
                           <div className="flex items-center justify-between">
                             <span className="truncate">{store.storeName}</span>
@@ -139,9 +151,9 @@ export function ComplianceChecklist({
                             </AlertDialog>
                           </div>
                         </TableCell>
-                        {checklistItems.map(checklistItem => {
-                            const itemStatus = store.items.find(i => i.itemId === checklistItem.id);
-                            const currentStatus = itemStatus?.status || 'pending';
+            {checklistItems.map(checklistItem => {
+              const itemStatus = store.items.find(i => String(i.itemId) === String(checklistItem.id));
+              const currentStatus = normalizeStatus(itemStatus?.status ?? 'pending');
                             return (
                             <TableCell key={checklistItem.id} className="text-center">
                                 <DropdownMenu>

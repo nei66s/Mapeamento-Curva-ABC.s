@@ -198,23 +198,25 @@ export default function ToolsPage() {
         title="Almoxarifado de Ferramentas"
         description="Gerencie o inventário e a alocação de ferramentas para os técnicos."
       >
-        <Dialog open={isBulkFormOpen} onOpenChange={setIsBulkFormOpen}>
-            <DialogTrigger asChild>
-                <Button className="flex gap-2">
-                    <PlusCircle />
-                    Adicionar Ferramentas
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-4xl">
-                <DialogHeader>
-                    <DialogTitle>Adicionar Novas Ferramentas</DialogTitle>
-                </DialogHeader>
-                <ToolBulkForm 
-                    onSubmit={handleBulkSubmit}
-                    onCancel={() => setIsBulkFormOpen(false)}
-                />
-            </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+            <Dialog open={isBulkFormOpen} onOpenChange={setIsBulkFormOpen}>
+                <DialogTrigger asChild>
+                    <Button className="flex gap-2">
+                        <PlusCircle />
+                        Adicionar Ferramentas
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-4xl">
+                    <DialogHeader>
+                        <DialogTitle>Adicionar Novas Ferramentas</DialogTitle>
+                    </DialogHeader>
+                    <ToolBulkForm 
+                        onSubmit={handleBulkSubmit}
+                        onCancel={() => setIsBulkFormOpen(false)}
+                    />
+                </DialogContent>
+            </Dialog>
+        </div>
       </PageHeader>
       <Card>
         <CardHeader>
