@@ -1,6 +1,8 @@
 <!-- .github/copilot-instructions.md - guidance for AI coding agents -->
 # Copilot / AI Agent Quick Instructions
 
+Please respond concisely: always keep answers brief and to the point (max 2-3 short sentences). / Por favor, responda resumidamente: mantenha as respostas curtas e diretas (máx. 2-3 frases curtas).
+
 This project is a Next.js (app router) TypeScript monorepo-style webapp for maintenance/operations dashboards and scripts. Keep guidance concise and focused on patterns discoverable in the repo.
 
 Key facts
