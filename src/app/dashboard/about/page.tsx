@@ -77,7 +77,7 @@ export default function AboutPage() {
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Sobre a Plataforma"
-        description="Uma visão geral dos recursos e capacidades do sistema de Manutenção Pague Menos."
+        description="Uma visão geral dos recursos e capacidades do sistema Fixly."
       />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -14,7 +14,31 @@ const pool = new Pool({
   host: process.env.PGHOST || 'localhost',
   port: Number(process.env.PGPORT || 5432),
   user: process.env.PGUSER || 'postgres',
-  password: process.env.PGPASSWORD || 'admin',
+  // In production we require PGPASSWORD to be explicitly provided to avoid
+  // committing credentials or connecting with weak defaults. In development
+  // emit a warning and allow a safe local fallback so developer UX isn't blocked.
+  password: (() => {
+    const isProd = process.env.NODE_ENV === 'production';
+    if (isProd) {
+      if (!process.env.PGPASSWORD) {
+        throw new Error('PGPASSWORD environment variable is not set. Set PGPASSWORD to connect to the DB (production).');
+      }
+      return process.env.PGPASSWORD as string;
+    }
+    // development: only allow a default fallback if explicitly opted-in via
+    // DEV_ALLOW_DEFAULT_PG_PASSWORD=true to avoid accidental use of weak
+    // credentials. This makes the behavior explicit for local dev.
+    if (!process.env.PGPASSWORD) {
+      const allowDefault = String(process.env.DEV_ALLOW_DEFAULT_PG_PASSWORD || '').toLowerCase() === 'true';
+      if (allowDefault) {
+        // eslint-disable-next-line no-console
+        console.warn("DEV_ALLOW_DEFAULT_PG_PASSWORD=true — using 'admin' fallback for development only. Do not use in production.");
+        return 'admin';
+      }
+      throw new Error('PGPASSWORD not set. In development you can run scripts/dev-setup.ps1 or set DEV_ALLOW_DEFAULT_PG_PASSWORD=true to allow a local fallback.');
+    }
+    return process.env.PGPASSWORD as string;
+  })(),
   database: process.env.PGDATABASE || 'postgres',
 });
 

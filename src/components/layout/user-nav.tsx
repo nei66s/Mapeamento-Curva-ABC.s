@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,41 +11,44 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { mockUsers } from "@/lib/users";
 import Link from 'next/link';
+import { useCurrentUser } from '@/hooks/use-current-user';
 
 export function UserNav() {
-  // Start with undefined so server and initial client render match
-  const [user, setUser] = useState<any | undefined>(undefined);
+  const { user, setUser } = useCurrentUser();
 
   useEffect(() => {
-    // keep in sync if localStorage changes in the session
-    try {
-      const handleStorage = () => {
-        try {
-          const raw = localStorage.getItem('pm_user');
-          if (raw) {
-            setUser(JSON.parse(raw));
-            return;
-          }
-        } catch (e) {
-          // ignore parse errors
+    const handleStorage = () => {
+      try {
+        const raw = localStorage.getItem('pm_user');
+        if (raw) {
+          setUser(JSON.parse(raw));
+        } else {
+          setUser(null);
         }
+      } catch (err) {
+        console.warn('Failed to sync pm_user from storage', err);
+      }
+    };
 
-        // Fallback for dev: use mockUsers only after mount (so it doesn't affect SSR)
-        const fallback = mockUsers.find((u) => u.role === 'admin');
-        if (fallback) setUser(fallback);
-      };
+    const handlePmUserChanged = (ev: Event) => {
+      try {
+        const detail = (ev as CustomEvent).detail;
+        if (detail) setUser(detail as any);
+        else setUser(null);
+      } catch (e) {}
+    };
 
-      // Read once on mount (no storage event fires in same window)
-      handleStorage();
-
+    if (typeof window !== 'undefined') {
       window.addEventListener('storage', handleStorage);
-      return () => window.removeEventListener('storage', handleStorage);
-    } catch (e) {
-      // ignore
+      window.addEventListener('pm_user_changed', handlePmUserChanged as EventListener);
+      return () => {
+        window.removeEventListener('storage', handleStorage);
+        window.removeEventListener('pm_user_changed', handlePmUserChanged as EventListener);
+      };
     }
-  }, []);
+    return () => {};
+  }, [setUser]);
 
   return (
     <DropdownMenu>
@@ -57,7 +60,7 @@ export function UserNav() {
         >
           <Avatar className="h-8 w-8">
             {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt="User avatar" data-ai-hint="person avatar"/>}
-            <AvatarFallback>{user ? user.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+            <AvatarFallback>{user?.name ? user.name.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -71,12 +74,12 @@ export function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <Link href="/dashboard/profile" passHref>
-            <DropdownMenuItem>Perfil</DropdownMenuItem>
-        </Link>
-        <Link href="/dashboard/settings" passHref>
-            <DropdownMenuItem>Configurações</DropdownMenuItem>
-        </Link>
+    <Link href="/profile" passHref>
+      <DropdownMenuItem>Perfil</DropdownMenuItem>
+    </Link>
+    <Link href="/settings" passHref>
+      <DropdownMenuItem>Configurações</DropdownMenuItem>
+    </Link>
         <DropdownMenuSeparator />
          <Link href="/login" passHref>
             <DropdownMenuItem>Sair</DropdownMenuItem>

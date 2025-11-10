@@ -1,0 +1,6 @@
+conta_id,categoria_id,tipo,descricao,valor,moeda,data_lancamento,data_vencimento,recorrente,status,metadata,created_by,referencia
+,,DEBIT,Pagamento fornecedor X,1500.00,BRL,2025-11-01,2025-11-10,false,PENDENTE,"{""fornecedor"":""Fornecedor X"",""nota"":""NF-123""}",,
+,,CREDIT,Recebimento venda Y,3200.90,BRL,2025-11-02,2025-11-02,false,PAGO,"{""cliente"":""Cliente Y""}",,
+,,DEBIT,Assinatura mensal Z,99.90,BRL,2025-10-15,2025-10-15,true,PAGO,"{""plano"":""Z""}",,
+,,DEBIT,Pagamento fornecedor A,5000.00,BRL,2024-12-05,2024-12-15,false,PAGO,"{""fornecedor"":""A""}",,
+,,CREDIT,Recebimento serviço B,750.00,BRL,2025-01-20,2025-01-20,false,PENDENTE,"{""cliente"":""B""}",,

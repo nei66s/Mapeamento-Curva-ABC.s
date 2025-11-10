@@ -1,12 +1,14 @@
 
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import type { MaintenanceIndicator, Incident } from '@/lib/types';
 import { KpiCard } from '@/components/dashboard/indicators/kpi-card';
 import { CallsChart } from '@/components/dashboard/indicators/calls-chart';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { ArrowUp, ArrowDown, TrendingUp, DollarSign, BrainCircuit, BarChart3, LineChart } from 'lucide-react';
 import { SlaChart } from '@/components/dashboard/indicators/sla-chart';
 import { KpiAnalysis } from '@/components/dashboard/indicators/kpi-analysis';
@@ -22,37 +24,61 @@ import { AgingChart } from '@/components/dashboard/indicators/aging-chart';
 export default function IndicatorsPage() {
   const [indicators, setIndicators] = useState<MaintenanceIndicator[]>([]);
   const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState<string>('');
-
+  const { toast } = useToast();
   useEffect(() => {
     const load = async () => {
       try {
-        const [indRes, incRes] = await Promise.all([
+        const [iRes, incRes] = await Promise.all([
           fetch('/api/indicators'),
           fetch('/api/incidents'),
         ]);
-        if (!indRes.ok || !incRes.ok) throw new Error('Failed to load data');
-        const [indJson, incJson] = await Promise.all([
-          indRes.json(),
-          incRes.json(),
-        ]);
-        setIndicators(indJson);
-        setIncidents(incJson);
-        if (indJson.length > 0) {
-          setSelectedMonth(indJson[indJson.length - 1].mes);
-        } else {
-          setSelectedMonth('');
-        }
-      } catch (e) {
-        console.error(e);
+        const [idata, incdata] = await Promise.all([iRes.json(), incRes.json()]);
+        setIndicators(Array.isArray(idata) ? idata : []);
+        setIncidents(Array.isArray(incdata) ? incdata : []);
+      } catch (err) {
+        console.error('Failed to load indicators/incidents', err);
+        setIndicators([]);
+        setIncidents([]);
+        toast({ variant: 'destructive', title: 'Falha ao carregar dados', description: 'Não foi possível carregar indicadores e incidentes.' });
       }
     };
     load();
   }, []);
+  const lastIndicator = indicators && indicators.length > 0 ? indicators[indicators.length - 1] : undefined;
+  const now = new Date();
+  const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  // Always default to current year-month so selector shows current month even if empty
+  const initialMonth = currentYm;
+  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const selectedData = useMemo(() => {
-    return indicators.find(d => d.mes === selectedMonth);
+    return indicators.find(d => d.mes === selectedMonth) || undefined;
   }, [selectedMonth, indicators]);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const syncRes = await fetch('/api/sync-lancamentos', { method: 'POST', body: JSON.stringify({}) });
+      const syncJson = await syncRes.json();
+      if (!syncJson || !syncJson.ok) throw new Error(syncJson?.error || 'Sync failed');
+
+      const buildRes = await fetch('/api/build-indicators', { method: 'POST' });
+      const buildJson = await buildRes.json();
+      if (!buildJson || !buildJson.ok) throw new Error(buildJson?.error || 'Build failed');
+
+      const res = await fetch('/api/indicators');
+      const data = await res.json();
+      setIndicators(Array.isArray(data) ? data : []);
+
+      toast({ title: 'Sincronização concluída', description: `Sync: ${JSON.stringify(syncJson.result)} — rebuild: ${JSON.stringify(buildJson.result)}` });
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: 'Erro na sincronização', description: String(err?.message || err) });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const allMonths = useMemo(() => {
     return indicators.map(d => ({
@@ -69,11 +95,13 @@ export default function IndicatorsPage() {
   }, [indicators]);
   
   const incidentsForMonth = useMemo(() => {
-    if (!selectedMonth) return [] as Incident[];
     const [year, month] = selectedMonth.split('-');
-    return incidents.filter(incident => {
-        const incidentDate = new Date(incident.openedAt);
-        return incidentDate.getFullYear() === parseInt(year) && incidentDate.getMonth() === parseInt(month) - 1;
+    return incidents.filter((incident) => {
+      const incidentDate = new Date(incident.openedAt);
+      return (
+        incidentDate.getFullYear() === parseInt(year) &&
+        incidentDate.getMonth() === parseInt(month) - 1
+      );
     });
   }, [selectedMonth, incidents]);
 
@@ -85,7 +113,7 @@ export default function IndicatorsPage() {
         description="Análise consolidada dos principais indicadores de desempenho da manutenção."
       >
         <div className="flex items-center gap-2">
-      <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                 <SelectTrigger className="w-[200px]">
                     <SelectValue placeholder="Selecione o mês" />
                 </SelectTrigger>
@@ -97,16 +125,61 @@ export default function IndicatorsPage() {
                     ))}
                 </SelectContent>
             </Select>
+            <div className="flex items-center gap-2">
+              <Button size="sm" className="ml-2" onClick={handleSync} disabled={isSyncing}>
+                {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+              </Button>
+
+              <Button
+                size="sm"
+                className="ml-2"
+                onClick={async () => {
+                  // Run targeted seed (demo) then sync+build
+                  setIsSyncing(true);
+                  try {
+                    const seedRes = await fetch('/api/seed-targeted', {
+                      method: 'POST',
+                      body: JSON.stringify({ inferior: 50, entre: 50 }),
+                    });
+                    const seedJson = await seedRes.json();
+                    if (!seedJson || !seedJson.ok) throw new Error(seedJson?.error || 'Seed failed');
+
+                    // run sync + build
+                    const syncRes = await fetch('/api/sync-lancamentos', { method: 'POST', body: JSON.stringify({}) });
+                    const syncJson = await syncRes.json();
+                    if (!syncJson || !syncJson.ok) throw new Error(syncJson?.error || 'Sync failed');
+
+                    const buildRes = await fetch('/api/build-indicators', { method: 'POST' });
+                    const buildJson = await buildRes.json();
+                    if (!buildJson || !buildJson.ok) throw new Error(buildJson?.error || 'Build failed');
+
+                    // reload indicators
+                    const res = await fetch('/api/indicators');
+                    const data = await res.json();
+                    setIndicators(Array.isArray(data) ? data : []);
+
+                    toast({ title: 'Seed demo executado', description: `Seed: inserted demo records; Sync: ${JSON.stringify(syncJson.result)} — Rebuild: ${JSON.stringify(buildJson.result)}` });
+                  } catch (err: any) {
+                    console.error(err);
+                    toast({ title: 'Erro no seed demo', description: String(err?.message || err) });
+                  } finally {
+                    setIsSyncing(false);
+                  }
+                }}
+              >
+                Popular teste
+              </Button>
+            </div>
         </div>
       </PageHeader>
       
       <section>
-        <h2 className="text-2xl font-bold text-primary flex items-center gap-2 mb-4">
+        <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 flex items-center gap-3 mb-4">
             <BarChart3 />
             Indicadores Gerais
         </h2>
         <SummaryCards />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
             <div className="lg:col-span-2">
                 <ClassificationTable />
             </div>
@@ -118,13 +191,34 @@ export default function IndicatorsPage() {
 
       <Separator />
 
+      {!selectedData && (
+        <section>
+          <Card className="border border-gray-100 rounded-2xl shadow-sm p-6">
+            <CardHeader>
+              <CardTitle>Sem dados para este mês</CardTitle>
+              <CardDescription>
+                Não foram encontrados indicadores para o mês selecionado ({selectedMonth}).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={handleSync} disabled={isSyncing}>
+                  {isSyncing ? 'Sincronizando...' : 'Sincronizar agora'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
       {selectedData && (
         <section>
-             <h2 className="text-2xl font-bold text-primary flex items-center gap-2 mb-4">
-                <LineChart />
-                Indicadores Operacionais do Mês
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+       <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 flex items-center gap-3 mb-4">
+        <LineChart />
+        Indicadores Operacionais do Mês
+      </h2>
+            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <KpiCard
                     title="SLA Mensal"
                     value={`${selectedData.sla_mensal}%`}
@@ -146,6 +240,7 @@ export default function IndicatorsPage() {
                     icon={selectedData.chamados_solucionados > selectedData.chamados_abertos ? ArrowUp : ArrowDown}
                     iconColor={selectedData.chamados_solucionados > selectedData.chamados_abertos ? 'text-green-500' : 'text-red-500'}
                 />
+              </div>
             </div>
             
             <Card className="border-primary border-2 mt-8">
@@ -164,7 +259,7 @@ export default function IndicatorsPage() {
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-8">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8">
               <CallsChart data={indicators} />
               <SlaChart data={indicatorsWithGoal} />
             </div>
