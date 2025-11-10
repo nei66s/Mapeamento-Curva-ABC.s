@@ -1,7 +1,7 @@
 <!-- .github/copilot-instructions.md - guidance for AI coding agents -->
 # Copilot / AI Agent Quick Instructions
 
-Responda sucintamente: 1–2 frases. / Reply briefly: 1–2 sentences.
+Responda sucintamente: 1 frase.
 
 This project is a Next.js (app router) TypeScript monorepo-style webapp for maintenance/operations dashboards and scripts. Keep guidance concise and focused on patterns discoverable in the repo.
 
