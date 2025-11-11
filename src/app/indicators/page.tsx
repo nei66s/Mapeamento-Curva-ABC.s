@@ -38,7 +38,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
-const postJson = <T>(url: string, body?: unknown): Promise<T> => {
+const postJson = <T,>(url: string, body?: unknown): Promise<T> => {
   return fetchJson<T>(url, {
     method: 'POST',
     headers: {
