@@ -47,9 +47,6 @@ const nextConfig = {
     ],
   },
   // serverExternalPackages is not supported in Next.js 14; remove it to avoid invalid config
-  experimental: {
-    
-  },
   async rewrites() {
     return [
       {
