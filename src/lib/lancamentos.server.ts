@@ -139,8 +139,7 @@ export async function buildIndicators() {
     SELECT to_char(data_lancamento, 'YYYY-MM') as mes,
            count(*) as total,
            count(*) FILTER (WHERE status = 'PAGO') as pagos,
-           count(*) FILTER (WHERE status = 'PENDENTE') as pendentes,
-           coalesce(sum(valor),0) as soma_valor
+           count(*) FILTER (WHERE status = 'PENDENTE') as pendentes
     FROM public.indicadores_lancamentos
     GROUP BY mes
     ORDER BY mes;
@@ -169,9 +168,7 @@ export async function buildIndicators() {
       const total = Number(r.total || 0);
       const pagos = Number(r.pagos || 0);
       const pendentes = Number(r.pendentes || 0);
-      const soma_valor = Number(r.soma_valor || 0);
-
-      const sla_mensal = total > 0 ? Math.round((pagos / total) * 100) : 0;
+  const sla_mensal = total > 0 ? Math.round((pagos / total) * 100) : 0;
 
       const pendingSql = `
         SELECT data_lancamento, valor
@@ -238,7 +235,7 @@ export async function buildIndicators() {
         chamados_abertos: total,
         chamados_solucionados: pagos,
         crescimento_mensal_sla: 0,
-        soma_valor,
+  // cost fields removed
       };
 
       await client.query(

@@ -4,10 +4,9 @@ import pool from '../src/lib/db';
 async function build() {
   const aggSql = `
     SELECT to_char(data_lancamento, 'YYYY-MM') as mes,
-           count(*) as total,
-           count(*) FILTER (WHERE status = 'PAGO') as pagos,
-           count(*) FILTER (WHERE status = 'PENDENTE') as pendentes,
-           coalesce(sum(valor),0) as soma_valor
+      count(*) as total,
+      count(*) FILTER (WHERE status = 'PAGO') as pagos,
+      count(*) FILTER (WHERE status = 'PENDENTE') as pendentes
     FROM public.indicadores_lancamentos
     GROUP BY mes
     ORDER BY mes;
@@ -36,9 +35,7 @@ async function build() {
       const total = Number(r.total || 0);
       const pagos = Number(r.pagos || 0);
       const pendentes = Number(r.pendentes || 0);
-      const soma_valor = Number(r.soma_valor || 0);
-
-      const sla_mensal = total > 0 ? Math.round((pagos / total) * 100) : 0;
+  const sla_mensal = total > 0 ? Math.round((pagos / total) * 100) : 0;
       // compute aging buckets and criticidade breakdown from pending rows
       const pendingSql = `
         SELECT data_lancamento, valor
@@ -113,7 +110,7 @@ async function build() {
         chamados_abertos: total,
         chamados_solucionados: pagos,
         crescimento_mensal_sla: 0,
-        soma_valor,
+  // costs removed from payload
       };
 
       await client.query(

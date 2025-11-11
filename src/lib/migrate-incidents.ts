@@ -12,6 +12,47 @@ async function migrate() {
       )
     `);
 
+    // If an existing incidents table was created previously with a numeric id (serial/int),
+    // convert the column to text so the application can use string IDs like "INC-<uuid>".
+    // This operation is safe for most local/dev databases: it drops any default (serial)
+    // and converts the column using id::text. We only run it when the column exists and
+    // is not already type 'text'.
+    try {
+      const col = await pool.query(
+        `SELECT data_type, column_default
+           FROM information_schema.columns
+          WHERE table_name = 'incidents' AND column_name = 'id'`
+      );
+      if (col.rowCount > 0) {
+        const dt = String(col.rows[0].data_type || '').toLowerCase();
+        if (dt !== 'text') {
+          console.log(`migrate-incidents: converting incidents.id from ${dt} to text`);
+          try {
+            // remove any numeric sequence default (e.g. nextval(...)) before changing type
+            await pool.query(`ALTER TABLE incidents ALTER COLUMN id DROP DEFAULT`);
+          } catch (e) {
+            // ignore if no default existed
+          }
+          await pool.query(`ALTER TABLE incidents ALTER COLUMN id TYPE text USING id::text`);
+
+          // ensure primary key exists (if previously absent)
+          const pk = await pool.query(
+            `SELECT constraint_name FROM information_schema.table_constraints
+               WHERE table_name = 'incidents' AND constraint_type = 'PRIMARY KEY'`
+          );
+          if (pk.rowCount === 0) {
+            try {
+              await pool.query(`ALTER TABLE incidents ADD PRIMARY KEY (id)`);
+            } catch (e) {
+              console.warn('migrate-incidents: failed to add primary key after type conversion', String(e));
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('migrate-incidents: could not inspect/convert incidents.id column', String(e));
+    }
+
     // Ensure expected columns exist (safe if table was pre-existing with different schema)
     await pool.query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS item_name text;`);
     await pool.query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS location text;`);

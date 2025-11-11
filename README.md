@@ -72,6 +72,16 @@ Notas e próximos passos recomendados
 - Opcional: posso adicionar logs temporários mais detalhados na rota PUT para ajudar em debugging remoto e depois removê-los.
 - Opcional: aplicar casts adicionais (por exemplo em `store_id`/`visit_date`) ou validar modelos JSON antes de persistir.
 
+## Pareto analysis (Incidents)
+
+We added a lightweight Pareto analysis feature for incidents. Brief notes:
+
+- Server helpers: `getParetoItems(top, groupBy)` and `getParetoByTitle(top)` are available in `src/lib/incidents.server.ts`.
+- API endpoint: `GET /api/incidents/pareto?group=title|item&top=7` returns the Pareto matrix (itemName/count/pct/cumulative).
+- Frontend: `src/components/dashboard/indicators/pareto-analysis.tsx` performs a local aggregation by title (top 7) and renders the `ParetoChart`.
+
+More details and examples: see `docs/pareto.md`.
+
 Se quiser, eu abro um PR com essa alteração e uma pequena descrição do commit para facilitar revisão/merge.
 
 ---

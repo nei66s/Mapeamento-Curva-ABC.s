@@ -21,11 +21,6 @@ const impactFactors = [
     label: 'Imagem da Marca',
     description: 'Impacto negativo na percepção pública e na reputação da marca.',
   },
-  {
-    id: 'cost',
-    label: 'Custo de Reparo',
-    description: 'Custo financeiro elevado para reparo ou substituição do item.',
-  },
 ];
 
 async function migrate() {

@@ -12,12 +12,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format, getMonth, getYear, setMonth, setYear, isBefore, startOfDay } from 'date-fns';
+import { format, getMonth, getYear, setMonth, setYear, isBefore, startOfDay, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScheduleVisitForm } from '@/components/dashboard/compliance/schedule-visit-form';
 import { Skeleton } from '@/components/ui/skeleton';
+import { HeroPanel } from '@/components/shared/hero-panel';
+import { Badge } from '@/components/ui/badge';
 
 export default function CompliancePageClient({ searchParams = {} }: { searchParams?: Record<string, any> } = {}) {
   const [checklistItems, setChecklistItems] = useState<ComplianceChecklistItem[]>([]);
@@ -348,6 +350,44 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
     loadCompliance();
   }, []);
 
+  const complianceMetrics = useMemo(() => {
+    let total = 0;
+    let completed = 0;
+    let pending = 0;
+    let notApplicable = 0;
+    const today = Date.now();
+
+    storeData.forEach(store => {
+      store.items.forEach(item => {
+        total += 1;
+        if (item.status === 'completed') {
+          completed += 1;
+        } else if (item.status === 'pending') {
+          pending += 1;
+        } else if (item.status === 'not-applicable') {
+          notApplicable += 1;
+        }
+      });
+    });
+
+    return {
+      total,
+      completed,
+      pending,
+      notApplicable,
+      completionRate: total ? Math.round((completed / total) * 100) : 0,
+      lastUpdated: storeData.length > 0 ? Math.max(...storeData.map(store => new Date(store.visitDate).getTime())) : today,
+    };
+  }, [storeData]);
+
+  const upcomingVisits = useMemo(() => {
+    const now = Date.now();
+    return storeData
+      .filter(d => new Date(d.visitDate).getTime() >= now)
+      .sort((a, b) => new Date(a.visitDate).getTime() - new Date(b.visitDate).getTime())
+      .slice(0, 3);
+  }, [storeData]);
+
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -374,29 +414,85 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
         </Dialog>
       </PageHeader>
 
-      <Card>
+      <section className="grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
+        <HeroPanel
+          label="Compliance Hero"
+          title="Preventivas em destaque"
+          description={
+            complianceMetrics.total > 0
+              ? 'Monitoramento em tempo real do checklist em campo.'
+              : 'Ainda não há visitas agendadas. Agende uma nova visita para começar o acompanhamento.'
+          }
+          stats={[
+            {
+              label: 'Itens concluídos',
+              value: complianceMetrics.completed,
+              helper: `${complianceMetrics.completionRate}% de conclusão`,
+            },
+            {
+              label: 'Itens pendentes',
+              value: complianceMetrics.pending,
+              helper: `${complianceMetrics.notApplicable} não aplicáveis`,
+            },
+            {
+              label: 'Visitas agendadas',
+              value: storeData.length,
+              helper: `Última atualização: ${formatDistanceToNow(new Date(complianceMetrics.lastUpdated), { addSuffix: true, locale: ptBR })}`,
+            },
+          ]}
+        />
+        <div className="rounded-3xl border border-border/40 bg-card/80 p-6 shadow-lg">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">Próximas inspeções</p>
+            <Badge variant="secondary" className="text-[0.6rem] uppercase tracking-[0.2em]">
+              {upcomingVisits.length} confirmadas
+            </Badge>
+          </div>
+          <div className="mt-4 space-y-3">
+            {upcomingVisits.length > 0 ? (
+              upcomingVisits.map((visit) => (
+                <div key={`${visit.storeId}-${visit.visitDate}`} className="rounded-2xl border border-border bg-white/80 p-3 shadow-sm">
+                  <p className="text-sm font-semibold">{visit.storeName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(visit.visitDate), 'dd/MM/yyyy')} · {formatDistanceToNow(new Date(visit.visitDate), { addSuffix: true, locale: ptBR })}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {visit.items.filter(item => item.status === 'pending').length} itens pendentes
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-muted-foreground">Nenhuma visita futura encontrada.</p>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <Card className="rounded-3xl border border-border/40 bg-card/80 shadow-lg">
         <CardContent className='p-4 sm:p-6'>
            <ComplianceMap 
-          allStores={stores}
-              scheduledVisits={filteredStoreData}
-           />
+         allStores={stores}
+             scheduledVisits={filteredStoreData}
+          />
         </CardContent>
       </Card>
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-1">
+      <section className="space-y-8">
+        <div className="grid gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-1">
             <ComplianceSummary storeData={filteredStoreData} checklistItems={checklistItems} />
-        </div>
-        <div className="lg:col-span-2">
-             <ManageChecklistItems
-                items={checklistItems}
-                onAddItem={handleAddItem}
-                onRemoveItem={handleRemoveItem}
+          </div>
+          <div className="lg:col-span-2">
+            <ManageChecklistItems
+              items={checklistItems}
+              onAddItem={handleAddItem}
+              onRemoveItem={handleRemoveItem}
             />
+          </div>
         </div>
-      </div>
-       <Card>
-         <CardContent className="p-4 sm:p-6 grid gap-6 md:grid-cols-3">
+
+        <Card className="rounded-3xl border border-border/40 shadow-lg">
+          <CardContent className="p-4 sm:p-6 grid gap-6 md:grid-cols-3">
             <div className="md:col-span-1">
                  <div className="flex items-center justify-between mb-4">
                     <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
@@ -449,18 +545,19 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
                  />
                  <Button className='w-full mt-4' variant="secondary" onClick={() => setSelectedDate(undefined)}>Limpar seleção</Button>
             </div>
-            <div className="md:col-span-2">
-                 <ComplianceChecklist
-                    checklistItems={checklistItems}
-                    storeData={filteredStoreData}
+           <div className="md:col-span-2">
+                <ComplianceChecklist
+                   checklistItems={checklistItems}
+                   storeData={filteredStoreData}
                     onStatusChange={handleStatusChange}
                     onDeleteVisit={handleDeleteVisit}
                     currentDate={selectedDate || displayDate}
-                    isDateView={!!selectedDate}
-                />
-            </div>
-         </CardContent>
+                   isDateView={!!selectedDate}
+               />
+           </div>
+        </CardContent>
        </Card>
+      </section>
     </div>
   );
 }

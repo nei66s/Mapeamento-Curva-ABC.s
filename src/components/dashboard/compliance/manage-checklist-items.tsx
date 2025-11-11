@@ -61,7 +61,7 @@ export function ManageChecklistItems({ items, onAddItem, onRemoveItem }: ManageC
   };
 
   return (
-     <Card className="shadow-md h-full">
+   <Card className="shadow-md h-full">
       <CardHeader>
         <CardTitle>Gerenciar Itens do Checklist</CardTitle>
         <CardDescription>Adicione ou remova itens da lista de verificação.</CardDescription>

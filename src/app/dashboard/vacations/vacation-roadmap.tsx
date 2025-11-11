@@ -216,7 +216,8 @@ export function VacationRoadmap({ vacations, users, userColors, displayYear }: V
                       <div className="z-10 relative">
                           {vacationData.map(({ user, vacations }) => (
                               <div key={user.id} className="relative h-10 py-1 border-b">
-                                  {vacations.map(segment => (
+                                  {vacations.map(segment => {
+                                  return (
                                   <Tooltip key={segment.id}>
                                       <TooltipTrigger asChild>
                                       <div
@@ -229,7 +230,7 @@ export function VacationRoadmap({ vacations, users, userColors, displayYear }: V
                                       {segment.hasConflict && <p className="text-destructive font-bold mt-1">Conflito de agendamento!</p>}
                                       </TooltipContent>
                                   </Tooltip>
-                                  ))}
+                                  )})}
                               </div>
                           ))}
                       </div>

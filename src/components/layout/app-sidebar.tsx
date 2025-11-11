@@ -19,17 +19,16 @@ import {
   Handshake,
   ArchiveX,
   User as UserIcon,
+  MapPin,
+  X,
 } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+// logo removed per UI request
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { cloneDefaultPermissions } from '@/lib/permissions-config';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { LogoImage } from '../icons/logo-image';
+// logo removed per UI request
 import { usePathname } from 'next/navigation';
 
 const mainLinks = [
@@ -37,40 +36,41 @@ const mainLinks = [
 ];
 
 const executionLinks = [
-  { href: "/incidents", icon: Activity, label: "Incidentes", moduleId: 'incidents' },
-  { href: "/rncs", icon: FileWarning, label: "Registros de Não Conformidade", moduleId: 'rncs' },
-  { href: "/releases", icon: ClipboardPaste, label: "Lançamentos", moduleId: 'releases' },
-  { href: "/technical-evaluation", icon: FileScan, label: "Gerar Laudo Técnico" },
+  { href: '/incidents', icon: Activity, label: 'Incidentes', moduleId: 'incidents' },
+  { href: '/rncs', icon: FileWarning, label: 'Registros de Não Conformidade', moduleId: 'rncs' },
+  { href: '/releases', icon: ClipboardPaste, label: 'Lançamentos', moduleId: 'releases' },
+  { href: '/technical-evaluation', icon: FileScan, label: 'Gerar Laudo Técnico' },
 ];
 
 const mappingLinks = [
-  { href: "/categories", icon: ListCollapse, label: "Categorias", moduleId: 'categories' },
-  { href: "/matrix", icon: Grid3x3, label: "Matriz de Itens", moduleId: 'matrix' },
+  { href: '/categories', icon: ListCollapse, label: 'Categorias', moduleId: 'categories' },
+  { href: '/matrix', icon: Grid3x3, label: 'Matriz de Itens', moduleId: 'matrix' },
 ];
 
 const preventiveLinks = [
-  { href: "/compliance", icon: ClipboardCheck, label: "Preventivas", moduleId: 'compliance' },
+  { href: '/compliance', icon: ClipboardCheck, label: 'Preventivas', moduleId: 'compliance' },
 ];
 
 const resourcesLinks = [
-  { href: "/suppliers", icon: Users, label: "Fornecedores", moduleId: 'suppliers' },
-  { href: "/warranty", icon: ShieldCheck, label: "Garantias", moduleId: 'warranty' },
-  { href: "/tools", icon: Construction, label: "Almoxarifado", moduleId: 'tools' },
-  { href: "/settlement", icon: Handshake, label: "Quitação", moduleId: 'settlement' },
-  { href: "/unsalvageable", icon: ArchiveX, label: "Itens Inservíveis" },
+  { href: '/stores', icon: MapPin, label: 'Lojas' },
+  { href: '/suppliers', icon: Users, label: 'Fornecedores', moduleId: 'suppliers' },
+  { href: '/warranty', icon: ShieldCheck, label: 'Garantias', moduleId: 'warranty' },
+  { href: '/tools', icon: Construction, label: 'Almoxarifado', moduleId: 'tools' },
+  { href: '/settlement', icon: Handshake, label: 'Quitação', moduleId: 'settlement' },
+  { href: '/unsalvageable', icon: ArchiveX, label: 'Itens Inservíveis' },
 ];
 
 const secondaryLinks = [
   { href: '/vacations', icon: CalendarDays, label: 'Gestão de Férias', moduleId: 'tools' },
-]
+];
 
-const allLinksGroups = [
-    mainLinks,
-    executionLinks,
-    mappingLinks,
-    preventiveLinks,
-    resourcesLinks,
-    secondaryLinks
+const linkGroups = [
+  { title: 'Principais', links: mainLinks },
+  { title: 'Execução', links: executionLinks },
+  { title: 'Mapeamento', links: mappingLinks },
+  { title: 'Preventivas', links: preventiveLinks },
+  { title: 'Recursos', links: resourcesLinks },
+  { title: 'Utilitários', links: secondaryLinks },
 ];
 
 const bottomLinks = [
@@ -80,9 +80,13 @@ const bottomLinks = [
   { href: '/admin', icon: Info, label: 'Administração' },
 ];
 
-export default function AppSidebar() {
+interface AppSidebarProps {
+  visible: boolean;
+  onRequestClose?: () => void;
+}
+
+export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps) {
   const pathname = usePathname();
-  // Hide sidebar on auth pages (login/register) — those live under the (auth) route group
   if (pathname && pathname.startsWith('/login')) return null;
   const { user } = useCurrentUser();
   const [perms, setPerms] = useState<Record<string, Record<string, boolean>> | null>(null);
@@ -109,7 +113,7 @@ export default function AppSidebar() {
     if (href === '/indicators') {
       return pathname === '/indicators' || pathname === '/';
     }
-    return pathname.startsWith(href);
+    return pathname?.startsWith(href);
   };
 
   const canAccess = (moduleId?: string) => {
@@ -122,68 +126,97 @@ export default function AppSidebar() {
     return Boolean(defaults[role]?.[moduleId]);
   };
 
-  // Build groups filtered by access so we don't render empty groups/dividers
-  const visibleGroups = allLinksGroups.map(group => group.filter(link => canAccess((link as any).moduleId)));
-  const renderedGroups = visibleGroups.filter(g => g.length > 0);
+  const visibleGroups = linkGroups.map(group => ({
+    ...group,
+    links: group.links.filter(link => canAccess(link.moduleId)),
+  }));
+  const renderedGroups = visibleGroups.filter(group => group.links.length > 0);
+  const totalVisibleLinks = renderedGroups.reduce((total, group) => total + group.links.length, 0);
+
+  const heroStats = [
+    { label: 'Módulos liberados', value: `${totalVisibleLinks}`, helper: `${renderedGroups.length} categorias` },
+    { label: 'Atualização', value: 'Em tempo real', helper: 'sincronização contínua' },
+  ];
+  const sidebarClasses = cn(
+    'fixed inset-y-0 left-0 z-20 hidden w-72 border-r border-white/10 bg-gradient-to-br from-primary/90 via-secondary/70 to-secondary/40 text-white shadow-2xl backdrop-blur-sm transition-transform duration-300 sm:flex',
+    visible ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 pointer-events-none'
+  );
 
   return (
-    <TooltipProvider delayDuration={0}>
-      {/* Fixed narrow sidebar: make the main nav scrollable when items overflow */}
-      <aside className="fixed inset-y-0 left-0 z-10 hidden w-16 flex-col border-r bg-card sm:flex overflow-hidden">
-        <nav className="flex flex-1 flex-col items-center gap-2 px-2 py-2 sm:py-4 overflow-y-auto">
-          <Link
-            href="/"
-            className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full text-lg font-semibold text-primary-foreground md:h-12 md:w-12 md:text-base mb-2"
-          >
-            <LogoImage className="h-8 w-8 transition-all group-hover:scale-110" />
-            <span className="sr-only">Fixly</span>
-          </Link>
-
-          {renderedGroups.map((group, gIndex) => (
-            <React.Fragment key={gIndex}>
-              {gIndex > 0 && <div className="h-[1px] w-full bg-border my-1" />}
-              {group.map((link) => (
-                <Tooltip key={link.href}>
-                  <TooltipTrigger asChild>
+    <aside className={sidebarClasses} aria-hidden={!visible ? 'true' : 'false'}>
+      <div className="flex h-full flex-col">
+        <div className="px-4 pb-4 pt-6">
+          {/* Compact header: simpler look without heavy gradient/shadow */}
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3 text-white">
+              <div className="flex flex-col leading-tight">
+                <span className="text-[0.65rem] uppercase tracking-[0.3em] text-white/80">Fixly</span>
+                <span className="text-sm font-semibold">Gestão</span>
+              </div>
+            </Link>
+            {onRequestClose && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onRequestClose}
+                className="ml-auto text-white/70 hover:text-white"
+                aria-label="Ocultar painel lateral"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <div className="mt-3">
+            <p className="text-sm font-medium text-white">{user?.name ?? 'Equipe de Manutenção'}</p>
+            <p className="text-xs text-white/60">{user?.role ? `Perfil ${user.role}` : 'Operador ativo'}</p>
+          </div>
+        </div>
+        <ScrollArea className="flex-1 px-3 py-2">
+          <div className="space-y-5">
+            {renderedGroups.map(group => (
+              <div key={group.title} className="space-y-2">
+                <p className="px-2 text-[0.63rem] uppercase tracking-[0.4em] text-white/50">{group.title}</p>
+                <div className="space-y-1">
+                  {group.links.map(link => (
                     <Link
+                      key={link.href}
                       href={link.href}
                       className={cn(
-                        'flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-primary hover:bg-muted',
-                        isActive(link.href) && 'bg-primary/10 text-primary'
+                        'flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm font-semibold transition',
+                        isActive(link.href)
+                          ? 'border-white/20 bg-white/10 text-white'
+                          : 'border-transparent text-white/80 hover:border-white/20 hover:bg-white/5 hover:text-white'
                       )}
                     >
                       <link.icon className="h-5 w-5" />
-                      <span className="sr-only">{link.label}</span>
+                      <span>{link.label}</span>
                     </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">{link.label}</TooltipContent>
-                </Tooltip>
-              ))}
-            </React.Fragment>
-          ))}
-        </nav>
-  <nav className="mt-auto flex flex-col items-center gap-2 px-2 sm:py-4">
-           {bottomLinks.map(link => (
-                canAccess((link as any).moduleId) && (
-                <Tooltip key={link.href}>
-                <TooltipTrigger asChild>
-                    <Link
-                    href={link.href}
-                    className={cn(
-                        'flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-primary hover:bg-muted',
-                        isActive(link.href) && 'bg-primary/10 text-primary'
-                    )}
-                    >
-                    <link.icon className="h-5 w-5" />
-                    <span className="sr-only">{link.label}</span>
-                    </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">{link.label}</TooltipContent>
-                </Tooltip>
-                )
+                  ))}
+                </div>
+              </div>
             ))}
-        </nav>
-      </aside>
-    </TooltipProvider>
+          </div>
+        </ScrollArea>
+        <div className="border-t border-white/10 px-4 py-4">
+          <div className="space-y-1">
+            {bottomLinks.map(link => canAccess(link.moduleId) && (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  'flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm font-semibold transition',
+                  isActive(link.href)
+                    ? 'border-white/30 bg-white/10 text-white shadow-[0_8px_30px_rgba(2,6,23,0.35)]'
+                    : 'border-transparent text-white/70 hover:border-white/20 hover:bg-white/5 hover:text-white'
+                )}
+              >
+                <link.icon className="h-4 w-4" />
+                <span>{link.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+    </aside>
   );
 }

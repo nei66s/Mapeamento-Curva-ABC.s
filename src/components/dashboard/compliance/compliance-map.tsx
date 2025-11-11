@@ -3,6 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import '@/lib/leaflet-init';
 import 'leaflet/dist/leaflet.css';
 import type { Store, StoreComplianceData } from '@/lib/types';
 import { isBefore, startOfDay } from 'date-fns';
