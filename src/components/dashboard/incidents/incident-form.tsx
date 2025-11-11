@@ -33,6 +33,7 @@ interface IncidentFormProps {
 }
 
 const formSchema = z.object({
+  title: z.string().optional(),
   itemName: z.string({ required_error: 'Selecione o item relacionado.' }),
   location: z.string().min(3, { message: 'A localização deve ter pelo menos 3 caracteres.' }),
   description: z.string().min(10, { message: 'A descrição deve ter pelo menos 10 caracteres.' }),
@@ -45,6 +46,7 @@ export function IncidentForm({ items, incident, onSubmit, onCancel }: IncidentFo
   const form = useForm<IncidentFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      title: (incident as any)?.title || '',
       itemName: incident?.itemName || '',
       location: incident?.location || '',
       description: incident?.description || '',
@@ -87,13 +89,15 @@ export function IncidentForm({ items, incident, onSubmit, onCancel }: IncidentFo
   useEffect(() => {
     if (incident) {
       form.reset({
+        title: (incident as any).title || '',
         itemName: incident.itemName,
         location: incident.location ?? '',
         description: incident.description ?? '',
       });
     } else {
        form.reset({
-        itemName: '',
+       title: '',
+       itemName: '',
         location: '',
         description: '',
       });
@@ -168,6 +172,23 @@ export function IncidentForm({ items, incident, onSubmit, onCancel }: IncidentFo
                 )}
             />
         </div>
+
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Título (opcional)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Título personalizado para o incidente"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
         <FormField
           control={form.control}

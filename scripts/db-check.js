@@ -31,8 +31,7 @@ async function run() {
       SELECT to_char(data_lancamento, 'YYYY-MM') as mes,
              count(*) as total,
              count(*) FILTER (WHERE status = 'PAGO') as pagos,
-             count(*) FILTER (WHERE status = 'PENDENTE') as pendentes,
-             coalesce(sum(valor),0) as soma_valor
+            count(*) FILTER (WHERE status = 'PENDENTE') as pendentes
       FROM public.indicadores_lancamentos
       GROUP BY mes
       ORDER BY mes;

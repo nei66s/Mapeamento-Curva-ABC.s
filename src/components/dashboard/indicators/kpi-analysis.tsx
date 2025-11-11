@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface KpiAnalysisProps {
   indicator: MaintenanceIndicator;
@@ -17,6 +18,7 @@ export function KpiAnalysis({ indicator }: KpiAnalysisProps) {
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const fetchAnalysis = useCallback(async (currentIndicator: MaintenanceIndicator) => {
     setLoading(true);
@@ -71,6 +73,17 @@ export function KpiAnalysis({ indicator }: KpiAnalysisProps) {
     }
   }, [indicator, fetchAnalysis]);
 
+  const handleCopySummary = async () => {
+    if (!summary || typeof navigator === 'undefined' || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(summary);
+      toast({ title: 'Resumo copiado', description: 'Análise da IA copiada para a área de transferência.' });
+    } catch (err) {
+      console.error('copy summary failed', err);
+      toast({ variant: 'destructive', title: 'Não foi possível copiar', description: 'Tente novamente mais tarde.' });
+    }
+  };
+
 
   const renderContent = () => {
     if (loading) {
@@ -117,7 +130,7 @@ export function KpiAnalysis({ indicator }: KpiAnalysisProps) {
               Resumo executivo dos KPIs do mês.
             </CardDescription>
           </div>
-          <div className="ml-4">
+          <div className="ml-4 flex flex-wrap gap-2">
             <Button
               size="sm"
               variant="outline"
@@ -132,6 +145,14 @@ export function KpiAnalysis({ indicator }: KpiAnalysisProps) {
               disabled={loading}
             >
               {loading ? 'Gerando...' : 'Regenerar'}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleCopySummary}
+              disabled={loading || !summary}
+            >
+              Copiar resumo
             </Button>
           </div>
         </div>

@@ -28,7 +28,7 @@ interface VacationFormProps {
 }
 
 const formSchema = z.object({
-  userId: z.string().min(1, 'Selecione um colaborador.'),
+  userInput: z.string().min(1, 'Digite o nome do colaborador.'),
   dateRange: z.object({
     from: z.date({ required_error: 'A data de início é obrigatória.' }),
     to: z.date({ required_error: 'A data de término é obrigatória.' }),
@@ -44,16 +44,20 @@ export function VacationForm({ users, onSubmit, onCancel }: VacationFormProps) {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      userId: '',
+      userInput: '',
     },
   });
 
   const handleSubmit = (data: FormData) => {
+    // Try to match the entered name to an existing user
+    const entered = String(data.userInput || '').trim();
+    const matched = users.find(u => u.name.toLowerCase() === entered.toLowerCase());
     onSubmit({
-      userId: data.userId,
+      userId: matched ? matched.id : '',
+      userName: matched ? matched.name : entered,
       startDate: data.dateRange.from.toISOString(),
       endDate: data.dateRange.to.toISOString(),
-    });
+    } as any);
   };
 
   return (
@@ -61,18 +65,23 @@ export function VacationForm({ users, onSubmit, onCancel }: VacationFormProps) {
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 py-4">
         <FormField
           control={form.control}
-          name="userId"
+          name="userInput"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Colaborador</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger><SelectValue placeholder="Selecione um colaborador" /></SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                {/* Use a simple text input with datalist for suggestions to allow typing the name */}
+                <div>
+                  <input
+                    list="vacation-users"
+                    className="w-full rounded-md border px-3 py-2"
+                    {...field}
+                  />
+                  <datalist id="vacation-users">
+                    {users.map(u => <option key={u.id} value={u.name} />)}
+                  </datalist>
+                </div>
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

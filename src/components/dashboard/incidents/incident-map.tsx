@@ -3,12 +3,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import '@/lib/leaflet-init';
 import 'leaflet/dist/leaflet.css';
 import type { Incident } from '@/lib/types';
 import type { Store } from '@/lib/types';
-import iconUrl from 'leaflet/dist/images/marker-icon.png';
-import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
-import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
+// leaflet-init handles default marker icon URLs for the build (avoid 404s).
 
 interface IncidentMapProps {
   incidents: Incident[];

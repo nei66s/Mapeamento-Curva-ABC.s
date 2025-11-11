@@ -21,8 +21,7 @@ const reportSchema = z.object({
     itemState: z.enum(['damaged', 'partial', 'obsolete', 'unused']).optional(),
     problemFound: z.string().min(5, 'Descreva o problema encontrado'),
     itemDiagnosis: z.string().optional(),
-    repairViable: z.enum(['yes', 'no']).optional(),
-    repairCost: z.string().optional(),
+  repairViable: z.enum(['yes', 'no']).optional(),
     recommendations: z.enum(['repair', 'discard', 'evaluate']).optional(),
     actionsTaken: z.string().optional(),
   }),
@@ -53,8 +52,7 @@ export function ReportForm({ report, incidents = [], technicians = [], onSubmit,
         itemState: report.details.itemState as any,
         problemFound: report.details.problemFound,
         itemDiagnosis: report.details.itemDiagnosis,
-        repairViable: report.details.repairViable as any,
-        repairCost: report.details.repairCost,
+  repairViable: report.details.repairViable as any,
         recommendations: ['repair', 'discard', 'evaluate'].includes(String(report.details.recommendations))
           ? (report.details.recommendations as 'repair' | 'discard' | 'evaluate')
           : undefined,
@@ -150,10 +148,6 @@ export function ReportForm({ report, incidents = [], technicians = [], onSubmit,
         <div className="flex items-center gap-6">
           <label className="flex items-center gap-2"><input type="radio" value="yes" {...register('details.repairViable')} /> <span>Sim</span></label>
           <label className="flex items-center gap-2"><input type="radio" value="no" {...register('details.repairViable')} /> <span>Não</span></label>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="repairCost">Custo estimado (R$)</Label>
-            <Input id="repairCost" {...register('details.repairCost')} className="w-32" />
-          </div>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { TechnicalReport } from '@/lib/types';
-import { LogoImage } from '@/components/icons/logo-image';
+// logo removed per UI request
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -35,7 +35,6 @@ export function ReportPdfDocument({ report, technicianName, technicianRole, inci
       <div className="pdf-page">
         <div className="pdf-header">
           <div className="flex items-center gap-4">
-            <LogoImage className="h-16 w-16" />
             <div>
               <h1>Fixly</h1>
               <div className="text-sm text-muted-foreground">Laudo Técnico</div>
@@ -116,11 +115,7 @@ export function ReportPdfDocument({ report, technicianName, technicianRole, inci
             </p>
           )}
 
-          {report.details.repairCost && (
-            <p className="value">
-              <strong>Custo estimado:</strong> R$ {report.details.repairCost}
-            </p>
-          )}
+          {/* repair cost removed per request */}
         </section>
 
         <section className="mt-8 grid grid-cols-2 gap-8">

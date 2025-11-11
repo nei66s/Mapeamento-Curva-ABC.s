@@ -85,8 +85,7 @@ export async function POST(request: Request) {
     // write diagnosis with explicit width to allow wrapping and avoid cutoff
     doc.font('Helvetica').fillColor('#111827').text(body['item-diagnosis'] ?? '-', { align: 'left', width: contentWidth });
     doc.moveDown(0.5);
-    pushLabelValue('Reparo viável', body['repair-viable']);
-    pushLabelValue('Custo estimado (R$)', body['repair-cost']);
+  pushLabelValue('Reparo viável', body['repair-viable']);
     doc.moveDown(0.5);
     pushLabelValue('Recomendações', body['recommendations']);
 
@@ -97,8 +96,8 @@ export async function POST(request: Request) {
     doc.x = doc.page.margins.left;
     doc.fontSize(12).fillColor('#111827').text('3. Responsável pela Avaliação', { width: contentWidth });
     doc.moveDown(0.5);
-    pushLabelValue('Nome do técnico', body['tech-name']);
-    pushLabelValue('Cargo/Função', body['tech-role']);
+  pushLabelValue('Nome do técnico', body['tech-name']);
+  pushLabelValue('Cargo/Função', body['tech-role']);
 
     // footer for the current page is handled by the pageAdded handler (or initial renderFooter above)
 

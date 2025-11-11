@@ -1,7 +1,7 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
+
 import {
   Card,
   CardContent,
@@ -11,18 +11,28 @@ import {
 import { Activity, AlertTriangle, Archive } from "lucide-react";
 import type { Item } from "@/lib/types";
 
-export function SummaryCards() {
-  const [totalItems, setTotalItems] = useState(0);
-  const [criticalItems, setCriticalItems] = useState(0);
-  const [openIncidents, setOpenIncidents] = useState(0); // TODO: replace with DB once incidents are migrated
+interface SummaryCardsProps {
+  items?: Item[];
+  /** When true, do not render the top-level summary cards (used when embedded in a HeroPanel) */
+  hideOverallStats?: boolean;
+}
+
+export function SummaryCards({ items: propItems, hideOverallStats = false }: SummaryCardsProps = {}) {
+  const [items, setItems] = useState<Item[]>(propItems ?? []);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (propItems) {
+      setItems(propItems);
+      setLoadError(null);
+      return;
+    }
+
+    let mounted = true;
     const load = async () => {
       try {
         const res = await fetch('/api/items');
         if (!res.ok) {
-          // Try to read any error body for better debugging
           let body: unknown = null;
           try {
             body = await res.json();
@@ -33,7 +43,6 @@ export function SummaryCards() {
               body = null;
             }
           }
-          // stringify body safely for console and UI
           let bodyStr: string;
           try {
             bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
@@ -41,20 +50,26 @@ export function SummaryCards() {
             bodyStr = String(body);
           }
           console.error(`Failed to load items: status=${res.status} body=${bodyStr}`);
-          setLoadError(`Failed to load items (status ${res.status})`);
+          if (mounted) setLoadError(`Failed to load items (status ${res.status})`);
           return;
         }
-        const items: Item[] = await res.json();
-        setTotalItems(items.length);
-        setCriticalItems(items.filter(i => i.classification === 'A').length);
+        const data: Item[] = await res.json();
+        if (mounted) {
+          setItems(data);
+          setLoadError(null);
+        }
       } catch (e) {
         console.error('Error loading items', e);
-        setLoadError(String(e ?? 'unknown error'));
+        if (mounted) setLoadError(String(e ?? 'unknown error'));
       }
     };
     load();
-  }, []);
+    return () => { mounted = false; };
+  }, [propItems]);
 
+  const totalItems = items.length;
+  const criticalItems = items.filter(i => i.classification === 'A').length;
+  const openIncidents = 0;
   const summaryData = [
     {
       title: "Itens Totais",
@@ -75,6 +90,11 @@ export function SummaryCards() {
       color: "text-accent",
     },
   ];
+
+  if (hideOverallStats) {
+    // When embedded in the HeroPanel we don't want the duplicate white summary cards.
+    return null;
+  }
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -35,7 +35,9 @@ export type Item = {
 
 export type Incident = {
   id: string;
+  title?: string;
   itemName: string;
+  storeId?: string;
   location: string;
   status: IncidentStatus;
   openedAt: string; // ISO date string
@@ -115,8 +117,6 @@ export type MaintenanceIndicator = {
   chamados_abertos: number;
   chamados_solucionados: number;
   backlog: number;
-  valor_mensal?: number;
-  valor_orcado?: number;
   aging: {
     inferior_30: AgingCriticidade;
     entre_30_60: AgingCriticidade;
@@ -222,7 +222,7 @@ export type TechnicalReport = {
     problemFound: string;
     itemDiagnosis?: string;
     repairViable?: 'yes' | 'no';
-    repairCost?: string;
+  // repairCost removed per request
     recommendations?: 'repair' | 'discard' | 'evaluate' | string;
     actionsTaken?: string;
     // who evaluated

@@ -72,7 +72,9 @@ export function VacationCalendar({
     const returnDays: { date: Date; userId: string, userName: string }[] = [];
 
     vacations.forEach(v => {
-      if (visibleUsers.has(v.userId) && v.status === 'Aprovado') {
+      // include vacations for visible users or for local synthetic users (prefix 'local-user-')
+      const isSynthetic = v.userId && String(v.userId).startsWith('local-user-');
+      if ((isSynthetic || visibleUsers.has(v.userId)) && v.status === 'Aprovado') {
         const startDate = parseISO(v.startDate);
         const endDate = parseISO(v.endDate);
 
@@ -97,7 +99,7 @@ export function VacationCalendar({
         });
 
         const returnDay = getNextBusinessDay(endDate, holidays);
-        if (getYear(returnDay) === displayYear) {
+          if (getYear(returnDay) === displayYear) {
           returnDays.push({ date: returnDay, userId: v.userId, userName: v.userName });
         }
       }
@@ -138,6 +140,9 @@ export function VacationCalendar({
     const isReturnDay = !!returnDayInfo;
 
     const dayClass = `vac-day-${dayStr}`;
+    // compute inline background as a fallback in case dynamic CSS rules are not applied
+    const colors = dayVacations.map(v => userColors[v.userId]).filter(Boolean) as string[];
+    const bg = colors.length > 0 ? createStripedBackground(colors) : undefined;
 
     const dayContent = (
        <>
@@ -173,7 +178,15 @@ export function VacationCalendar({
         <TooltipProvider delayDuration={100}>
           <Tooltip>
             <TooltipTrigger asChild>
-                <DayComponent {...(props as any)} className={`${(props as any).className ?? ''} ${dayVacations.length > 0 ? dayClass : ''}`}>
+                <DayComponent
+                  {...(props as any)}
+                  className={`${(props as any).className ?? ''} ${dayVacations.length > 0 ? dayClass : ''}`}
+                  style={{
+                    ...((props as any).style ?? {}),
+                    ...(dayVacations.length > 0 && bg ? { background: bg, color: 'hsl(var(--primary-foreground))', fontWeight: 600 } : {}),
+                    ...(isReturnDay ? { border: '2px solid hsl(var(--foreground))' } : {}),
+                  }}
+                >
                   {dayContent}
                 </DayComponent>
             </TooltipTrigger>
@@ -207,8 +220,9 @@ export function VacationCalendar({
         }
       });
 
-      vacations.forEach(v => {
-        if (visibleUsers.has(v.userId)) {
+          vacations.forEach(v => {
+        const isSynthetic = v.userId && String(v.userId).startsWith('local-user-');
+        if (isSynthetic || visibleUsers.has(v.userId)) {
           const vacationStart = parseISO(v.startDate);
           const vacationEnd = parseISO(v.endDate);
 

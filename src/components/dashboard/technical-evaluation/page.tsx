@@ -35,8 +35,7 @@ export default function TechnicalEvaluationPage() {
         'item-location': get('item-location'),
         'item-state': (document.querySelector('input[name="item-state"]:checked') as HTMLInputElement | null)?.value ?? '',
         'item-diagnosis': get('item-diagnosis'),
-        'repair-viable': (document.querySelector('input[name="repair-viable"]:checked') as HTMLInputElement | null)?.value ?? '',
-        'repair-cost': get('repair-cost'),
+  'repair-viable': (document.querySelector('input[name="repair-viable"]:checked') as HTMLInputElement | null)?.value ?? '',
         'recommendations': (document.querySelector('input[name="rec-repair"]:checked') as HTMLInputElement | null)?.value ?? '',
         'tech-name': get('tech-name'),
         'tech-role': get('tech-role'),
@@ -151,10 +150,7 @@ export default function TechnicalEvaluationPage() {
                                 <Label htmlFor="repair-no">Não</Label>
                               </div>
                             </RadioGroup>
-                             <div className="flex items-center gap-2">
-                                <Label htmlFor="repair-cost">Custo estimado: R$</Label>
-                                <Input id="repair-cost" type="number" className="w-32" placeholder="100,00" />
-                            </div>
+              {/* repair cost removed per request */}
                         </div>
                     </div>
 

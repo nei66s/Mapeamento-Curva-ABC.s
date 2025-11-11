@@ -11,7 +11,7 @@ const nextConfig = {
   // (see Next.js docs: outputFileTracingRoot). Set to this project's directory.
   outputFileTracingRoot: __dirname,
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   // NOTE: the `eslint` config key in next.config.mjs was removed in newer
   // Next.js versions. Configure ESLint using an `.eslintrc` file and run

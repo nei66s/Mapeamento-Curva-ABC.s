@@ -1,6 +1,6 @@
 'use client';
 
-import { LogoImage } from '@/components/icons/logo-image';
+// logo removed per UI request
 import { SettlementLetter, Supplier } from '@/lib/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -22,7 +22,6 @@ export function SettlementPdfDocument({ letter, supplier }: SettlementPdfDocumen
     <div id={`pdf-content-${letter.id}`} className={`${styles.page} bg-white text-black p-12 font-serif text-justify`}>
       <header className="flex items-center justify-between border-b-2 border-gray-800 pb-4 mb-10">
         <div className="flex items-center gap-4">
-          <LogoImage className="h-16 w-16" />
           <div>
             <h1 className="text-xl font-bold text-gray-800">Fixly</h1>
           </div>

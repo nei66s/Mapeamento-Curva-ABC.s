@@ -19,7 +19,7 @@ import { useCurrentUser } from '@/hooks/use-current-user';
 import { cloneDefaultPermissions, moduleDefinitions } from '@/lib/permissions-config';
 import type { UserRole } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LogoImage } from '@/components/icons/logo-image';
+// logo removed per UI request
 
 // Removed Google sign-in option per request
 
@@ -126,7 +126,6 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center space-y-2">
           <div className="flex justify-center items-center gap-3">
-            <LogoImage className="h-10 w-10" />
             <CardTitle className="text-3xl font-bold font-headline">
               Fixly
             </CardTitle>
