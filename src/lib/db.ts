@@ -10,13 +10,39 @@ import { Pool } from 'pg';
 
 // Basic Pool with optional instrumentation. When DB_LOG_QUERIES is set to 'true',
 // we log query durations (ms) to help identify slow queries.
-const pool = new Pool({
-  host: process.env.PGHOST || 'localhost',
-  port: Number(process.env.PGPORT || 5432),
-  user: process.env.PGUSER || 'postgres',
-  password: process.env.PGPASSWORD || 'admin',
-  database: process.env.PGDATABASE || 'postgres',
-});
+
+const isProd = process.env.NODE_ENV === 'production';
+const resolvePassword = () => {
+  if (isProd) {
+    if (!process.env.PGPASSWORD) {
+      throw new Error('PGPASSWORD environment variable is not set. Set PGPASSWORD to connect to the DB (production).');
+    }
+    return process.env.PGPASSWORD as string;
+  }
+
+  if (!process.env.PGPASSWORD) {
+    const allowDefault = String(process.env.DEV_ALLOW_DEFAULT_PG_PASSWORD || '').toLowerCase() === 'true';
+    if (allowDefault) {
+      // eslint-disable-next-line no-console
+      console.warn("DEV_ALLOW_DEFAULT_PG_PASSWORD=true — using 'admin' fallback for development only. Do not use in production.");
+      return 'admin';
+    }
+    throw new Error('PGPASSWORD not set. In development you can run scripts/dev-setup.ps1 or set DEV_ALLOW_DEFAULT_PG_PASSWORD=true to allow a local fallback.');
+  }
+  return process.env.PGPASSWORD as string;
+};
+
+const poolConfig = process.env.DATABASE_URL
+  ? { connectionString: process.env.DATABASE_URL }
+  : {
+      host: process.env.PGHOST || 'localhost',
+      port: Number(process.env.PGPORT || 5432),
+      user: process.env.PGUSER || 'postgres',
+      password: resolvePassword(),
+      database: process.env.PGDATABASE || 'postgres',
+    };
+
+const pool = new Pool(poolConfig);
 
 // Wrap query to measure duration when requested
 if (process.env.DB_LOG_QUERIES === 'true') {

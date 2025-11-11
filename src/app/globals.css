@@ -10,19 +10,19 @@
     --card-foreground: 224 71.4% 4.1%;
     --popover: 0 0% 100%;
     --popover-foreground: 224 71.4% 4.1%;
-    --primary: 220 75% 45%;
+    --primary: 24 90% 54%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 14.3% 95.9%;
-    --secondary-foreground: 220 9.1% 31.4%;
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
-    --accent: 45 93% 55%;
-    --accent-foreground: 45 100% 15%;
+    --secondary: 24 86% 60%;
+    --secondary-foreground: 0 0% 18%;
+    --muted: 24 40% 95%;
+    --muted-foreground: 24 30% 40%;
+    --accent: 24 100% 60%;
+    --accent-foreground: 0 0% 15%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 220 75% 55%;
+    --input: 24 40% 96%;
+    --ring: 24 100% 60%;
     --radius: 0.75rem;
     --chart-1: 220 75% 45%;
     --chart-2: 160 60% 45%;
@@ -38,14 +38,14 @@
     --card-foreground: 210 20% 98%;
     --popover: 224 71.4% 4.1%;
     --popover-foreground: 210 20% 98%;
-    --primary: 210 100% 66%;
-    --primary-foreground: 224 71.4% 4.1%;
-    --secondary: 215 27.9% 16.9%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217.9 10.6% 64.9%;
-    --accent: 45 93% 47.1%;
-    --accent-foreground: 45 100% 15%;
+    --primary: 24 100% 58%;
+    --primary-foreground: 0 0% 4%;
+    --secondary: 28 85% 40%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 29 40% 15%;
+    --muted-foreground: 0 0% 90%;
+    --accent: 28 100% 52%;
+    --accent-foreground: 0 0% 10%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 85.7% 97.3%;
     --border: 215 27.9% 16.9%;
@@ -64,3 +64,82 @@
     -moz-osx-font-smoothing: grayscale;
   }
 }
+
+/* PDF / A4 helper styles used for html2canvas capture */
+.pdf-a4 {
+  width: 210mm;
+  min-height: 297mm;
+  background: #ffffff;
+  color: #000000;
+  box-sizing: border-box;
+  padding: 2rem;
+  font-family: serif;
+}
+
+.pdf-a4 header,
+.pdf-a4 section,
+.pdf-a4 footer {
+  break-inside: avoid;
+}
+
+/* helper to render element off-screen for html2canvas capture without inline styles */
+.printable-offscreen {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 210mm; /* ensure offscreen copy has same width */
+}
+
+/* Each visual PDF page for print preview */
+.pdf-page {
+  width: 210mm;
+  height: 297mm;
+  box-sizing: border-box;
+  padding: 20mm 16mm;
+  background: #fff;
+  color: #000;
+  page-break-after: always;
+  overflow: hidden;
+}
+
+.pdf-a4 .pdf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #1f2937;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+.pdf-a4 h1 { font-size: 18px; margin: 0; }
+.pdf-a4 h2 { font-size: 13px; margin: 0 0 6px 0; }
+.pdf-a4 p { font-size: 11px; margin: 0 0 6px 0; }
+.pdf-a4 .label { font-weight: 600; color: #374151; }
+.pdf-a4 .value { font-weight: 400; color: #111827; }
+
+.pdf-footer { position: absolute; bottom: 16mm; left: 0; right: 0; text-align: center; font-size: 10px; color: #6b7280; }
+
+/* Map locate control and user marker styles */
+.leaflet-control-locate { display: inline-block; }
+.leaflet-control-locate button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: none; background: white; border-radius: 8px; cursor: pointer; }
+.leaflet-control-locate button:hover { box-shadow: 0 4px 10px rgba(0,0,0,0.12); }
+.leaflet-control-locate button.locate-active { background: #16a34a; color: white; }
+
+/* Pulsing user marker - applies to Leaflet circleMarker SVG path via className */
+.user-circle { animation: pulse 1.8s infinite ease-out; }
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.6); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* professional pin icon for user location (divIcon) */
+.user-pin-wrapper { display: inline-block; position: relative; width: 36px; height: 36px; line-height: 0; }
+/* Position the visual pin so its tip is at the bottom center of the wrapper
+  (this makes the Leaflet iconAnchor [18,36] align with the pin tip). */
+.user-pin { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); }
+.user-pin .pin-svg { width: 28px; height: 28px; display: block; }
+/* Pulse should be centered on the tip of the pin (bottom center). We position
+  the pulse's center at the bottom edge of the wrapper by using bottom: 0 and
+  translateY(50%), so the pulse's center aligns with the pin tip. */
+.user-pin-pulse { display: none; }

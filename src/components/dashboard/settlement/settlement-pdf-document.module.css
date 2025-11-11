@@ -1,0 +1,10 @@
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  box-sizing: border-box;
+}
+
+/* Ensures footer absolute positioning stays relative to the page container */
+.page {
+  position: relative;
+}

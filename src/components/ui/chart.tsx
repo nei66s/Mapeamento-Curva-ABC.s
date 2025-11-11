@@ -38,11 +38,13 @@ const ChartContainer = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     config: ChartConfig
+    // When false, do not apply the default aspect ratio (useful for tall charts)
+    aspect?: boolean
     children: React.ComponentProps<
       typeof RechartsPrimitive.ResponsiveContainer
     >["children"]
   }
->(({ id, className, children, config, ...props }, ref) => {
+>(({ id, className, children, config, aspect = true, ...props }, ref) => {
   const uniqueId = React.useId()
   const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`
 
@@ -52,7 +54,8 @@ const ChartContainer = React.forwardRef<
         data-chart={chartId}
         ref={ref}
         className={cn(
-          "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
+          "flex justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none",
+          aspect ? "aspect-video" : "",
           className
         )}
         {...props}
@@ -68,7 +71,7 @@ const ChartContainer = React.forwardRef<
 ChartContainer.displayName = "Chart"
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(
+  const colorConfig = Object.entries(config || {}).filter(
     ([, config]) => config.theme || config.color
   )
 
@@ -189,7 +192,6 @@ const ChartTooltipContent = React.forwardRef<
             const key = `${nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
             const indicatorColor = color || item.payload.fill || item.color
-
             return (
               <div
                 key={item.dataKey}
@@ -206,24 +208,37 @@ const ChartTooltipContent = React.forwardRef<
                       <itemConfig.icon />
                     ) : (
                       !hideIndicator && (
-                        <div
-                          className={cn(
-                            "shrink-0 rounded-[2px] border-[--color-border] bg-[--color-bg]",
-                            {
-                              "h-2.5 w-2.5": indicator === "dot",
-                              "w-1": indicator === "line",
-                              "w-0 border-[1.5px] border-dashed bg-transparent":
-                                indicator === "dashed",
-                              "my-0.5": nestLabel && indicator === "dashed",
-                            }
-                          )}
-                          style={
-                            {
-                              "--color-bg": indicatorColor,
-                              "--color-border": indicatorColor,
-                            } as React.CSSProperties
-                          }
-                        />
+                        (() => {
+                          // generate a per-item class to move inline styles into a <style> tag
+                          const colorClass = `__chtit_${index}`
+                          const dynamicRule = indicatorColor
+                            ? `.${colorClass} { --color-bg: ${indicatorColor}; --color-border: ${indicatorColor}; }`
+                            : ""
+
+                          return (
+                            <>
+                              {dynamicRule ? (
+                                <style
+                                  key={`style-${colorClass}`}
+                                  dangerouslySetInnerHTML={{ __html: dynamicRule }}
+                                />
+                              ) : null}
+                              <div
+                                className={cn(
+                                  "shrink-0 rounded-[2px] border-[--color-border] bg-[--color-bg]",
+                                  {
+                                    "h-2.5 w-2.5": indicator === "dot",
+                                    "w-1": indicator === "line",
+                                    "w-0 border-[1.5px] border-dashed bg-transparent":
+                                      indicator === "dashed",
+                                    "my-0.5": nestLabel && indicator === "dashed",
+                                  },
+                                  colorClass
+                                )}
+                              />
+                            </>
+                          )
+                        })()
                       )
                     )}
                     <div
@@ -299,12 +314,20 @@ const ChartLegendContent = React.forwardRef<
               {itemConfig?.icon && !hideIcon ? (
                 <itemConfig.icon />
               ) : (
-                <div
-                  className="h-2 w-2 shrink-0 rounded-[2px]"
-                  style={{
-                    backgroundColor: item.color,
-                  }}
-                />
+                (() => {
+                  const itemId = String((item as any).value || (item as any).name || (item as any).dataKey)
+                  const colorClass = `__chleg_${itemId}`.replace(/[^a-zA-Z0-9_-]/g, "_")
+                  const dynamicRule = item.color ? `.${colorClass} { background-color: ${item.color}; }` : ""
+
+                  return (
+                    <>
+                      {dynamicRule ? (
+                        <style key={`style-${colorClass}`} dangerouslySetInnerHTML={{ __html: dynamicRule }} />
+                      ) : null}
+                      <div className={cn("h-2 w-2 shrink-0 rounded-[2px]", colorClass)} />
+                    </>
+                  )
+                })()
               )}
               {itemConfig?.label}
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,8 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { mockUsers } from '@/lib/users';
+import { Trash2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { useCurrentUser } from '@/hooks/use-current-user';
+// permissions management moved to the central Admin page
 
 const profileSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
@@ -22,36 +25,16 @@ const profileSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 
-// Try to restore the authenticated user from localStorage (set at login)
-// Fallback: still check mockUsers to preserve existing local dev behavior.
-const getCurrentUser = () => {
-  try {
-    if (typeof window !== 'undefined') {
-      const raw = localStorage.getItem('pm_user');
-      if (raw) {
-        try {
-          return JSON.parse(raw);
-        } catch (e) {
-          console.warn('pm_user parse error', e);
-        }
-      }
-    }
-  } catch (e) {
-    // ignore storage errors
-  }
-
-  // fallback to mock user (useful for dev without auth)
-  return mockUsers.find(u => u.role === 'admin') || null;
-};
-
 export default function ProfilePage() {
-  // Avoid reading localStorage during render to prevent SSR/CSR hydration mismatch.
-  // Initialize as null and populate on mount.
-  const [user, setUser] = useState<any | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const { user, setUser, loading } = useCurrentUser();
+  const [fetchedUser, setFetchedUser] = useState<any | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+  
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  // keep admin detection available for future UI if needed
+  const isAdminUser = fetchedUser?.role === 'admin';
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -63,73 +46,101 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    const u = getCurrentUser();
-    if (u) {
-      setUser(u);
-      // populate form fields after we have the user
-      form.reset({
-        name: u.name || '',
-        email: u.email || '',
-        avatarUrl: u.avatarUrl || '',
-      });
-    } else {
-      setUser(null);
-    }
-    setIsReady(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const onSubmit = async (data: ProfileFormData) => {
     if (!user) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Usuário não encontrado.' });
+      setFetchedUser(null);
+      form.reset({ name: '', email: '', avatarUrl: '' });
       return;
     }
-    
-    // In a real app, this would be an API call to a database.
-    // Here, we update the mock data object for session persistence.
-    // NOTE: This change only persists for the current user session.
-    // A page refresh will revert to the original data in `src/lib/users.ts`.
-    // To make a permanent change, the file `src/lib/users.ts` must be edited.
-    try {
-      // If user has an id, update existing record; otherwise create a new user in DB
-      const payload = { id: (user as any).id, ...data };
-      const method = payload.id ? 'PUT' : 'POST';
-      const res = await fetch('/api/users', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        console.error('save user error', err);
-        throw new Error(err?.error || 'Erro ao salvar usuário');
-      }
-
-      const saved = await res.json();
-
-      // Update local state and localStorage so session reflects server state
-      setUser(saved);
+    const load = async () => {
       try {
-        if (typeof window !== 'undefined') localStorage.setItem('pm_user', JSON.stringify(saved));
-      } catch (e) {
-        console.warn('Could not persist pm_user to localStorage', e);
+        const res = await fetch('/api/users');
+        if (!res.ok) throw new Error('Failed to load users');
+        const list = await res.json();
+        const latest = list.find((u: any) => String(u.id) === String(user.id)) || user;
+        setFetchedUser(latest);
+        form.reset({
+          name: latest.name || '',
+          email: latest.email || '',
+          avatarUrl: latest.avatarUrl || '',
+        });
+      } catch (err) {
+        console.error('Failed to refresh user', err);
+        setFetchedUser(user);
+        form.reset({
+          name: user.name || '',
+          email: user.email || '',
+          avatarUrl: user.avatarUrl || '',
+        });
       }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
-      toast({
-        title: 'Perfil Atualizado!',
-        description: 'Suas informações foram salvas com sucesso.',
-      });
-    } catch (e) {
-      console.error('Erro ao salvar perfil:', e);
-      toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar as alterações.' });
-    }
-  };
+  // Permissions are managed centrally in the Admin page; no client-side loading here.
+
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
+  const autoSaveTimeout = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleAutoSave = useCallback(
+    async (data: ProfileFormData) => {
+      if (!fetchedUser) {
+        return;
+      }
+      setSaveStatus('saving');
+      setSaveErrorMessage(null);
+
+      try {
+        const payload = { id: (fetchedUser as any).id, ...data };
+        const method = payload.id ? 'PUT' : 'POST';
+        const res = await fetch('/api/users', {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => null);
+          console.error('save user error', err);
+          throw new Error(err?.error || 'Erro ao salvar usuário');
+        }
+
+        const saved = await res.json();
+        setUser(saved);
+        setFetchedUser(saved);
+        setSaveStatus('saved');
+      } catch (e) {
+        console.error('Erro ao salvar perfil automaticamente:', e);
+        setSaveStatus('error');
+        setSaveErrorMessage('Não foi possível salvar automaticamente.');
+        toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar as alterações automaticamente.' });
+      }
+    },
+    [fetchedUser, setUser, setFetchedUser, toast]
+  );
+
+  useEffect(() => {
+    if (!fetchedUser) return;
+    const subscription = form.watch(() => {
+      if (!form.formState.isDirty) return;
+      if (autoSaveTimeout.current) clearTimeout(autoSaveTimeout.current);
+      autoSaveTimeout.current = setTimeout(() => {
+        void form.handleSubmit(handleAutoSave)();
+      }, 900);
+    });
+    return () => {
+      subscription.unsubscribe?.();
+      if (autoSaveTimeout.current) clearTimeout(autoSaveTimeout.current);
+    };
+  }, [form, fetchedUser, handleAutoSave]);
+
+  // permission changes handled in Admin page
 
   // While hydrating (client-only data), render nothing to keep server and client HTML identical.
-  if (!isReady) return null;
+  if (loading) return null;
 
-  if (!user) {
+  if (!fetchedUser) {
     return <div>Usuário não encontrado.</div>;
   }
 
@@ -140,7 +151,7 @@ export default function ProfilePage() {
         description="Visualize e edite suas informações pessoais."
       />
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={event => event.preventDefault()}>
           <Card>
             <CardHeader>
               <CardTitle>Informações do Perfil</CardTitle>
@@ -153,16 +164,17 @@ export default function ProfilePage() {
                     {form.watch('avatarUrl') && (
                       <AvatarImage 
                         src={form.watch('avatarUrl')} 
-                        alt={user.name} 
+                        alt={fetchedUser.name} 
                         data-ai-hint="person avatar"
                       />
                     )}
                     <AvatarFallback>{form.watch('name').charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
+                  <div className="flex items-center gap-2">
                   <Input
                     type="file"
                     accept="image/*"
-                    disabled={isUploading}
+                    disabled={isUploading || isRemoving}
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
@@ -180,6 +192,7 @@ export default function ProfilePage() {
                         setIsUploading(true);
                         const formData = new FormData();
                         formData.append('file', file);
+                        formData.append('dest', 'avatars');
 
                         const response = await fetch('/api/upload', {
                           method: 'POST',
@@ -207,14 +220,56 @@ export default function ProfilePage() {
                     }}
                     className="w-full max-w-[200px]"
                   />
+                  {form.watch('avatarUrl') && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            disabled={isRemoving || isUploading}
+                            onClick={async () => {
+                              if (!fetchedUser) return;
+                              try {
+                                setIsRemoving(true);
+                                const res = await fetch(`/api/users/avatar?id=${fetchedUser.id}`, { method: 'DELETE' });
+                                if (!res.ok) throw new Error('Falha ao remover avatar');
+                                const updated = await res.json();
+                                form.setValue('avatarUrl', '');
+                                setUser(updated);
+                                toast({ title: 'Avatar removido', description: 'A foto do perfil foi removida.' });
+                              } catch (err) {
+                                console.error('Erro ao remover avatar', err);
+                                toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível remover o avatar.' });
+                              } finally {
+                                setIsRemoving(false);
+                              }
+                            }}
+                            aria-label="Remover foto do perfil"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Remover Foto</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Remover Foto
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                  </div>
                   {isUploading && (
                     <p className="text-sm text-muted-foreground">Enviando...</p>
+                  )}
+                  {isRemoving && (
+                    <p className="text-sm text-muted-foreground">Removendo...</p>
                   )}
                 </div>
                 <div className="grid gap-1">
                   <h3 className="text-lg font-semibold">{form.watch('name')}</h3>
                   <p className="text-sm text-muted-foreground">{form.watch('email')}</p>
-                  <p className="text-sm font-medium text-primary capitalize">{user.role}</p>
+                <p className="text-sm font-medium text-primary capitalize">{fetchedUser.role}</p>
                 </div>
               </div>
               <input type="hidden" {...form.register('avatarUrl')} />
@@ -249,12 +304,19 @@ export default function ProfilePage() {
               </div>
 
             </CardContent>
-             <CardFooter>
-                <Button type="submit">Salvar Alterações</Button>
+             <CardFooter className="justify-between">
+                <p className="text-sm text-muted-foreground" aria-live="polite">
+                  {saveStatus === 'saving'
+                    ? 'Salvando alterações automaticamente...'
+                    : saveStatus === 'error'
+                      ? saveErrorMessage ?? 'Não foi possível salvar automaticamente.'
+                      : 'Alterações salvas automaticamente.'}
+                </p>
             </CardFooter>
           </Card>
         </form>
       </Form>
+      {/* Permissions management moved to Admin page (Dashboard → Administração) */}
     </div>
   );
 }

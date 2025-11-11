@@ -35,7 +35,9 @@ export type Item = {
 
 export type Incident = {
   id: string;
+  title?: string;
   itemName: string;
+  storeId?: string;
   location: string;
   status: IncidentStatus;
   openedAt: string; // ISO date string
@@ -77,8 +79,27 @@ export type User = {
   avatarUrl?: string;
   password?: string;
   supplierId?: string; // Associated supplier if role is 'fornecedor'
+  department?: string; // optional department name used by some UI fixtures
 };
 
+export type VacationRequest = {
+  id: string;
+  userId: string;
+  userName: string;
+  userDepartment?: string;
+  status: string;
+  startDate: string; // ISO date
+  endDate: string; // ISO date
+  requestedAt?: string; // ISO date
+  userAvatarUrl?: string;
+  totalDays?: number | null;
+};
+
+export type Technician = {
+  id: string;
+  name: string;
+  role?: string;
+};
 export type AgingCriticidade = {
   baixa: number;
   media: number;
@@ -96,8 +117,6 @@ export type MaintenanceIndicator = {
   chamados_abertos: number;
   chamados_solucionados: number;
   backlog: number;
-  valor_mensal?: number;
-  valor_orcado?: number;
   aging: {
     inferior_30: AgingCriticidade;
     entre_30_60: AgingCriticidade;
@@ -138,6 +157,19 @@ export type WarrantyItem = {
   notes?: string;
 };
 
+export type UnsalvageableStatus = 'Pendente' | 'Aprovado' | 'Descarte' | 'Concluído';
+
+export type UnsalvageableItem = {
+  id: string;
+  itemName: string;
+  quantity: number;
+  reason: string;
+  requestDate: string; // ISO date string
+  requesterId?: string;
+  status: UnsalvageableStatus;
+  disposalDate?: string; // ISO date string when disposal happened
+};
+
 export type RNC = {
     id: string;
     title: string;
@@ -171,3 +203,37 @@ export type SettlementLetter = {
   periodStartDate: string; // ISO date string
   periodEndDate: string; // ISO date string
 };
+
+// Technical report types used by the Laudos (technical reports) feature
+export type ReportStatus = 'Pendente' | 'Concluído';
+
+export type TechnicalReport = {
+  id: string;
+  title: string;
+  incidentId?: string;
+  technicianId: string;
+  details: {
+    // fields from the Technical Evaluation form
+    itemDescription?: string;
+    itemPatrimony?: string;
+    itemQuantity?: number;
+    itemLocation?: string;
+    itemState?: 'damaged' | 'partial' | 'obsolete' | 'unused';
+    problemFound: string;
+    itemDiagnosis?: string;
+    repairViable?: 'yes' | 'no';
+  // repairCost removed per request
+    recommendations?: 'repair' | 'discard' | 'evaluate' | string;
+    actionsTaken?: string;
+    // who evaluated
+  // technician is referenced by technicianId on the report; name/role are stored on the Technician entity
+  };
+  createdAt: string; // ISO date
+  status: ReportStatus;
+};
+
+export const userRoles = ['admin', 'gestor', 'regional', 'visualizador', 'fornecedor'] as const;
+
+export function isValidUserRole(role: any): role is UserRole {
+  return userRoles.includes(role);
+}

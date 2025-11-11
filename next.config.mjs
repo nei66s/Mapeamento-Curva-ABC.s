@@ -1,12 +1,22 @@
 /** @type {import('next').NextConfig} */
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM-safe __dirname
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const nextConfig = {
   /* config options here */
+  // Prevent Next from inferring the workspace root from unrelated lockfiles
+  // (see Next.js docs: outputFileTracingRoot). Set to this project's directory.
+  outputFileTracingRoot: __dirname,
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // NOTE: the `eslint` config key in next.config.mjs was removed in newer
+  // Next.js versions. Configure ESLint using an `.eslintrc` file and run
+  // linting via the `next lint` script. See:
+  // https://nextjs.org/docs/app/api-reference/cli/next#next-lint-options
   images: {
     remotePatterns: [
       {
@@ -27,13 +37,16 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'api.qrserver.com',
+        port: '',
+        pathname: '/**',
+      },
       
     ],
   },
   // serverExternalPackages is not supported in Next.js 14; remove it to avoid invalid config
-  experimental: {
-    
-  },
   async rewrites() {
     return [
       {
@@ -63,6 +76,16 @@ const nextConfig = {
         util: false,
         buffer: false,
       };
+      // Suppress warnings from packages that use dynamic require() which are only
+      // relevant during server-side runtime (opentelemetry / require-in-the-middle).
+      config.ignoreWarnings = config.ignoreWarnings || [];
+      config.ignoreWarnings.push({
+        module: /require-in-the-middle/,
+        message: /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
+      });
+      config.ignoreWarnings.push({
+        module: /@opentelemetry/,
+      });
     }
     // Externalize pg for server-side
     if (isServer) {

@@ -271,7 +271,7 @@ export default function RncPage() {
         </Dialog>
       
       {rncToPrint && (
-        <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+        <div className="absolute -left-[9999px] -top-[9999px]">
           <RncPdfDocument 
             rnc={rncToPrint} 
             supplierName={suppliersMap.get(rncToPrint.supplierId) || 'N/A'}
