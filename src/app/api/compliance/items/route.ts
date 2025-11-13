@@ -6,8 +6,9 @@ export async function GET() {
     const items = await listChecklistItems();
     return NextResponse.json(items);
   } catch (err) {
-    console.error('GET /api/compliance/items error', err);
-    return NextResponse.json({ error: 'Failed to load checklist items' }, { status: 500 });
+    try { console.error('GET /api/compliance/items error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to load checklist items';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -21,8 +22,9 @@ export async function POST(req: Request) {
     if (!created) return NextResponse.json({ error: 'Failed to create' }, { status: 500 });
     return NextResponse.json(created, { status: 201 });
   } catch (err) {
-    console.error('POST /api/compliance/items error', err);
-    return NextResponse.json({ error: 'Failed to create checklist item' }, { status: 500 });
+    try { console.error('POST /api/compliance/items error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to create checklist item';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -35,7 +37,8 @@ export async function DELETE(req: Request) {
     if (!ok) return NextResponse.json({ error: 'Failed to delete' }, { status: 500 });
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('DELETE /api/compliance/items error', err);
-    return NextResponse.json({ error: 'Failed to delete checklist item' }, { status: 500 });
+    try { console.error('DELETE /api/compliance/items error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to delete checklist item';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

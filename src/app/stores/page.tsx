@@ -44,8 +44,23 @@ export default function StoresPage() {
     if (!mapRef.current) return;
     try {
       if (leafletMapRef.current) {
-        leafletMapRef.current.remove();
-        leafletMapRef.current = null;
+        try {
+          // Leaflet internals may have been partially torn down by React
+          // (or removed elsewhere). Check for the container before
+          // calling `remove()` to avoid accessing `_leaflet_events` on
+          // an undefined element.
+          const anyMap = leafletMapRef.current as any;
+          if (anyMap && anyMap._container) {
+            leafletMapRef.current.remove();
+          } else if (anyMap && typeof anyMap.off === 'function') {
+            // best-effort detach handlers if container is gone
+            try { anyMap.off(); } catch (e) {}
+          }
+        } catch (err) {
+          console.warn('Error removing leaflet map (ignored)', err);
+        } finally {
+          leafletMapRef.current = null;
+        }
       }
       const map = L.map(mapRef.current).setView([-23.5, -46.6], 6);
       leafletMapRef.current = map;
@@ -59,6 +74,15 @@ export default function StoresPage() {
       console.error('map init error', e);
     }
     // rerun when stores change
+    return () => {
+      if (leafletMapRef.current) {
+        try {
+          const anyMap = leafletMapRef.current as any;
+          if (anyMap && anyMap._container) anyMap.remove();
+        } catch (e) {}
+        leafletMapRef.current = null;
+      }
+    };
   }, [stores]);
 
   const openNew = () => { setEditing(null); setIsFormOpen(true); };

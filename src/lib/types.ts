@@ -31,6 +31,8 @@ export type Item = {
   contingencyPlan: string;
   leadTime: string;
   imageUrl?: string;
+  // optional category-level average criticality (0-10 scale)
+  categoryRiskIndex?: number;
 };
 
 export type Incident = {

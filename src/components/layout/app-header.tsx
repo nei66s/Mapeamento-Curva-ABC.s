@@ -67,7 +67,7 @@ export default function AppHeader({ onToggleSidebar, sidebarVisible }: AppHeader
         <SheetContent side="left" className="sm:max-w-xs">
           <nav className="grid gap-6 text-lg font-medium">
             <Link
-              href="/"
+              href="/indicators"
               className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
             >
               <span className="sr-only">Fixly</span>
@@ -223,8 +223,8 @@ export default function AppHeader({ onToggleSidebar, sidebarVisible }: AppHeader
       <Breadcrumb className="hidden md:flex">
         <BreadcrumbList>
               <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link href="/">Fixly</Link>
+              <BreadcrumbLink asChild>
+              <Link href="/indicators">Fixly</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
         </BreadcrumbList>

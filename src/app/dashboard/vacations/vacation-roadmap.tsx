@@ -42,7 +42,10 @@ export function VacationRoadmap({ vacations, users, userColors, displayYear }: V
 
 
   const vacationData = useMemo(() => {
-    const processedData = users.map(user => {
+        // only include users that actually have vacations in the provided list
+        const usersToShow = users.filter(u => vacations.some(v => String(v.userId) === String(u.id) && v.status === 'Aprovado'));
+
+        const processedData = usersToShow.map(user => {
       const userVacations = vacations
         .filter(v => v.userId === user.id && v.status === 'Aprovado')
         .map(v => {
@@ -216,9 +219,9 @@ export function VacationRoadmap({ vacations, users, userColors, displayYear }: V
                       <div className="z-10 relative">
                           {vacationData.map(({ user, vacations }) => (
                               <div key={user.id} className="relative h-10 py-1 border-b">
-                                  {vacations.map(segment => {
+                                  {vacations.map((segment, segIdx) => {
                                   return (
-                                  <Tooltip key={segment.id}>
+                                  <Tooltip key={`${segment.id}-${user.id}-${segment.startDate}-${segIdx}`}>
                                       <TooltipTrigger asChild>
                                       <div
                                           className={`absolute h-6 rounded-full cursor-pointer hover:opacity-80 border-2 border-background vac-seg-${segment.id}`}

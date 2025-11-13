@@ -68,13 +68,13 @@ export async function listChecklistItems(): Promise<ComplianceChecklistItem[]> {
     try {
       if ((err as any)?.code === '42P01') {
         console.debug('listChecklistItems: table missing compliance_checklist_items');
-      } else {
-        console.error('listChecklistItems error', err);
+        return [];
       }
     } catch (__) {
-      console.error('listChecklistItems error', err);
+      // fall through to rethrow
     }
-    return [];
+    // For unexpected errors, rethrow so callers can handle failures explicitly
+    throw err;
   }
 }
 
@@ -100,10 +100,16 @@ export async function addChecklistItem(item: { name: string; classification?: st
       } as ComplianceChecklistItem;
     }
   } catch (err) {
-    console.error('addChecklistItem error', err);
+    try {
+      if ((err as any)?.code === '42P01') {
+        console.debug('addChecklistItem: table missing compliance_checklist_items — returning generated fallback');
+        return { id: `CHK-${Date.now()}`, name: item.name, classification: item.classification ?? 'C' } as ComplianceChecklistItem;
+      }
+    } catch (__){
+      // fall through to rethrow
+    }
+    throw err;
   }
-  // Fallback: return a generated item but not persisted
-  return { id: `CHK-${Date.now()}`, name: item.name, classification: item.classification ?? 'C' } as ComplianceChecklistItem;
 }
 
 export async function deleteChecklistItem(itemId: string): Promise<boolean> {
@@ -121,7 +127,15 @@ export async function deleteChecklistItem(itemId: string): Promise<boolean> {
       return res.rowCount > 0;
     }
   } catch (err) {
-    console.error('deleteChecklistItem error', err);
+    try {
+      if ((err as any)?.code === '42P01') {
+        console.debug('deleteChecklistItem: table missing compliance_checklist_items');
+        return false;
+      }
+    } catch (__) {
+      // fall through
+    }
+    throw err;
   }
   return false;
 }
@@ -206,13 +220,12 @@ export async function listScheduledVisits(): Promise<StoreComplianceData[]> {
     try {
       if ((err as any)?.code === '42P01') {
         console.debug('listScheduledVisits: table missing compliance_visits');
-      } else {
-        console.error('listScheduledVisits error', err);
+        return [];
       }
     } catch (__) {
-      console.error('listScheduledVisits error', err);
+      // fall through
     }
-    return [];
+    throw err;
   }
 }
 
@@ -307,10 +320,17 @@ export async function scheduleVisit(data: Partial<StoreComplianceData>): Promise
         }
       }
     } catch (err2) {
-      console.error('scheduleVisit fallback error', err2);
+      try { console.error('scheduleVisit fallback error', err2); } catch(_) {}
     }
-    console.error('scheduleVisit error', err);
-    return null;
+    try {
+      if ((err as any)?.code === '42P01') {
+        console.debug('scheduleVisit: compliance_visits missing and fallback attempted');
+        return null;
+      }
+    } catch (__) {
+      // fall through
+    }
+    throw err;
   }
 }
 
@@ -369,8 +389,13 @@ export async function updateVisitItemStatus(storeId: string, visitDate: string, 
     }
     return false;
   } catch (err) {
-    console.error('updateVisitItemStatus error', err);
-    return false;
+    try {
+      if ((err as any)?.code === '42P01') {
+        console.debug('updateVisitItemStatus: tables missing for update');
+        return false;
+      }
+    } catch (__) {}
+    throw err;
   }
 }
 
@@ -410,8 +435,13 @@ export async function updateVisitItemStatusByVisitId(visitId: string | number, i
 
     return false;
   } catch (err) {
-    console.error('updateVisitItemStatusByVisitId error', err);
-    return false;
+    try {
+      if ((err as any)?.code === '42P01') {
+        console.debug('updateVisitItemStatusByVisitId: tables missing for update');
+        return false;
+      }
+    } catch (__) {}
+    throw err;
   }
 }
 
@@ -421,7 +451,12 @@ export async function deleteScheduledVisit(storeId: string, visitDate: string): 
     await pool.query(`DELETE FROM compliance_visits WHERE store_id=$1 AND (visit_date::text LIKE $2 OR visit_date=$3)`, [storeId, `${visitDate}%`, visitDate]);
     return true;
   } catch (err) {
-    console.error('deleteScheduledVisit error', err);
-    return false;
+    try {
+      if ((err as any)?.code === '42P01') {
+        console.debug('deleteScheduledVisit: compliance_visits missing');
+        return false;
+      }
+    } catch (__) {}
+    throw err;
   }
 }

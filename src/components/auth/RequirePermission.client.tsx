@@ -42,6 +42,7 @@ export default function RequirePermission({ children }: { children: React.ReactN
     if (path.startsWith('/dashboard/suppliers') || path.startsWith('/suppliers')) return 'suppliers';
     if (path.startsWith('/dashboard/warranty') || path.startsWith('/warranty')) return 'warranty';
     if (path.startsWith('/dashboard/tools') || path.startsWith('/tools')) return 'tools';
+    if (path.startsWith('/dashboard/vacations') || path.startsWith('/vacations')) return 'vacations';
     if (path.startsWith('/dashboard/settlement') || path.startsWith('/settlement')) return 'settlement';
     if (path.startsWith('/dashboard/profile') || path.startsWith('/profile')) return 'profile';
     if (path.startsWith('/dashboard/settings') || path.startsWith('/settings')) return 'settings';
@@ -65,8 +66,8 @@ export default function RequirePermission({ children }: { children: React.ReactN
     if (allowed) return; // user allowed, no redirect
     // prevent endless redirect if already in root/dashboard area
     if (!pathname) return;
-    if (pathname === '/' || pathname === '/dashboard') return;
-    router.replace('/');
+    if (pathname === '/' || pathname === '/indicators') return;
+    router.replace('/indicators');
   }, [loading, moduleId, allowed, pathname, router]);
 
   // Now that hooks and effects are registered consistently, apply the same
@@ -85,7 +86,7 @@ export default function RequirePermission({ children }: { children: React.ReactN
       </CardHeader>
       <CardContent>
         <div className="flex gap-2">
-          <Button onClick={() => router.replace('/')}>Ir para Painel</Button>
+          <Button onClick={() => router.replace('/indicators')}>Ir para Painel</Button>
         </div>
       </CardContent>
     </Card>

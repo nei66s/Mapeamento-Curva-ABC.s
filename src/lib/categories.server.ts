@@ -9,7 +9,9 @@ export async function listCategories(): Promise<Category[]> {
       c.description,
       c.image_url,
       c.classification,
-      COUNT(i.id) as item_count
+      COUNT(i.id) as item_count,
+      -- compute average classification mapped to numeric score: A=10, B=5, C=1
+      COALESCE(ROUND(AVG(CASE WHEN i.classification = 'A' THEN 10 WHEN i.classification = 'B' THEN 5 ELSE 1 END))::int, 0) as risk_index
     FROM categories c
     LEFT JOIN items i ON c.id = i.category_id
     GROUP BY c.id
@@ -23,7 +25,7 @@ export async function listCategories(): Promise<Category[]> {
     classification: (row.classification as any) || 'C',
     imageUrl: row.image_url || undefined,
     itemCount: parseInt(row.item_count) || 0,
-    riskIndex: 0,
+    riskIndex: parseInt(row.risk_index) || 0,
   }));
 }
 

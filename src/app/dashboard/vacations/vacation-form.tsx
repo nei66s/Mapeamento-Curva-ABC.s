@@ -23,12 +23,13 @@ import type { User, VacationRequest } from '@/lib/types';
 
 interface VacationFormProps {
   users: User[];
-  onSubmit: (data: Omit<VacationRequest, 'id' | 'requestedAt' | 'status' | 'userName' | 'userDepartment' | 'userAvatarUrl'>) => void;
+  onSubmit: (data: Omit<VacationRequest, 'id' | 'requestedAt' | 'status' | 'userName' | 'userAvatarUrl' | 'totalDays'> & { userDepartment?: string }) => void;
   onCancel: () => void;
 }
 
 const formSchema = z.object({
   userInput: z.string().min(1, 'Digite o nome do colaborador.'),
+  department: z.string().optional(),
   dateRange: z.object({
     from: z.date({ required_error: 'A data de início é obrigatória.' }),
     to: z.date({ required_error: 'A data de término é obrigatória.' }),
@@ -45,6 +46,7 @@ export function VacationForm({ users, onSubmit, onCancel }: VacationFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       userInput: '',
+      department: '',
     },
   });
 
@@ -55,6 +57,7 @@ export function VacationForm({ users, onSubmit, onCancel }: VacationFormProps) {
     onSubmit({
       userId: matched ? matched.id : '',
       userName: matched ? matched.name : entered,
+      userDepartment: matched ? matched.department : (data.department || undefined),
       startDate: data.dateRange.from.toISOString(),
       endDate: data.dateRange.to.toISOString(),
     } as any);
@@ -79,6 +82,30 @@ export function VacationForm({ users, onSubmit, onCancel }: VacationFormProps) {
                   />
                   <datalist id="vacation-users">
                     {users.map(u => <option key={u.id} value={u.name} />)}
+                  </datalist>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="department"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Departamento (opcional)</FormLabel>
+              <FormControl>
+                <div>
+                  <input
+                    list="vacation-departments"
+                    className="w-full rounded-md border px-3 py-2"
+                    {...field}
+                  />
+                  <datalist id="vacation-departments">
+                    {Array.from(new Set(users.map(u => u.department).filter(Boolean))).map(dep => (
+                      <option key={dep} value={dep} />
+                    ))}
                   </datalist>
                 </div>
               </FormControl>

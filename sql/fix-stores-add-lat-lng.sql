@@ -1,0 +1,7 @@
+BEGIN;
+
+-- Add latitude/longitude columns to stores used by the app
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION DEFAULT 0;
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION DEFAULT 0;
+
+COMMIT;

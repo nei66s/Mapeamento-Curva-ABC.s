@@ -34,7 +34,7 @@ async function main() {
   });
   await client.connect();
   const res = await client.query(
-    `SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name`
+    `SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' AND table_schema <> 'audit' ORDER BY table_name`
   );
   const unused = res.rows.map(r => r.table_name).filter(name => !WL.has(name));
   if (unused.length === 0) {

@@ -7,6 +7,10 @@ export interface HeroStat {
   label: string;
   value: string | number;
   helper?: string;
+  // optional Tailwind class to apply to the value (e.g. text-red-400)
+  colorClassName?: string;
+  // optional Tailwind classes to apply to the stat container (bg/border) to highlight the card
+  containerClassName?: string;
 }
 
 interface HeroPanelProps {
@@ -46,9 +50,17 @@ export function HeroPanel({
     <p className="mt-2 text-sm text-white/80">{description}</p>
     <div className="mt-6 grid gap-4 sm:grid-cols-3">
         {stats.map((stat) => (
-          <div key={stat.label} className="rounded-2xl border border-white/30 bg-white/10 p-4">
+          <div
+            key={stat.label}
+            className={cn(
+              // base spacing/shape
+              'rounded-2xl p-4',
+              // allow a custom container class or fall back to the default subtle card style
+              stat.containerClassName ?? 'border border-white/30 bg-white/10'
+            )}
+          >
             <p className="text-[0.65rem] uppercase tracking-[0.3em] text-white/80">{stat.label}</p>
-            <p className="mt-1 text-2xl font-semibold">{stat.value}</p>
+            <p className={cn('mt-1 text-2xl font-semibold', stat.colorClassName || 'text-white')}>{stat.value}</p>
             {stat.helper && <p className="text-xs text-white/60">{stat.helper}</p>}
           </div>
         ))}

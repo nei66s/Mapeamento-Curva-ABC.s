@@ -54,7 +54,8 @@ export function ClassificationTable() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
+        <div className="relative w-full overflow-auto">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Categoria</TableHead>
@@ -83,7 +84,8 @@ export function ClassificationTable() {
               </TableRow>
             ))}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );

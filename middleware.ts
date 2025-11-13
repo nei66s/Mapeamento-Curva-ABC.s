@@ -14,6 +14,7 @@ function getModuleId(path: string) {
   if (path.startsWith('/dashboard/suppliers') || path.startsWith('/suppliers')) return 'suppliers';
   if (path.startsWith('/dashboard/warranty') || path.startsWith('/warranty')) return 'warranty';
   if (path.startsWith('/dashboard/tools') || path.startsWith('/tools')) return 'tools';
+  if (path.startsWith('/dashboard/vacations') || path.startsWith('/vacations')) return 'vacations';
   if (path.startsWith('/dashboard/settlement') || path.startsWith('/settlement')) return 'settlement';
   if (path.startsWith('/dashboard/profile') || path.startsWith('/profile')) return 'profile';
   if (path.startsWith('/dashboard/settings') || path.startsWith('/settings')) return 'settings';
@@ -45,9 +46,9 @@ export function middleware(req: NextRequest) {
   const allowed = Boolean(defaults[role]?.[moduleId]);
   if (allowed) return NextResponse.next();
 
-  // redirect to dashboard root if not allowed
+  // redirect to indicators root if not allowed
   const url = nextUrl.clone();
-  url.pathname = '/dashboard';
+  url.pathname = '/indicators';
   return NextResponse.redirect(url);
 }
 
@@ -61,6 +62,7 @@ export const config = {
     '/categories/:path*',
     '/matrix/:path*',
     '/compliance/:path*',
+    '/vacations/:path*',
     '/suppliers/:path*',
     '/warranty/:path*',
     '/tools/:path*',

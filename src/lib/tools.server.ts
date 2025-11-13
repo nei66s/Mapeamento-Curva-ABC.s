@@ -35,7 +35,9 @@ function parseDate(value?: string | null) {
 export type ToolInput = Omit<Tool, 'id'> & { id?: string };
 
 export async function listTools(): Promise<Tool[]> {
-  const res = await pool.query('SELECT * FROM tools ORDER BY created_at DESC, name ASC');
+  // Some DB instances don't have a `created_at` column on `tools`.
+  // Order by `name` as a safe default to avoid SQL errors.
+  const res = await pool.query('SELECT * FROM tools ORDER BY name ASC');
   return res.rows.map(mapTool);
 }
 

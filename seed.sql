@@ -147,6 +147,7 @@ CREATE TABLE IF NOT EXISTS technical_reports (
 CREATE TABLE IF NOT EXISTS vacation_requests (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
+  user_department TEXT,
   status TEXT NOT NULL DEFAULT 'Aprovado',
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
@@ -387,9 +388,9 @@ INSERT INTO technical_reports (id, title, technician_id, incident_id, details, s
 ON CONFLICT (id) DO NOTHING;
 
 -- Vacation requests de exemplo
-INSERT INTO vacation_requests (id, user_id, status, start_date, end_date, requested_at, total_days) VALUES
-  ('vac-001', (SELECT id::text FROM users WHERE email='gestor@example.com'), 'Aprovado', '2025-08-01', '2025-08-15', now() - interval '40 days', 10),
-  ('vac-002', (SELECT id::text FROM users WHERE email='regional@example.com'), 'Aprovado', '2025-09-05', '2025-09-20', now() - interval '30 days', 12)
+INSERT INTO vacation_requests (id, user_id, user_department, status, start_date, end_date, requested_at, total_days) VALUES
+  ('vac-001', (SELECT id::text FROM users WHERE email='gestor@example.com'), (SELECT department FROM users WHERE email='gestor@example.com'), 'Aprovado', '2025-08-01', '2025-08-15', now() - interval '40 days', 10),
+  ('vac-002', (SELECT id::text FROM users WHERE email='regional@example.com'), (SELECT department FROM users WHERE email='regional@example.com'), 'Aprovado', '2025-09-05', '2025-09-20', now() - interval '30 days', 12)
 ON CONFLICT (id) DO NOTHING;
 
 -- Unsalvageable items de exemplo
