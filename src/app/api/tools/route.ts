@@ -6,8 +6,9 @@ export async function GET() {
     const tools = await listTools();
     return NextResponse.json(tools);
   } catch (err) {
-    console.error('GET /api/tools error', err);
-    return NextResponse.json({ error: 'Failed to load tools' }, { status: 500 });
+    try { console.error('GET /api/tools error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to load tools';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -21,8 +22,9 @@ export async function POST(req: Request) {
     const created = await createTool(body);
     return NextResponse.json(created, { status: 201 });
   } catch (err) {
-    console.error('POST /api/tools error', err);
-    return NextResponse.json({ error: 'Failed to create tool' }, { status: 500 });
+    try { console.error('POST /api/tools error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to create tool';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -34,8 +36,9 @@ export async function PUT(req: Request) {
     if (!updated) return NextResponse.json({ error: 'Tool not found' }, { status: 404 });
     return NextResponse.json(updated);
   } catch (err) {
-    console.error('PUT /api/tools error', err);
-    return NextResponse.json({ error: 'Failed to update tool' }, { status: 500 });
+    try { console.error('PUT /api/tools error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to update tool';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -52,7 +55,8 @@ export async function DELETE(req: Request) {
     if (!ok) return NextResponse.json({ error: 'Tool not found' }, { status: 404 });
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error('DELETE /api/tools error', err);
-    return NextResponse.json({ error: 'Failed to delete tool' }, { status: 500 });
+    try { console.error('DELETE /api/tools error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to delete tool';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

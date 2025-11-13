@@ -6,8 +6,9 @@ export async function GET(req: Request) {
     const items = await listWarranties();
     return NextResponse.json(items);
   } catch (err) {
-    console.error('GET /api/warranty error', err);
-    return NextResponse.json({ error: 'Failed to load warranty items' }, { status: 500 });
+    try { console.error('GET /api/warranty error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to load warranty items';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -18,8 +19,9 @@ export async function POST(req: Request) {
     if (!created) return NextResponse.json({ error: 'Failed to create warranty item' }, { status: 500 });
     return NextResponse.json(created, { status: 201 });
   } catch (err) {
-    console.error('POST /api/warranty error', err);
-    return NextResponse.json({ error: 'Failed to create warranty item' }, { status: 500 });
+    try { console.error('POST /api/warranty error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to create warranty item';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -33,8 +35,9 @@ export async function PUT(req: Request) {
     if (!updated) return NextResponse.json({ error: 'Not found or failed to update' }, { status: 404 });
     return NextResponse.json(updated);
   } catch (err) {
-    console.error('PUT /api/warranty error', err);
-    return NextResponse.json({ error: 'Failed to update warranty item' }, { status: 500 });
+    try { console.error('PUT /api/warranty error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to update warranty item';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -47,7 +50,8 @@ export async function DELETE(req: Request) {
     if (!ok) return NextResponse.json({ error: 'Failed to delete' }, { status: 500 });
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('DELETE /api/warranty error', err);
-    return NextResponse.json({ error: 'Failed to delete warranty item' }, { status: 500 });
+    try { console.error('DELETE /api/warranty error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to delete warranty item';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

@@ -45,7 +45,8 @@ export async function DELETE(request: NextRequest) {
     const { password, ...safe } = updated as any;
     return NextResponse.json(safe);
   } catch (error) {
-    console.error('Erro ao remover foto do perfil:', error);
-    return NextResponse.json({ error: 'Erro ao remover foto do perfil' }, { status: 500 });
+    try { console.error('Erro ao remover foto do perfil:', error); } catch(_) {}
+    const msg = (error as any)?.message || 'Erro ao remover foto do perfil';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

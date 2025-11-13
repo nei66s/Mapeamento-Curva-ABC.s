@@ -9,8 +9,9 @@ export async function GET(request: Request) {
     const set = await getUserSettings(userId);
     return NextResponse.json(set || {});
   } catch (err) {
-    console.error('GET /api/settings error', err);
-    return NextResponse.json({ error: 'Failed to load settings' }, { status: 500 });
+    try { console.error('GET /api/settings error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to load settings';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -28,8 +29,9 @@ export async function PUT(request: Request) {
     });
     return NextResponse.json(saved);
   } catch (err) {
-    console.error('PUT /api/settings error', err);
-    return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 });
+    try { console.error('PUT /api/settings error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to save settings';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
