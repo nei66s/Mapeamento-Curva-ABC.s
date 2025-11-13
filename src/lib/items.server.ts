@@ -23,6 +23,9 @@ function mapDbItem(row: any): Item {
     contingencyPlan: row.contingency_plan || '',
     leadTime: row.lead_time || '',
     imageUrl: row.image_url || undefined,
+    // optional category risk index (criticidade média)
+    // DB query may provide category_risk_index
+    categoryRiskIndex: row.category_risk_index !== undefined ? parseInt(row.category_risk_index, 10) : undefined,
   };
 }
 
@@ -32,6 +35,9 @@ export async function listItems(): Promise<Item[]> {
       i.id, 
       i.name, 
       c.name as category,
+  -- compute category risk index (criticidade média) as A=10, B=5, C=1 averaged per category
+  (SELECT COALESCE(ROUND(AVG(CASE WHEN i2.classification = 'A' THEN 10 WHEN i2.classification = 'B' THEN 5 ELSE 1 END))::int, 0)
+   FROM items i2 WHERE i2.category_id = c.id) as category_risk_index,
       i.classification,
       i.impact_factors,
       i.status,
@@ -42,7 +48,7 @@ export async function listItems(): Promise<Item[]> {
     FROM items i
     LEFT JOIN categories c ON i.category_id = c.id
     LEFT JOIN store_items si ON i.id = si.item_id
-    GROUP BY i.id, c.name
+    GROUP BY i.id, c.id, c.name
     ORDER BY i.name ASC
   `);
 

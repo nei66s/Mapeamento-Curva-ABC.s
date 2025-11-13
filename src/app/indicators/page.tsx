@@ -4,27 +4,22 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { MaintenanceIndicator, Incident } from '@/lib/types';
-import { KpiCard } from '@/components/dashboard/indicators/kpi-card';
-import { CallsChart } from '@/components/dashboard/indicators/calls-chart';
+// Operational month indicators removed (redundant with main panel)
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from '@/components/ui/dropdown-menu';
+// dropdown removed from header per request
 import { useToast } from '@/hooks/use-toast';
-import { ArrowUp, ArrowDown, TrendingUp, DollarSign, BrainCircuit, BarChart3, LineChart } from 'lucide-react';
+import { BarChart3, LineChart, BrainCircuit } from 'lucide-react';
+import { CallsChart } from '@/components/dashboard/indicators/calls-chart';
 import { SlaChart } from '@/components/dashboard/indicators/sla-chart';
 import { KpiAnalysis } from '@/components/dashboard/indicators/kpi-analysis';
 import { ParetoAnalysis } from '@/components/dashboard/indicators/pareto-analysis';
+import { AgingChart } from '@/components/dashboard/indicators/aging-chart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SummaryCards } from '@/components/dashboard/summary-cards';
 import { ClassificationTable } from '@/components/dashboard/classification-table';
-import { ItemsByCurveChart } from '@/components/dashboard/items-by-curve-chart';
+// ItemsByCurveChart removed per request (chart DOM element hidden). Kept the component available if needed later.
 import { Separator } from '@/components/ui/separator';
-import { AgingChart } from '@/components/dashboard/indicators/aging-chart';
 import type { Item } from '@/lib/types';
 import { Progress } from '@/components/ui/progress';
 import { HeroPanel } from '@/components/shared/hero-panel';
@@ -135,6 +130,31 @@ export default function IndicatorsPage() {
   const selectedData = useMemo(() => {
     return indicators.find(d => d.mes === selectedMonth) || undefined;
   }, [selectedMonth, indicators]);
+
+  // Indicator for the calendar current month (YYYY-MM). Prefer this for KPI values
+  const currentIndicator = useMemo(() => {
+    return indicators.find(d => d.mes === currentYm) || undefined;
+  }, [currentYm, indicators]);
+
+  // incidents filtered for the calendar current month (used as fallback)
+  const incidentsForCurrentMonth = useMemo(() => {
+    const [year, month] = currentYm.split('-');
+    return incidents.filter((incident) => {
+      const incidentDate = new Date(incident.openedAt);
+      return (
+        incidentDate.getFullYear() === parseInt(year) &&
+        incidentDate.getMonth() === parseInt(month) - 1
+      );
+    });
+  }, [currentYm, incidents]);
+
+  const openIncidentsCountCurrent = useMemo(() => {
+    return incidentsForCurrentMonth.filter(i => i.status === 'Aberto' || i.status === 'Em Andamento').length;
+  }, [incidentsForCurrentMonth]);
+
+  const solvedIncidentsCountCurrent = useMemo(() => {
+    return incidentsForCurrentMonth.filter(i => i.status === 'Resolvido' || i.status === 'Fechado').length;
+  }, [incidentsForCurrentMonth]);
 
   // Helpers for sync/build actions used by the Sync menu
   const handleRunBoth = useCallback(async () => {
@@ -268,21 +288,29 @@ export default function IndicatorsPage() {
   const inventoryHeroStats = useMemo(() => {
     const total = inventoryItems.length;
     const aCount = inventoryItems.filter(i => i.classification === 'A').length;
-    const others = total - aCount;
-    const percentage = total > 0 ? Math.round((aCount / total) * 100) : 0;
+    const bCount = inventoryItems.filter(i => i.classification === 'B').length;
+    const cCount = inventoryItems.filter(i => i.classification === 'C').length;
     return [
-      {
-        label: 'Itens totais',
-        value: total,
-      },
       {
         label: 'Curva A',
         value: aCount,
-        helper: `${percentage}%`,
+        // red container, white text
+        containerClassName: 'bg-red-600/85 border-transparent',
+        colorClassName: 'text-white',
       },
       {
-        label: 'Outros itens',
-        value: others,
+        label: 'Curva B',
+        value: bCount,
+        // yellow container, dark text for contrast
+        containerClassName: 'bg-yellow-400/90 border-transparent',
+        colorClassName: 'text-black',
+      },
+      {
+        label: 'Curva C',
+        value: cCount,
+        // green container, white text
+        containerClassName: 'bg-emerald-600/85 border-transparent',
+        colorClassName: 'text-white',
       },
     ];
   }, [inventoryItems]);
@@ -344,21 +372,39 @@ export default function IndicatorsPage() {
   const totalTopIncidentCount = topIncidentItems.reduce((acc, entry) => acc + entry.count, 0);
 
   const heroStats = useMemo(() => {
+    // Order: Chamados Novos, Chamados Solucionados, Backlog, SLA Mensal
+    const chamadosNovos = (currentIndicator && typeof currentIndicator.chamados_abertos === 'number')
+      ? currentIndicator.chamados_abertos
+      : (selectedData && typeof selectedData.chamados_abertos === 'number' ? selectedData.chamados_abertos : incidentsForCurrentMonth.length);
+
+    const chamadosSolucionados = (currentIndicator && typeof currentIndicator.chamados_solucionados === 'number')
+      ? currentIndicator.chamados_solucionados
+      : (selectedData && typeof selectedData.chamados_solucionados === 'number' ? selectedData.chamados_solucionados : solvedIncidentsCountCurrent);
+
+    const backlogValue = (currentIndicator && typeof currentIndicator.backlog === 'number')
+      ? currentIndicator.backlog
+      : (selectedData && typeof selectedData.backlog === 'number' ? selectedData.backlog : openIncidentsCountCurrent);
+
     return [
       {
-        label: 'SLA Mensal',
-        value: selectedData ? `${selectedData.sla_mensal}%` : '—',
-        helper: selectedData ? `Meta ${selectedData.meta_sla ?? '—'}%` : 'Meta indisponível',
-      },
-      {
-        label: 'Backlog',
-        value: openIncidentsCount.toLocaleString('pt-BR'),
-        helper: 'Incidentes pendentes',
+        label: 'Chamados novos',
+        value: chamadosNovos.toLocaleString ? chamadosNovos.toLocaleString('pt-BR') : chamadosNovos,
+        helper: `Mês atual: ${currentYm}`,
       },
       {
         label: 'Chamados solucionados',
-        value: selectedData ? selectedData.chamados_solucionados.toLocaleString('pt-BR') : '—',
-        helper: selectedData ? `${selectedData.chamados_abertos} abertos` : 'Sem dados abertos',
+        value: typeof chamadosSolucionados === 'number' ? chamadosSolucionados.toLocaleString('pt-BR') : '—',
+        helper: `Fonte: ${currentIndicator ? 'lancamentos' : (selectedData ? 'selecionado' : 'contagem')}`,
+      },
+      {
+        label: 'Backlog',
+        value: typeof backlogValue === 'number' ? backlogValue.toLocaleString('pt-BR') : '—',
+        helper: 'Incidentes pendentes',
+      },
+      {
+        label: 'SLA Mensal',
+        value: selectedData ? `${selectedData.sla_mensal}%` : (currentIndicator ? `${currentIndicator.sla_mensal}%` : '—'),
+        helper: selectedData ? `Meta ${selectedData.meta_sla ?? '—'}%` : 'Meta indisponível',
       },
     ];
   }, [openIncidentsCount, selectedData]);
@@ -383,30 +429,7 @@ export default function IndicatorsPage() {
                     ))}
                 </SelectContent>
             </Select>
-              <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" className="ml-2" disabled={isSyncing}>
-                    {isSyncing ? 'Processando...' : 'Sincronizar ▾'}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleRunBoth(); }}>
-                    Executar ambos (sync + build)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleSyncOnly(); }}>
-                    Atualizar lançamentos (sync only)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleBuildOnly(); }}>
-                    Recalcular indicadores (build only)
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Button size="sm" className="ml-2" onClick={handleSeedDemo}>
-                Popular teste
-              </Button>
-            </div>
+            
         </div>
       </PageHeader>
       
@@ -419,13 +442,7 @@ export default function IndicatorsPage() {
               ? 'Monitorando os KPIs e a qualidade do inventário ativo neste mês.'
               : 'Selecione um mês com dados ou sincronize para atualizar os indicadores.'
           }
-          stats={[
-            ...heroStats,
-            {
-              label: 'Incidentes analisados',
-              value: incidentsForMonth.length,
-            },
-          ]}
+          stats={heroStats}
         />
         <HeroPanel
           label="Inventário em foco"
@@ -464,7 +481,7 @@ export default function IndicatorsPage() {
             <ClassificationTable />
           </div>
           <div className="lg:col-span-1">
-            <ItemsByCurveChart />
+            {/* Curve chart removed per design request */}
           </div>
         </div>
       </section>
@@ -497,29 +514,6 @@ export default function IndicatorsPage() {
             <LineChart className="h-6 w-6 text-primary" />
             Indicadores Operacionais do Mês
           </div>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <KpiCard
-              title="SLA Mensal"
-              value={`${selectedData.sla_mensal}%`}
-              change={selectedData.crescimento_mensal_sla}
-              changeType={selectedData.crescimento_mensal_sla >= 0 ? 'increase' : 'decrease'}
-              description={`Meta: ${selectedData.meta_sla}%`}
-              icon={TrendingUp}
-            />
-            <KpiCard
-              title="Backlog"
-              value={openIncidentsCount}
-              description="Incidentes pendentes"
-              icon={TrendingUp}
-            />
-            <KpiCard
-              title="Incidentes Solucionados"
-              value={selectedData.chamados_solucionados}
-              description={`${selectedData.chamados_abertos} abertos no mês`}
-              icon={selectedData.chamados_solucionados > selectedData.chamados_abertos ? ArrowUp : ArrowDown}
-              iconColor={selectedData.chamados_solucionados > selectedData.chamados_abertos ? 'text-green-500' : 'text-red-500'}
-            />
-          </div>
 
           <Card className="rounded-3xl border border-border/40 bg-white/80 shadow-lg">
             <CardHeader>
@@ -528,18 +522,28 @@ export default function IndicatorsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {topIncidentItems.length > 0 ? (
-                topIncidentItems.map((entry) => {
-                  const percentage = Math.min(100, (entry.count / (totalTopIncidentCount || 1)) * 100);
-                  return (
-                    <div key={entry.name} className="space-y-1">
-                      <div className="flex items-center justify-between text-sm font-medium">
-                        <span className="truncate">{entry.name}</span>
-                        <span className="text-xs text-muted-foreground">{entry.count} ocorrências</span>
+                (() => {
+                  const maxCount = Math.max(...topIncidentItems.map(i => i.count), 1);
+                  return topIncidentItems.map((entry, idx) => {
+                    const relative = Math.round((entry.count / maxCount) * 100);
+                    return (
+                      <div key={entry.name} className="flex items-center gap-3">
+                        <div className="flex items-center">
+                          <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-semibold mr-3">{idx + 1}</div>
+                          <div className="min-w-0">
+                            <div className="flex items-center justify-between text-sm font-medium">
+                              <span className="truncate">{entry.name}</span>
+                              <span className="text-xs text-muted-foreground ml-3">{entry.count} ocorrências</span>
+                            </div>
+                            <div className="mt-1">
+                              <Progress value={relative} className="h-2 rounded-full" />
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <Progress value={percentage} className="h-2 rounded-full" />
-                    </div>
-                  );
-                })
+                    );
+                  });
+                })()
               ) : (
                 <p className="text-xs text-muted-foreground">Ainda não há incidentes suficientes para destacar causas.</p>
               )}

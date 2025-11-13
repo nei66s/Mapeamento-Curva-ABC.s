@@ -12,12 +12,14 @@ export const moduleDefinitions: ModuleDefinition[] = [
   { id: 'releases', label: 'Lançamentos Mensais' },
   { id: 'incidents', label: 'Registro de Incidentes' },
   { id: 'rncs', label: 'Registros de Não Conformidade' },
+  { id: 'laudos', label: 'Gerar Laudo Técnico' },
   { id: 'categories', label: 'Categorias de Itens' },
   { id: 'matrix', label: 'Matriz de Itens' },
   { id: 'compliance', label: 'Cronograma de Preventivas' },
   { id: 'suppliers', label: 'Gestão de Fornecedores' },
   { id: 'warranty', label: 'Controle de Garantias' },
   { id: 'tools', label: 'Almoxarifado de Ferramentas' },
+  { id: 'vacations', label: 'Gestão de Férias' },
   { id: 'settlement', label: 'Cartas de Quitação' },
   { id: 'profile', label: 'Meu Perfil' },
   { id: 'settings', label: 'Configurações' },
@@ -27,7 +29,8 @@ export const moduleDefinitions: ModuleDefinition[] = [
 const adminPermissions = Object.fromEntries(moduleDefinitions.map(m => [m.id, true]));
 
 const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
-  admin: adminPermissions,
+  // keep admin explicit (all modules enabled)
+  admin: { ...adminPermissions, vacations: true },
   gestor: {
     indicators: true,
     releases: true,
@@ -40,6 +43,7 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     warranty: true,
     tools: true,
     settlement: true,
+    vacations: true,
     profile: true,
     settings: true,
     about: true,
@@ -56,6 +60,7 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     warranty: true,
     tools: true,
     settlement: false,
+    vacations: false,
     profile: true,
     settings: true,
     about: true,
@@ -72,6 +77,7 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     warranty: false,
     tools: false,
     settlement: false,
+    vacations: false,
     profile: true,
     settings: false,
     about: true,
@@ -88,6 +94,7 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     warranty: false,
     tools: false,
     settlement: true,
+    vacations: false,
     profile: true,
     settings: true,
     about: true,

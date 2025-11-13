@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   Settings,
@@ -39,7 +39,7 @@ const executionLinks = [
   { href: '/incidents', icon: Activity, label: 'Incidentes', moduleId: 'incidents' },
   { href: '/rncs', icon: FileWarning, label: 'Registros de Não Conformidade', moduleId: 'rncs' },
   { href: '/releases', icon: ClipboardPaste, label: 'Lançamentos', moduleId: 'releases' },
-  { href: '/technical-evaluation', icon: FileScan, label: 'Gerar Laudo Técnico' },
+  { href: '/dashboard/gerar-laudo-tecnico', icon: FileScan, label: 'Gerar Laudo Técnico', moduleId: 'laudos' },
 ];
 
 const mappingLinks = [
@@ -61,7 +61,7 @@ const resourcesLinks = [
 ];
 
 const secondaryLinks = [
-  { href: '/vacations', icon: CalendarDays, label: 'Gestão de Férias', moduleId: 'tools' },
+  { href: '/vacations', icon: CalendarDays, label: 'Gestão de Férias', moduleId: 'vacations' },
 ];
 
 const linkGroups = [
@@ -138,8 +138,12 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
     { label: 'Atualização', value: 'Em tempo real', helper: 'sincronização contínua' },
   ];
   const sidebarClasses = cn(
-    'fixed inset-y-0 left-0 z-20 hidden w-72 border-r border-white/10 bg-gradient-to-br from-primary/90 via-secondary/70 to-secondary/40 text-white shadow-2xl backdrop-blur-sm transition-transform duration-300 sm:flex',
-    visible ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 pointer-events-none'
+    // use a subtler vertical gradient and stronger border/shadow for better readability
+    'bg-gradient-to-b from-primary/90 to-primary/70 text-white shadow-lg border-r border-white/20 transition-transform duration-300',
+    // fixed on all breakpoints so content padding (lg:pl-[18rem]) aligns correctly
+    'fixed inset-y-0 left-0 z-50 w-72 lg:w-72 lg:z-50',
+    // slide in/out and respect visibility on all breakpoints
+    visible ? 'translate-x-0 lg:translate-x-0' : '-translate-x-full lg:-translate-x-full'
   );
 
   const inner = (
@@ -147,10 +151,9 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
       <div className="px-4 pb-4 pt-6">
         {/* Compact header: simpler look without heavy gradient/shadow */}
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-3 text-white">
-            <div className="flex flex-col leading-tight">
-              <span className="text-[0.65rem] uppercase tracking-[0.3em] text-white/80">Fixly</span>
-              <span className="text-sm font-semibold">Gestão</span>
+          <Link href="/indicators" className="flex items-center gap-3 text-white">
+            <div className="flex items-center leading-tight">
+              <span className="text-sm font-semibold">Fixly</span>
             </div>
           </Link>
           {onRequestClose && (
@@ -218,17 +221,29 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
     </div>
   );
 
-  if (visible) {
-    return (
-      <aside className={sidebarClasses} aria-hidden="false">
-        {inner}
-      </aside>
-    );
-  }
+  const backdropRef = useRef<HTMLDivElement | null>(null);
+  const asideRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (backdropRef.current) {
+      backdropRef.current.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    }
+    if (asideRef.current) {
+      asideRef.current.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    }
+  }, [visible]);
 
   return (
-    <aside className={sidebarClasses} aria-hidden="true">
-      {inner}
-    </aside>
+    <>
+      {/* Backdrop for mobile overlay */}
+      <div
+        ref={backdropRef}
+        className={cn('fixed inset-0 bg-black/40 z-40 lg:hidden', visible ? 'block' : 'hidden')}
+        onClick={() => onRequestClose && onRequestClose()}
+      />
+      <aside ref={asideRef} className={sidebarClasses}>
+        {inner}
+      </aside>
+    </>
   );
 }

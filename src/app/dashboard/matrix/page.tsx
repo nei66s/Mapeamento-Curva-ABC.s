@@ -53,6 +53,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
 import { impactFactors, ImpactFactor } from '@/lib/impact-factors';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -83,19 +84,30 @@ export default function MatrixPage() {
           fetch('/api/items'),
           fetch('/api/categories'),
         ]);
-        if (!itemsRes.ok || !categoriesRes.ok) throw new Error('API error');
+
+        // If any response is not ok, try to extract server-provided details
+        if (!itemsRes.ok || !categoriesRes.ok) {
+          const maybeItems = await itemsRes.json().catch(() => null);
+          const maybeCats = await categoriesRes.json().catch(() => null);
+          const details = [maybeItems, maybeCats]
+            .map(d => (d && (d.details || d.error || JSON.stringify(d))) || null)
+            .filter(Boolean);
+          throw new Error(details.length ? `API error: ${details.join(' | ')}` : 'API error');
+        }
+
         const [itemsJson, categoriesJson] = await Promise.all([
           itemsRes.json(),
           categoriesRes.json(),
         ]);
         setItems(itemsJson);
         setCategories(categoriesJson);
-      } catch (e) {
-        console.error(e);
+      } catch (e: any) {
+        console.error('matrix load error', e?.message ?? e);
+        const description = process.env.NODE_ENV !== 'production' && e?.message ? e.message : 'Não foi possível carregar itens e categorias do servidor.';
         toast({
           variant: 'destructive',
           title: 'Falha ao carregar dados',
-          description: 'Não foi possível carregar itens e categorias do servidor.',
+          description,
         });
       }
     };
@@ -172,7 +184,7 @@ export default function MatrixPage() {
   const clearFilter = () => setCategoryFilter(null);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 min-w-0 p-4 sm:p-6">
       <PageHeader
         title="Matriz de Itens"
         description="Gerencie todos os itens e suas classificações."
@@ -196,7 +208,7 @@ export default function MatrixPage() {
           </DialogContent>
         </Dialog>
       </PageHeader>
-      <Card>
+      <Card className="min-w-0">
         <CardHeader>
            <div className="flex items-center justify-between">
             <div>
@@ -237,16 +249,18 @@ export default function MatrixPage() {
            </div>
         </CardHeader>
         <CardContent>
-           <TooltipProvider>
+          <div className="min-w-0 overflow-x-auto overscroll-contain">
+            <TooltipProvider>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Item</TableHead>
                     <TableHead>Classificação</TableHead>
-                    <TableHead className="hidden sm:table-cell">Fatores de Impacto</TableHead>
-                    <TableHead className="hidden lg:table-cell">Lead Time</TableHead>
-                    <TableHead className="hidden xl:table-cell">Plano de Contingência</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                      <TableHead className="hidden sm:table-cell">Criticidade média</TableHead>
+                      <TableHead className="hidden sm:table-cell">Fatores de Impacto</TableHead>
+                      <TableHead className="hidden lg:table-cell">Lead Time</TableHead>
+                      <TableHead className="hidden xl:table-cell">Plano de Contingência</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -274,6 +288,18 @@ export default function MatrixPage() {
                       <TableCell>
                         <ClassificationBadge classification={item.classification} />
                       </TableCell>
+                        <TableCell className="hidden sm:table-cell w-40">
+                          {typeof item.categoryRiskIndex === 'number' ? (
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1">
+                                <Progress value={Math.round((item.categoryRiskIndex/10)*100)} className="h-2 rounded-full" />
+                              </div>
+                              <div className="text-xs font-medium w-12 text-right">{item.categoryRiskIndex}/10</div>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
                        <TableCell className="hidden sm:table-cell">
                         <div className="flex items-center gap-1.5">
                           {item.impactFactors.map(factorId => {
@@ -337,6 +363,7 @@ export default function MatrixPage() {
                 </TableBody>
               </Table>
             </TooltipProvider>
+          </div>
         </CardContent>
       </Card>
       

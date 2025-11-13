@@ -41,6 +41,7 @@ FROM information_schema.tables t
 LEFT JOIN whitelist w ON w.name = t.table_name
 WHERE t.table_schema = 'public'
   AND t.table_type = 'BASE TABLE'
+  AND t.table_schema <> 'audit'
   AND w.name IS NULL;
 
 -- Preview what will be dropped (uncomment to preview only)

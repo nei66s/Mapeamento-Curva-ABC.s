@@ -1,13 +1,7 @@
 // Lists public tables not in the application whitelist using node-postgres.
 const { Client } = require('pg');
 
-const WL = new Set([
-  'users','categories','items','stores','store_items','suppliers',
-  'incidents','warranty_items','impact_factors','contingency_plans','lead_times','placeholder_images',
-  'technicians','tools','technical_reports','vacation_requests','unsalvageable_items','settlement_letters',
-  'rncs','indicators','indicadores_lancamentos','lancamentos_mensais',
-  'compliance_checklist_items','compliance_visits','store_compliance_data',
-]);
+const WL = new Set(require('./table-whitelist'));
 
 async function main() {
   function parseArg(nameShort, nameLong) {
@@ -33,7 +27,7 @@ async function main() {
   });
   await client.connect();
   const res = await client.query(
-    `SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY table_name`
+    `SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' AND table_schema <> 'audit' ORDER BY table_name`
   );
   const unused = res.rows.map(r => r.table_name).filter(name => !WL.has(name));
   console.log('Unused tables (public):');

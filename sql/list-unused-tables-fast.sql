@@ -1,4 +1,5 @@
--- Lists all public tables not in the application whitelist (safe to run)
+-- Faster listing of public tables not in the application whitelist
+-- Uses catalog tables (pg_class / pg_namespace) which are usually faster than information_schema
 
 WITH whitelist(name) AS (
   VALUES
@@ -8,11 +9,12 @@ WITH whitelist(name) AS (
     ('rncs'),('indicators'),('indicadores_lancamentos'),('lancamentos_mensais'),
     ('compliance_checklist_items'),('compliance_visits'),('store_compliance_data')
 )
-SELECT t.table_schema, t.table_name
-FROM information_schema.tables t
-LEFT JOIN whitelist w ON w.name = t.table_name
-WHERE t.table_schema = 'public'
-  AND t.table_type = 'BASE TABLE'
-  AND t.table_schema <> 'audit'
+SELECT n.nspname AS table_schema, c.relname AS table_name
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+LEFT JOIN whitelist w ON w.name = c.relname
+WHERE c.relkind = 'r' -- ordinary table
+  AND n.nspname = 'public'
+  AND n.nspname <> 'audit'
   AND w.name IS NULL
-ORDER BY t.table_name;
+ORDER BY c.relname;

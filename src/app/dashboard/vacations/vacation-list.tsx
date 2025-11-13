@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { User, VacationRequest } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -18,9 +20,10 @@ interface VacationListProps {
   allUsers: User[];
   visibleUsers: Set<string>;
   onUserVisibilityChange: (userId: string) => void;
+  onDelete?: (id: string) => Promise<void>;
 }
 
-export function VacationList({ vacations, userColors, allUsers, visibleUsers, onUserVisibilityChange }: VacationListProps) {
+export function VacationList({ vacations, userColors, allUsers, visibleUsers, onUserVisibilityChange, onDelete }: VacationListProps) {
 
   const sortedVacations = useMemo(() => 
     [...vacations].sort((a,b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()), 
@@ -45,13 +48,13 @@ export function VacationList({ vacations, userColors, allUsers, visibleUsers, on
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedVacations.map(request => {
+                  {sortedVacations.map((request, idx) => {
                       if (request.status !== 'Aprovado') return null;
 
                       const userColor = userColors[request.userId];
 
                       return (
-            <TableRow key={request.id}>
+            <TableRow key={`${request.id}-${request.userId}-${request.startDate}-${idx}`}>
             <TableCell>
               <div className="flex items-center gap-3">
               <div className={`h-2.5 w-2.5 rounded-full vac-user-dot-${request.userId}`} />
@@ -65,6 +68,13 @@ export function VacationList({ vacations, userColors, allUsers, visibleUsers, on
                         <TableCell className="text-muted-foreground">{request.userDepartment}</TableCell>
                         <TableCell>{format(parseISO(request.startDate), 'dd/MM/yy', { locale: ptBR })} - {format(parseISO(request.endDate), 'dd/MM/yy', { locale: ptBR })}</TableCell>
                         <TableCell className="font-medium text-center">{request.totalDays !== null && request.totalDays !== undefined ? request.totalDays : 'N/A'}</TableCell>
+                        <TableCell className="w-24 text-right">
+                          {onDelete && (
+                            <Button variant="ghost" size="sm" onClick={() => onDelete(request.id)} aria-label={`Remover férias ${request.userName}`}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
                         </TableRow>
                       )
                   })}
@@ -88,20 +98,27 @@ export function VacationList({ vacations, userColors, allUsers, visibleUsers, on
             <CardContent>
                 <ScrollArea className="h-[400px]">
                     <div className="space-y-4">
-                        {allUsers.map(user => (
-                            <div key={user.id} className="flex items-center space-x-3">
-                <Checkbox
-                  id={`user-filter-${user.id}`}
-                  checked={visibleUsers.has(user.id)}
-                  onCheckedChange={() => onUserVisibilityChange(user.id)}
-                  className="border-muted-foreground data-[state=checked]:bg-transparent"
-                />
-                <div className={`h-4 w-4 rounded-full vac-user-dot-${user.id}`}></div>
-                                <Label htmlFor={`user-filter-${user.id}`} className="font-medium cursor-pointer">
-                                    {user.name}
-                                </Label>
-                            </div>
-                        ))}
+                      {(() => {
+                        const userIdsWithVac = new Set(vacations.map(v => String(v.userId)));
+                        const usersToShow = allUsers.filter(u => userIdsWithVac.has(String(u.id)));
+                        if (usersToShow.length === 0) {
+                          return <div className="text-sm text-muted-foreground">Nenhum colaborador com férias para exibir filtros.</div>;
+                        }
+                        return usersToShow.map(user => (
+                          <div key={user.id} className="flex items-center space-x-3">
+                    <Checkbox
+                    id={`user-filter-${user.id}`}
+                    checked={visibleUsers.has(user.id)}
+                    onCheckedChange={() => onUserVisibilityChange(user.id)}
+                    className="border-muted-foreground data-[state=checked]:bg-transparent"
+                    />
+                    <div className={`h-4 w-4 rounded-full vac-user-dot-${user.id}`}></div>
+                            <Label htmlFor={`user-filter-${user.id}`} className="font-medium cursor-pointer">
+                              {user.name}
+                            </Label>
+                          </div>
+                        ));
+                      })()}
                     </div>
                 </ScrollArea>
             </CardContent>
