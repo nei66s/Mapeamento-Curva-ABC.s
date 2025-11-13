@@ -6,8 +6,9 @@ export async function GET() {
     const items = await listUnsalvageable();
     return NextResponse.json(items);
   } catch (err) {
-    console.error('GET /api/unsalvageable error', err);
-    return NextResponse.json({ error: 'Failed to load unsalvageable items' }, { status: 500 });
+    try { console.error('GET /api/unsalvageable error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to load unsalvageable items';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -20,7 +21,8 @@ export async function POST(req: Request) {
     const created = await createUnsalvageable(body);
     return NextResponse.json(created, { status: 201 });
   } catch (err) {
-    console.error('POST /api/unsalvageable error', err);
-    return NextResponse.json({ error: 'Failed to create record' }, { status: 500 });
+    try { console.error('POST /api/unsalvageable error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to create record';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

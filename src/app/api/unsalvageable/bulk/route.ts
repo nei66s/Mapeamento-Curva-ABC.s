@@ -10,7 +10,8 @@ export async function POST(req: Request) {
     const created = await createUnsalvageableBulk(body);
     return NextResponse.json(created, { status: 201 });
   } catch (err) {
-    console.error('POST /api/unsalvageable/bulk error', err);
-    return NextResponse.json({ error: 'Failed to create bulk records' }, { status: 500 });
+    try { console.error('POST /api/unsalvageable/bulk error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to create bulk records';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

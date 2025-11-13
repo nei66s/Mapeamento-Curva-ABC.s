@@ -7,8 +7,9 @@ export async function GET() {
     const data = await listVacationRequests();
     return NextResponse.json(data);
   } catch (err) {
-    console.error('GET /api/vacations error', err);
-    return NextResponse.json({ error: 'Failed to load vacations' }, { status: 500 });
+    try { console.error('GET /api/vacations error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to load vacations';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -62,7 +63,8 @@ export async function DELETE(req: Request) {
     }
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error('DELETE /api/vacations error', err);
-    return NextResponse.json({ error: 'Failed to delete vacation' }, { status: 500 });
+    try { console.error('DELETE /api/vacations error', err); } catch(_) {}
+    const msg = (err as any)?.message || 'Failed to delete vacation';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
