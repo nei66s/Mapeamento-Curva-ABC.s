@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
 export default function DashboardPage() {
-  redirect('/dashboard/indicators');
+  // Prefer the new indicators route as the canonical dashboard landing
+  redirect('/indicators');
 }
