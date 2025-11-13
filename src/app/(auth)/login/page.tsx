@@ -76,26 +76,27 @@ export default function LoginPage() {
             const firstAllowed = moduleDefinitions.find((m) => rolePerms[m.id]);
 
             const routeForModule = (id: string) => {
+              // Prefer new top-level routes where available. Keep legacy /dashboard/* only as fallback.
               switch (id) {
-                case 'indicators': return '/dashboard/indicators';
-                case 'releases': return '/dashboard/releases';
-                case 'incidents': return '/dashboard/incidents';
-                case 'rncs': return '/dashboard/rncs';
-                case 'categories': return '/dashboard/categories';
-                case 'matrix': return '/dashboard/matrix';
-                case 'compliance': return '/dashboard/compliance';
-                case 'suppliers': return '/dashboard/suppliers';
-                case 'warranty': return '/dashboard/warranty';
-                case 'tools': return '/dashboard/tools';
-                case 'settlement': return '/dashboard/settlement';
-                case 'profile': return '/dashboard/profile';
-                case 'settings': return '/dashboard/settings';
+                case 'indicators': return '/indicators';
+                case 'releases': return '/releases';
+                case 'incidents': return '/incidents';
+                case 'rncs': return '/rncs';
+                case 'categories': return '/categories';
+                case 'matrix': return '/matrix';
+                case 'compliance': return '/compliance';
+                case 'suppliers': return '/suppliers';
+                case 'warranty': return '/warranty';
+                case 'tools': return '/tools';
+                case 'settlement': return '/settlement';
+                case 'profile': return '/profile';
+                case 'settings': return '/settings';
                 case 'about': return '/';
-                default: return '/dashboard';
+                default: return '/indicators';
               }
             };
 
-            const target = firstAllowed ? routeForModule(firstAllowed.id) : '/dashboard';
+            const target = firstAllowed ? routeForModule(firstAllowed.id) : '/indicators';
             router.push(target);
           } catch (e) {
             router.push('/dashboard');

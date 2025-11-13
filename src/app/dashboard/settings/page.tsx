@@ -24,7 +24,7 @@ export default function SettingsPage() {
   });
    const [language, setLanguage] = useState('pt-br');
    const [density, setDensity] = useState('default');
-   const [defaultPage, setDefaultPage] = useState('/dashboard/indicators');
+  const [defaultPage, setDefaultPage] = useState('/indicators');
 
 
   const { toast } = useToast();
@@ -192,7 +192,7 @@ export default function SettingsPage() {
                   <Label htmlFor="default-page-select">Página Inicial Padrão</Label>
                 </div>
                  <Select 
-                    defaultValue="/dashboard/indicators"
+                    defaultValue="/indicators"
                     onValueChange={(value) => {
                       setDefaultPage(value);
                       handleSettingChange('página inicial', value);
@@ -202,10 +202,10 @@ export default function SettingsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="/dashboard/indicators">Indicadores</SelectItem>
-                      <SelectItem value="/dashboard/incidents">Incidentes</SelectItem>
-                       <SelectItem value="/dashboard/compliance">Conformidade</SelectItem>
-                       <SelectItem value="/dashboard/matrix">Matriz de Itens</SelectItem>
+                      <SelectItem value="/indicators">Indicadores</SelectItem>
+                      <SelectItem value="/incidents">Incidentes</SelectItem>
+                       <SelectItem value="/compliance">Conformidade</SelectItem>
+                       <SelectItem value="/matrix">Matriz de Itens</SelectItem>
                     </SelectContent>
                   </Select>
             </div>
