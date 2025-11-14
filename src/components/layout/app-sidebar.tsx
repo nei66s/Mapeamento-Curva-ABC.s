@@ -20,6 +20,7 @@ import {
   ArchiveX,
   User as UserIcon,
   MapPin,
+  ListChecks,
   X,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -45,6 +46,7 @@ const executionLinks = [
 const mappingLinks = [
   { href: '/categories', icon: ListCollapse, label: 'Categorias', moduleId: 'categories' },
   { href: '/matrix', icon: Grid3x3, label: 'Matriz de Itens', moduleId: 'matrix' },
+  { href: '/escopos', icon: ListChecks, label: 'Escopos', moduleId: 'escopos' },
 ];
 
 const preventiveLinks = [
@@ -138,8 +140,9 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
     { label: 'Atualização', value: 'Em tempo real', helper: 'sincronização contínua' },
   ];
   const sidebarClasses = cn(
-    // use a subtler vertical gradient and stronger border/shadow for better readability
-    'bg-gradient-to-b from-primary/90 to-primary/70 text-white shadow-lg border-r border-white/20 transition-transform duration-300',
+    // use the theme hero gradient so the sidebar matches HeroPanel look and tone
+    // use semantic foreground so text adapts to light/dark themes
+    'hero-gradient text-foreground shadow-lg border-r border-border/20 transition-transform duration-300',
     // fixed on all breakpoints so content padding (lg:pl-[18rem]) aligns correctly
     'fixed inset-y-0 left-0 z-50 w-72 lg:w-72 lg:z-50',
     // slide in/out and respect visibility on all breakpoints
@@ -151,7 +154,7 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
       <div className="px-4 pb-4 pt-6">
         {/* Compact header: simpler look without heavy gradient/shadow */}
         <div className="flex items-center gap-3">
-          <Link href="/indicators" className="flex items-center gap-3 text-white">
+          <Link href="/indicators" className="flex items-center gap-3 text-foreground">
             <div className="flex items-center leading-tight">
               <span className="text-sm font-semibold">Fixly</span>
             </div>
@@ -161,7 +164,7 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
               variant="ghost"
               size="icon"
               onClick={onRequestClose}
-              className="ml-auto text-white/70 hover:text-white"
+              className="ml-auto text-muted-foreground hover:text-foreground"
               aria-label="Ocultar painel lateral"
             >
               <X className="h-4 w-4" />
@@ -169,15 +172,15 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
           )}
         </div>
         <div className="mt-3">
-          <p className="text-sm font-medium text-white">{user?.name ?? 'Equipe de Manutenção'}</p>
-          <p className="text-xs text-white/60">{user?.role ? `Perfil ${user.role}` : 'Operador ativo'}</p>
+          <p className="text-sm font-medium text-foreground">{user?.name ?? 'Equipe de Manutenção'}</p>
+          <p className="text-xs text-muted-foreground">{user?.role ? `Perfil ${user.role}` : 'Operador ativo'}</p>
         </div>
       </div>
       <ScrollArea className="flex-1 px-3 py-2">
         <div className="space-y-5">
           {renderedGroups.map(group => (
             <div key={group.title} className="space-y-2">
-              <p className="px-2 text-[0.63rem] uppercase tracking-[0.4em] text-white/50">{group.title}</p>
+                  <p className="px-2 text-[0.63rem] uppercase tracking-[0.4em] text-muted-foreground">{group.title}</p>
               <div className="space-y-1">
                 {group.links.map(link => (
                   <Link
@@ -185,9 +188,9 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
                     href={link.href}
                     className={cn(
                       'flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm font-semibold transition',
-                      isActive(link.href)
-                        ? 'border-white/20 bg-white/10 text-white'
-                        : 'border-transparent text-white/80 hover:border-white/20 hover:bg-white/5 hover:text-white'
+                          isActive(link.href)
+                            ? 'border-border/20 bg-card/10 text-foreground'
+                            : 'border-transparent text-muted-foreground hover:border-border/20 hover:bg-card/5 hover:text-foreground'
                     )}
                   >
                     <link.icon className="h-5 w-5" />
@@ -199,7 +202,7 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
           ))}
         </div>
       </ScrollArea>
-      <div className="border-t border-white/10 px-4 py-4">
+      <div className="border-t border-border/10 px-4 py-4">
         <div className="space-y-1">
           {bottomLinks.map(link => canAccess(link.moduleId) && (
             <Link
@@ -208,8 +211,8 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
               className={cn(
                 'flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm font-semibold transition',
                 isActive(link.href)
-                  ? 'border-white/30 bg-white/10 text-white shadow-[0_8px_30px_rgba(2,6,23,0.35)]'
-                  : 'border-transparent text-white/70 hover:border-white/20 hover:bg-white/5 hover:text-white'
+                  ? 'border-border/30 bg-card/10 text-foreground shadow-[0_8px_30px_rgba(2,6,23,0.35)]'
+                  : 'border-transparent text-muted-foreground hover:border-border/20 hover:bg-card/5 hover:text-foreground'
               )}
             >
               <link.icon className="h-4 w-4" />

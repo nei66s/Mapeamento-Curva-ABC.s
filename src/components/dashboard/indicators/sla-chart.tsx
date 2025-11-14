@@ -114,7 +114,7 @@ export function SlaChart({ data }: SlaChartProps) {
                                       <span>{Number(value).toFixed(2)}%</span>
                                     </div>
                                     {diff !== undefined && (
-                                      <div className="text-sm text-muted-foreground">Diferença: <span className={diff >= 0 ? 'text-green-500 font-medium' : 'text-destructive font-medium'}>{diff.toFixed(2)}%</span></div>
+                                      <div className="text-sm text-muted-foreground">Diferença: <span className={diff >= 0 ? 'text-accent font-medium' : 'text-destructive font-medium'}>{diff.toFixed(2)}%</span></div>
                                     )}
                                   </div>
                                 )

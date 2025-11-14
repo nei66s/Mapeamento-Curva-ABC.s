@@ -19,6 +19,20 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+                {/* Inline script to apply saved theme before React hydration to avoid FOUC */}
+                <script dangerouslySetInnerHTML={{ __html: `
+                  (function(){
+                    try {
+                      var theme = localStorage.getItem('theme') || 'light';
+                      var color = localStorage.getItem('themeColor') || 'blue';
+                      var tone = localStorage.getItem('themeTone') || 'soft';
+                      if (color && color.endsWith('-vivid')) { tone = 'vivid'; color = color.replace(/-vivid$/, ''); }
+                      var themeId = tone === 'vivid' ? color + '-vivid' : color;
+                      if (theme === 'dark') document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark');
+                      document.documentElement.setAttribute('data-theme', themeId);
+                    } catch (e) { /* ignore */ }
+                  })();
+                ` }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

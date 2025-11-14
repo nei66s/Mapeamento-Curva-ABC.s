@@ -103,6 +103,8 @@ export async function addChecklistItem(item: { name: string; classification?: st
         classification: (pickRow(row, { keys: [classCol || 'classification', 'class'], asString: true }) || 'C') as any,
       } as ComplianceChecklistItem;
     }
+    // Defensive: ensure a value is returned on all code paths
+    return null;
   } catch (err) {
     try {
       if ((err as any)?.code === '42P01') {
@@ -353,8 +355,18 @@ export async function updateVisitItemStatus(storeId: string, visitDate: string, 
         const key = String(it?.itemId ?? it?.item_id ?? it?.id ?? '');
         return { ...it, status: key === String(itemId) ? status : it.status };
       });
-      await pool.query(`UPDATE compliance_visits SET items=$1 WHERE id=$2`, [JSON.stringify(changed), row.id]);
-      return true;
+        // Attempt to update using a detected primary/key column. Many schemas use 'id' but others may use 'visit_id' or similar.
+        const idCandidates = ['id', 'visit_id', 'visitid', 'visitid_pk'];
+        const idCol = cols.find(c => idCandidates.includes(c)) || (Object.prototype.hasOwnProperty.call(row, 'id') ? 'id' : undefined);
+        if (idCol && row[idCol] != null) {
+          const qId = quoteIdent(idCol);
+          const resUpd = await pool.query(`UPDATE ${quoteIdent('compliance_visits')} SET items=$1 WHERE ${qId}=$2 RETURNING *`, [JSON.stringify(changed), row[idCol]]);
+          return resUpd.rowCount > 0;
+        }
+
+        // Fallback: update by store_id + visit_date if no id-like column present
+        const resFallback = await pool.query(`UPDATE ${quoteIdent('compliance_visits')} SET items=$1 WHERE store_id=$2 AND (visit_date::text LIKE $3 OR visit_date=$4)`, [JSON.stringify(changed), storeId, `${visitDate}%`, visitDate]);
+        return resFallback.rowCount > 0;
     }
     // If compliance_visits didn't exist or didn't have items, try normalized table
     const altTableCandidates = ['store_compliance_data', 'store_compliance_items', 'store_visit_items'];

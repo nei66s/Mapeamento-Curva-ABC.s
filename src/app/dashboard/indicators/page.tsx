@@ -174,7 +174,7 @@ export default function IndicatorsPage() {
       </PageHeader>
       
       <section>
-        <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 flex items-center gap-3 mb-4">
+        <h2 className="text-2xl sm:text-3xl font-semibold text-foreground flex items-center gap-3 mb-4">
             <BarChart3 />
             Indicadores Gerais
         </h2>
@@ -193,7 +193,7 @@ export default function IndicatorsPage() {
 
       {!selectedData && (
         <section>
-          <Card className="border border-gray-100 rounded-2xl shadow-sm p-6">
+          <Card className="border border-border rounded-2xl shadow-sm p-6 bg-card/80">
             <CardHeader>
               <CardTitle>Sem dados para este mês</CardTitle>
               <CardDescription>
@@ -213,11 +213,11 @@ export default function IndicatorsPage() {
 
       {selectedData && (
         <section>
-       <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 flex items-center gap-3 mb-4">
+      <h2 className="text-2xl sm:text-3xl font-semibold text-foreground flex items-center gap-3 mb-4">
         <LineChart />
         Indicadores Operacionais do Mês
       </h2>
-            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+            <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <KpiCard
                     title="SLA Mensal"
@@ -237,8 +237,8 @@ export default function IndicatorsPage() {
                     title="Incidentes Solucionados"
                     value={selectedData.chamados_solucionados}
                     description={`${selectedData.chamados_abertos} abertos no mês`}
-                    icon={selectedData.chamados_solucionados > selectedData.chamados_abertos ? ArrowUp : ArrowDown}
-                    iconColor={selectedData.chamados_solucionados > selectedData.chamados_abertos ? 'text-green-500' : 'text-red-500'}
+                  icon={selectedData.chamados_solucionados > selectedData.chamados_abertos ? ArrowUp : ArrowDown}
+                  iconColor={selectedData.chamados_solucionados > selectedData.chamados_abertos ? 'text-accent' : 'text-destructive'}
                 />
               </div>
             </div>

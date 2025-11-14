@@ -20,6 +20,7 @@ describe('addChecklistItem', () => {
     (pool.query as any).mockResolvedValueOnce({ rows: [] });
     const created = await addChecklistItem({ name: 'Teste', classification: 'C' });
     expect(created).toBeTruthy();
+    if (!created) throw new Error('Expected created checklist item not to be null');
     expect(created.id).toMatch(/^CHK-/);
     expect(created.name).toBe('Teste');
   });

@@ -126,14 +126,14 @@ export default function ComplianceMap({ allStores, scheduledVisits }: Compliance
         const LocateControlClass = (L.Control as any).extend({
           onAdd: function () {
             const container = L.DomUtil.create('div', 'leaflet-control-locate');
-            const btn = L.DomUtil.create('button', 'p-2 bg-white rounded-md shadow-sm', container) as HTMLButtonElement;
+            const btn = L.DomUtil.create('button', 'p-2 bg-card rounded-md shadow-sm', container) as HTMLButtonElement;
             btn.title = 'Minha localização';
             // accessibility
             btn.setAttribute('aria-label', 'Minha localização');
             btn.setAttribute('role', 'button');
             btn.setAttribute('aria-pressed', 'false');
             btn.innerHTML = `
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-muted-foreground" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.07a7 7 0 015.657 5.657H18a1 1 0 110 2h-1.343A7 7 0 0111 16.93V18a1 1 0 11-2 0v-1.07a7 7 0 01-5.657-5.657H2a1 1 0 110-2h1.343A7 7 0 009 4.07V3a1 1 0 011-1zM10 7a3 3 0 100 6 3 3 0 000-6z" clip-rule="evenodd" />
               </svg>
             `;

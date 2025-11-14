@@ -131,9 +131,9 @@ export default function LoginPage() {
       <div className="absolute right-[-5%] bottom-10 h-64 w-64 rounded-full bg-cyan-500/60 blur-3xl" />
 
       <div className="relative mx-auto flex max-w-5xl flex-col gap-6 lg:grid lg:grid-cols-[1.05fr,0.95fr] items-center">
-        <div className="w-full rounded-[32px] border border-white/10 bg-white/5 p-10 shadow-2xl backdrop-blur-lg text-white">
+        <div className="w-full rounded-[32px] border border-white/10 bg-muted/5 p-10 shadow-2xl backdrop-blur-lg text-white">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-2xl font-semibold">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/10 text-2xl font-semibold">
               F
             </div>
             <div>
@@ -150,7 +150,7 @@ export default function LoginPage() {
 
           <div className="mt-8 grid gap-4 text-sm">
             <div className="flex gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-lg font-semibold text-white">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-muted/10 text-lg font-semibold text-white">
                 01
               </span>
               <div>
@@ -159,7 +159,7 @@ export default function LoginPage() {
               </div>
             </div>
             <div className="flex gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-lg font-semibold text-white">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-muted/10 text-lg font-semibold text-white">
                 02
               </span>
               <div>
@@ -167,8 +167,8 @@ export default function LoginPage() {
                 <p className="text-white/70">Controle de acessos e módulos orientados por perfis.</p>
               </div>
             </div>
-            <div className="flex gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-lg font-semibold text-white">
+              <div className="flex gap-3">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-muted/10 text-lg font-semibold text-white">
                 03
               </span>
               <div>
@@ -179,15 +179,15 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <Card className="w-full rounded-[28px] border border-white/20 bg-white/90 shadow-2xl">
+        <Card className="w-full rounded-[28px] border border-white/20 bg-card/90 shadow-2xl">
           <CardHeader className="text-center space-y-2 pt-8">
             <div className="flex justify-center">
               <span className="flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-900 text-2xl font-semibold text-white">
                 F
               </span>
             </div>
-            <CardTitle className="text-2xl font-semibold text-slate-900">Entrar na plataforma</CardTitle>
-            <CardDescription className="text-sm text-slate-500">
+            <CardTitle className="text-2xl font-semibold text-foreground">Entrar na plataforma</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">
               Conecte-se para continuar acompanhando indicadores e incidentes.
             </CardDescription>
           </CardHeader>
@@ -247,7 +247,7 @@ export default function LoginPage() {
                       onChange={(e) => setRemember(e.target.checked)}
                       className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-secondary"
                     />
-                    <label htmlFor="remember" className="text-sm select-none text-slate-600">
+                    <label htmlFor="remember" className="text-sm select-none text-muted-foreground">
                       Lembrar-me
                     </label>
                   </div>
@@ -259,11 +259,11 @@ export default function LoginPage() {
               <Button type="submit" className="w-full font-semibold" disabled={loading}>
                 {loading ? 'Entrando...' : 'Entrar'}
               </Button>
-              <div className="text-center text-sm text-slate-500">
+              <div className="text-center text-sm text-muted-foreground">
                 <span>Precisa de acesso? </span>
                 <a href="/signup" className="font-semibold text-primary hover:underline">Solicitar conta</a>
               </div>
-              <p className="text-center text-xs text-slate-400">
+              <p className="text-center text-xs text-muted-foreground">
                 Autenticação segura com criptografia TLS e monitoramento de acessos.
               </p>
             </CardFooter>
