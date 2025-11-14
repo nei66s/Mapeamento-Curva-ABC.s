@@ -8,6 +8,7 @@ async function build() {
       count(*) FILTER (WHERE status = 'PAGO') as pagos,
       count(*) FILTER (WHERE status = 'PENDENTE') as pendentes
     FROM public.indicadores_lancamentos
+    WHERE (metadata->>'seed') IS DISTINCT FROM 'true'
     GROUP BY mes
     ORDER BY mes;
   `;
@@ -42,6 +43,7 @@ async function build() {
         FROM public.indicadores_lancamentos
         WHERE to_char(data_lancamento, 'YYYY-MM') = $1
           AND status = 'PENDENTE'
+          AND (metadata->>'seed') IS DISTINCT FROM 'true'
       `;
       const pendRes = await client.query(pendingSql, [mes]);
       const now = new Date();
