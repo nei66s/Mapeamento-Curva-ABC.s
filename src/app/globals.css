@@ -143,3 +143,7 @@
   the pulse's center at the bottom edge of the wrapper by using bottom: 0 and
   translateY(50%), so the pulse's center aligns with the pin tip. */
 .user-pin-pulse { display: none; }
+
+.mobile-bottom-nav {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.4rem);
+}

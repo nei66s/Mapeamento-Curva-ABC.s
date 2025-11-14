@@ -33,7 +33,8 @@ export async function listVacationRequests(): Promise<VacationRequest[]> {
   }
 
   return vacations.map((row: any) => {
-    const merged = { ...row, ...(usersMap[String(row.user_id)] || {}) };
+    // Ensure vacation row fields (especially `id`) take precedence over user fields
+    const merged = { ...(usersMap[String(row.user_id)] || {}), ...row };
     return mapRow(merged);
   });
 }
@@ -72,6 +73,14 @@ export async function createVacationRequest(data: VacationInput): Promise<Vacati
 export async function deleteVacationRequest(id: string): Promise<boolean> {
   const sanitized = String(id).trim().replace(/^"+|"+$/g, '');
   try {
+    // Diagnostic: check which rows would match before attempting delete
+    try {
+      const checkRes = await pool.query('SELECT id FROM vacation_requests WHERE id = $1', [sanitized]);
+      console.debug('deleteVacationRequest (select direct) found', { id: sanitized, found: checkRes.rows.map((r:any) => r.id) });
+    } catch (e) {
+      // ignore diagnostic errors
+    }
+
     // Try direct delete first
     let res = await pool.query('DELETE FROM vacation_requests WHERE id = $1', [sanitized]);
     console.debug('deleteVacationRequest (direct)', { id: sanitized, rowCount: res.rowCount });
@@ -85,10 +94,21 @@ export async function deleteVacationRequest(id: string): Promise<boolean> {
       // If sanitized is purely numeric, also try a common zero-padded variant (e.g. 'vac-001').
       if (isNumeric) {
         const zeroPadded = `vac-${sanitized.padStart(3, '0')}`;
+        // Diagnostic: log what would match among fallback candidates
+        try {
+          const checkRes2 = await pool.query('SELECT id FROM vacation_requests WHERE id = $1 OR id = $2 OR id = $3 OR id = $4', [sanitized, prefixed, zeroPadded, sanitized]);
+          console.debug('deleteVacationRequest (select fallback)', { tried: [sanitized, prefixed, zeroPadded, sanitized], found: checkRes2.rows.map((r:any) => r.id) });
+        } catch (e) { /* ignore */ }
+
         // New: try the numeric ID directly as well, without prefixing or padding.
         res = await pool.query('DELETE FROM vacation_requests WHERE id = $1 OR id = $2 OR id = $3 OR id = $4', [sanitized, prefixed, zeroPadded, sanitized]);
         console.debug('deleteVacationRequest (fallback)', { tried: [sanitized, prefixed, zeroPadded, sanitized], rowCount: res.rowCount });
       } else {
+        try {
+          const checkRes2 = await pool.query('SELECT id FROM vacation_requests WHERE id = $1 OR id = $2', [sanitized, prefixed]);
+          console.debug('deleteVacationRequest (select fallback)', { tried: [sanitized, prefixed], found: checkRes2.rows.map((r:any) => r.id) });
+        } catch (e) { /* ignore */ }
+
         res = await pool.query('DELETE FROM vacation_requests WHERE id = $1 OR id = $2', [sanitized, prefixed]);
         console.debug('deleteVacationRequest (fallback)', { tried: [sanitized, prefixed], rowCount: res.rowCount });
       }

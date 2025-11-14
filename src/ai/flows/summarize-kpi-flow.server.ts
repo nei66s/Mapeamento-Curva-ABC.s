@@ -68,7 +68,21 @@ async function buildFlow() {
         return output!;
       } catch (err: any) {
         console.error('Error running kpiSummaryPrompt:', err);
-        // Rethrow with a friendlier message for the caller/UI
+        // If the error indicates missing AI credentials, return a graceful
+        // fallback so the client receives a normal response instead of
+        // a generic "Failed to fetch" (which happens when server actions
+        // throw). This keeps the UI usable in local/dev environments
+        // where the GEMINI_API_KEY/GOOGLE_API_KEY may not be set.
+        const msg = String(err?.message ?? '').toLowerCase();
+        const isMissingKey = msg.includes('please pass in the api key') || msg.includes('gemini_api_key') || msg.includes('google_api_key') || err?.status === 'FAILED_PRECONDITION';
+        if (isMissingKey) {
+          return {
+            summary: 'Análise de IA indisponível: credenciais do provedor de IA (GEMINI_API_KEY / GOOGLE_API_KEY) não configuradas no servidor. Defina as variáveis de ambiente para habilitar esta funcionalidade.'
+          };
+        }
+
+        // For other errors, rethrow a friendlier message so callers can
+        // still surface a readable error in the UI.
         throw new Error('Falha ao rodar análise de IA. Verifique as credenciais e veja os logs do servidor para detalhes. ' + (err?.message ?? ''));
       }
     }

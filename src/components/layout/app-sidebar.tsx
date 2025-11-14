@@ -143,7 +143,7 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
     // fixed on all breakpoints so content padding (lg:pl-[18rem]) aligns correctly
     'fixed inset-y-0 left-0 z-50 w-72 lg:w-72 lg:z-50',
     // slide in/out and respect visibility on all breakpoints
-    visible ? 'translate-x-0 lg:translate-x-0' : '-translate-x-full lg:-translate-x-full'
+    visible ? 'translate-x-0' : '-translate-x-full'
   );
 
   const inner = (

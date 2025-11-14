@@ -72,6 +72,12 @@ async function seed(inferior = 200, entre = 200) {
 
 async function main() {
   const argv = process.argv.slice(2);
+  // Require explicit confirmation to run demo seeds to avoid accidental use in production
+  const allowDemo = process.env.ALLOW_DEMO_SEEDS === '1' || argv.includes('--demo');
+  if (!allowDemo) {
+    console.log('Demo seed skipped: set ALLOW_DEMO_SEEDS=1 or pass --demo to run this script.');
+    process.exit(0);
+  }
   const args: Record<string, string> = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];

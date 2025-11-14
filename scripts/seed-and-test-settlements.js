@@ -34,6 +34,14 @@ async function main() {
   await client.connect();
   console.log('Connected to Postgres');
 
+  // Require explicit confirmation to run demo seeds to avoid accidental use in production
+  const allowDemo = process.env.ALLOW_DEMO_SEEDS === '1' || process.argv.includes('--demo');
+  if (!allowDemo) {
+    console.log('Demo seed skipped: set ALLOW_DEMO_SEEDS=1 or pass --demo to run this script.');
+    await client.end();
+    process.exit(0);
+  }
+
   // Ensure suppliers exist
   const suppliers = [
     { name: 'Fornecedor A LTDA', cnpj: '11.111.111/0001-11', contact: 'Contato A', email: 'a@fornecedor.com' },

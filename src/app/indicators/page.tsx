@@ -409,30 +409,67 @@ export default function IndicatorsPage() {
     ];
   }, [openIncidentsCount, selectedData]);
 
+  const quickHighlights = useMemo(() => [
+    {
+      label: 'Mês em análise',
+      value: selectedMonthLabel,
+    },
+    {
+      label: 'Itens classificados',
+      value: inventoryItems.length.toLocaleString('pt-BR'),
+    },
+    {
+      label: 'Chamados abertos',
+      value: openIncidentsCountCurrent.toLocaleString('pt-BR'),
+    },
+  ], [selectedMonthLabel, inventoryItems.length, openIncidentsCountCurrent]);
+
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        title="Painel de Indicadores"
-        description="Análise consolidada dos principais indicadores de desempenho da manutenção."
-      >
-        <div className="flex items-center gap-2">
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Selecione o mês" />
+      <section className="relative overflow-hidden rounded-[32px] border border-border/60 bg-white/90 p-8 shadow-2xl">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.2),_transparent_60%)] opacity-80" />
+        <div className="relative z-10 grid gap-8">
+          <PageHeader
+            title={<span className="text-slate-900">Painel de Indicadores</span>}
+            description="Análise consolidada dos principais indicadores da manutenção."
+            className="items-center gap-6"
+          >
+            <div className="flex items-center gap-2">
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="w-[200px] border border-slate-200 bg-white">
+                  <SelectValue placeholder="Selecione o mês" />
                 </SelectTrigger>
                 <SelectContent>
-                    {allMonths.map(month => (
-                        <SelectItem key={month.value} value={month.value}>
-                            {month.label.charAt(0).toUpperCase() + month.label.slice(1)}
-                        </SelectItem>
-                    ))}
+                  {allMonths.map((month) => (
+                    <SelectItem key={month.value} value={month.value}>
+                      {month.label.charAt(0).toUpperCase() + month.label.slice(1)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
-            </Select>
-            
+              </Select>
+            </div>
+          </PageHeader>
+          <div className="grid gap-4 md:grid-cols-3">
+            {quickHighlights.map((highlight) => (
+              <div
+                key={highlight.label}
+                className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 shadow-sm"
+              >
+                <p className="text-xs uppercase tracking-[0.4em] text-slate-500">{highlight.label}</p>
+                <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">
+                  {highlight.value}
+                </p>
+              </div>
+            ))}
+          </div>
+          {/* Botões de sincronização/manuais removidos — dados vêm do banco de dados */}
+          <p className="text-sm text-slate-500">
+            Integre dados em lote, controle inventário e acompanhe SLA em um só lugar.
+          </p>
         </div>
-      </PageHeader>
-      
+      </section>
+
       <section className="grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
         <HeroPanel
           label="Mês selecionado"
@@ -443,18 +480,20 @@ export default function IndicatorsPage() {
               : 'Selecione um mês com dados ou sincronize para atualizar os indicadores.'
           }
           stats={heroStats}
+          gradientClassName="from-indigo-600 via-cyan-600 to-emerald-500"
         />
         <HeroPanel
           label="Inventário em foco"
           title="Últimos dados da matriz de itens"
           description={inventoryDescription}
           stats={inventoryHeroStats}
+          gradientClassName="from-slate-800 via-slate-900 to-slate-950"
         >
           <SummaryCards items={inventoryItems} hideOverallStats />
         </HeroPanel>
       </section>
 
-      <section className="space-y-6">
+      <section className="space-y-6 rounded-[28px] border border-border/60 bg-white/80 p-6 shadow-lg">
         <div className="flex items-center gap-3 text-2xl font-semibold text-gray-900">
           <BarChart3 className="h-6 w-6 text-primary" />
           Indicadores Gerais
@@ -498,11 +537,7 @@ export default function IndicatorsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2">
-                <Button size="sm" onClick={handleRunBoth} disabled={isSyncing}>
-                  {isSyncing ? 'Sincronizando...' : 'Sincronizar agora'}
-                </Button>
-              </div>
+              {/* Ação manual de sincronização removida — dados são provenientes do banco */}
             </CardContent>
           </Card>
         </section>
