@@ -294,23 +294,23 @@ export default function IndicatorsPage() {
       {
         label: 'Curva A',
         value: aCount,
-        // red container, white text
-        containerClassName: 'bg-red-600/85 border-transparent',
-        colorClassName: 'text-white',
+        // use Curve A (red) palette
+        containerClassName: 'curve-a border-transparent',
+        colorClassName: 'text-current',
       },
       {
         label: 'Curva B',
         value: bCount,
-        // yellow container, dark text for contrast
-        containerClassName: 'bg-yellow-400/90 border-transparent',
-        colorClassName: 'text-black',
+        // use Curve B (yellow) palette
+        containerClassName: 'curve-b border-transparent',
+        colorClassName: 'text-current',
       },
       {
         label: 'Curva C',
         value: cCount,
-        // green container, white text
-        containerClassName: 'bg-emerald-600/85 border-transparent',
-        colorClassName: 'text-white',
+        // use Curve C (green) palette
+        containerClassName: 'curve-c border-transparent',
+        colorClassName: 'text-current',
       },
     ];
   }, [inventoryItems]);
@@ -427,17 +427,17 @@ export default function IndicatorsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <section className="relative overflow-hidden rounded-[32px] border border-border/60 bg-white/90 p-8 shadow-2xl">
+      <section className="relative overflow-hidden rounded-[32px] border border-border/60 bg-card/90 p-8 shadow-2xl">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.2),_transparent_60%)] opacity-80" />
         <div className="relative z-10 grid gap-8">
           <PageHeader
-            title={<span className="text-slate-900">Painel de Indicadores</span>}
+            title={<span className="text-foreground">Painel de Indicadores</span>}
             description="Análise consolidada dos principais indicadores da manutenção."
             className="items-center gap-6"
           >
             <div className="flex items-center gap-2">
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[200px] border border-slate-200 bg-white">
+                <SelectTrigger className="w-[200px] border border-border bg-card">
                   <SelectValue placeholder="Selecione o mês" />
                 </SelectTrigger>
                 <SelectContent>
@@ -454,17 +454,17 @@ export default function IndicatorsPage() {
             {quickHighlights.map((highlight) => (
               <div
                 key={highlight.label}
-                className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 shadow-sm"
+                className="rounded-2xl border border-border bg-muted/80 p-5 shadow-sm"
               >
-                <p className="text-xs uppercase tracking-[0.4em] text-slate-500">{highlight.label}</p>
-                <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">
+                <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{highlight.label}</p>
+                <p className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
                   {highlight.value}
                 </p>
               </div>
             ))}
           </div>
           {/* Botões de sincronização/manuais removidos — dados vêm do banco de dados */}
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             Integre dados em lote, controle inventário e acompanhe SLA em um só lugar.
           </p>
         </div>
@@ -480,21 +480,19 @@ export default function IndicatorsPage() {
               : 'Selecione um mês com dados ou sincronize para atualizar os indicadores.'
           }
           stats={heroStats}
-          gradientClassName="from-indigo-600 via-cyan-600 to-emerald-500"
         />
         <HeroPanel
           label="Inventário em foco"
           title="Últimos dados da matriz de itens"
           description={inventoryDescription}
           stats={inventoryHeroStats}
-          gradientClassName="from-slate-800 via-slate-900 to-slate-950"
         >
           <SummaryCards items={inventoryItems} hideOverallStats />
         </HeroPanel>
       </section>
 
-      <section className="space-y-6 rounded-[28px] border border-border/60 bg-white/80 p-6 shadow-lg">
-        <div className="flex items-center gap-3 text-2xl font-semibold text-gray-900">
+      <section className="space-y-6 rounded-[28px] border border-border/60 bg-card/80 p-6 shadow-lg">
+        <div className="flex items-center gap-3 text-2xl font-semibold text-foreground">
           <BarChart3 className="h-6 w-6 text-primary" />
           Indicadores Gerais
         </div>
@@ -529,7 +527,7 @@ export default function IndicatorsPage() {
 
       {!selectedData && (
         <section>
-          <Card className="border border-gray-200 rounded-3xl shadow-sm p-6 bg-card/80">
+          <Card className="border border-border rounded-3xl shadow-sm p-6 bg-card/80">
             <CardHeader>
               <CardTitle>Sem dados para este mês</CardTitle>
               <CardDescription>
@@ -545,12 +543,12 @@ export default function IndicatorsPage() {
 
       {selectedData && (
         <section className="space-y-6">
-          <div className="flex items-center gap-3 text-2xl font-semibold text-gray-900">
+          <div className="flex items-center gap-3 text-2xl font-semibold text-foreground">
             <LineChart className="h-6 w-6 text-primary" />
             Indicadores Operacionais do Mês
           </div>
 
-          <Card className="rounded-3xl border border-border/40 bg-white/80 shadow-lg">
+          <Card className="rounded-3xl border border-border/40 bg-card/80 shadow-lg">
             <CardHeader>
               <CardTitle>Causas recorrentes</CardTitle>
               <CardDescription>Itens mais citados nos incidentes deste mês.</CardDescription>
@@ -564,7 +562,7 @@ export default function IndicatorsPage() {
                     return (
                       <div key={entry.name} className="flex items-center gap-3">
                         <div className="flex items-center">
-                          <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-semibold mr-3">{idx + 1}</div>
+                          <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-semibold mr-3">{idx + 1}</div>
                           <div className="min-w-0">
                             <div className="flex items-center justify-between text-sm font-medium">
                               <span className="truncate">{entry.name}</span>
@@ -585,7 +583,7 @@ export default function IndicatorsPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border border-primary/40 bg-white shadow-lg">
+          <Card className="rounded-3xl border border-primary/40 bg-card shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
                 <BrainCircuit className="h-6 w-6" />

@@ -29,9 +29,18 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    /* Curve ABC default palette (light theme): A = red, B = yellow, C = green */
+    --curve-a: 0 75% 48%;
+    --curve-a-foreground: 0 0% 98%;
+    --curve-b: 48 100% 50%;
+    --curve-b-foreground: 220 12% 12%;
+    --curve-c: 142 60% 40%;
+    --curve-c-foreground: 0 0% 98%;
   }
 
   .dark {
+    /* default hero foreground follows card foreground */
+    --hero-foreground: 224 71.4% 4.1%;
     --background: 224 71.4% 4.1%;
     --foreground: 210 20% 98%;
     --card: 224 71.4% 5.1%;
@@ -52,6 +61,433 @@
     --input: 215 27.9% 16.9%;
     --ring: 210 100% 66%;
   }
+
+  /* Dark-mode curve overrides */
+  .dark {
+    --curve-a: 0 70% 45%;
+    --curve-a-foreground: 210 20% 98%;
+    --curve-b: 48 90% 40%;
+    --curve-b-foreground: 210 20% 98%;
+    --curve-c: 142 56% 36%;
+    --curve-c-foreground: 210 20% 98%;
+  }
+}
+
+/* Hero gradient variables (used by `HeroPanel` via the .hero-gradient class).
+   These default to subtle, theme-aware stops and are overridden per color theme. */
+:root {
+  --hero-from: 210 14% 96%;
+  --hero-via: 210 10% 92%;
+  --hero-to: 210 6% 88%;
+}
+.dark {
+  --hero-from: 215 36% 10%;
+  --hero-via: 215 34% 8%;
+  --hero-to: 215 32% 6%;
+}
+
+/* Per-theme hero gradients: these map to softer corporate accents */
+[data-theme="blue"] {
+  --hero-from: 215 36% 45%;
+  --hero-via: 213 30% 40%;
+  --hero-to: 210 24% 36%;
+}
+.dark[data-theme="blue"] {
+  --hero-from: 215 36% 38%;
+  --hero-via: 213 30% 34%;
+  --hero-to: 210 24% 30%;
+}
+
+[data-theme="green"] {
+  --hero-from: 150 32% 42%;
+  --hero-via: 150 28% 38%;
+  --hero-to: 140 24% 34%;
+}
+.dark[data-theme="green"] {
+  --hero-from: 150 32% 36%;
+  --hero-via: 150 28% 32%;
+  --hero-to: 140 24% 28%;
+}
+
+[data-theme="purple"] {
+  --hero-from: 260 30% 46%;
+  --hero-via: 265 28% 42%;
+  --hero-to: 250 22% 36%;
+}
+.dark[data-theme="purple"] {
+  --hero-from: 260 30% 38%;
+  --hero-via: 265 24% 34%;
+  --hero-to: 250 20% 30%;
+}
+
+[data-theme="orange"] {
+  --hero-from: 28 48% 48%;
+  --hero-via: 28 44% 44%;
+  --hero-to: 28 36% 38%;
+}
+.dark[data-theme="orange"] {
+  --hero-from: 28 46% 40%;
+  --hero-via: 28 42% 36%;
+  --hero-to: 28 36% 30%;
+}
+
+/* Utility class that builds a gradient using the hero variables. Use this on
+   panels that should reflect the chosen color theme. */
+.hero-gradient {
+  background-image: linear-gradient(135deg, hsl(var(--hero-from)) 0%, hsl(var(--hero-via)) 50%, hsl(var(--hero-to)) 100%);
+  color: hsl(var(--hero-foreground));
+}
+
+/* Color themes (light + dark-aware overrides). Each theme overrides the
+   semantic color variables (primary, secondary, accent and chart colors).
+   The app stores the selected color in `localStorage` and sets
+   `document.documentElement.dataset.theme = '<theme-id>'` to switch. */
+
+[data-theme="blue"] {
+  --primary: 215 36% 45%;
+  --accent: 213 40% 50%;
+  --secondary: 210 14% 96%;
+  --chart-1: 215 34% 45%;
+  --chart-2: 200 28% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 260 30% 60%;
+  --chart-5: 330 30% 55%;
+  --hero-foreground: 215 20% 12%;
+}
+.dark[data-theme="blue"] {
+  --primary: 215 36% 38%;
+  --accent: 213 30% 44%;
+  --chart-1: 215 36% 40%;
+  --chart-2: 200 28% 42%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 260 30% 48%;
+  --chart-5: 330 30% 48%;
+  --hero-foreground: 210 20% 98%;
+}
+
+/* Ensure soft themes also override semantic surface tokens so panels/cards follow the
+   chosen palette and maintain readable foregrounds. This mirrors the vivid overrides
+   but keeps slightly softer contrast for the lighter tone. */
+[data-theme="blue"] {
+  --card: 215 36% 97%;
+  --card-foreground: 215 20% 12%;
+  --muted: 215 36% 98%;
+  --muted-foreground: 215 22% 20%;
+  --border: 215 36% 90%;
+}
+.dark[data-theme="blue"] {
+  --card: 215 36% 12%;
+  --card-foreground: 210 20% 98%;
+  --muted: 215 30% 8%;
+  --muted-foreground: 210 20% 90%;
+  --border: 215 36% 24%;
+}
+
+[data-theme="green"] {
+  --primary: 150 32% 42%;
+  --accent: 150 28% 45%;
+  --secondary: 145 22% 94%;
+  --chart-1: 150 32% 42%;
+  --chart-2: 190 28% 45%;
+  --chart-3: 34 60% 50%;
+  --chart-4: 220 30% 55%;
+  --chart-5: 10 55% 50%;
+  --hero-foreground: 142 28% 12%;
+}
+.dark[data-theme="green"] {
+  --primary: 150 32% 36%;
+  --accent: 150 26% 40%;
+  --chart-1: 150 32% 38%;
+  --chart-2: 190 28% 42%;
+  --hero-foreground: 150 24% 96%;
+}
+
+/* Soft theme surface tokens for green */
+[data-theme="green"] {
+  --card: 142 60% 96%;
+  --card-foreground: 142 28% 12%;
+  --muted: 142 60% 98%;
+  --muted-foreground: 142 30% 20%;
+  --border: 142 60% 90%;
+}
+.dark[data-theme="green"] {
+  --card: 142 60% 12%;
+  --card-foreground: 150 24% 96%;
+  --muted: 142 50% 10%;
+  --muted-foreground: 150 24% 90%;
+  --border: 142 60% 26%;
+}
+
+[data-theme="purple"] {
+  --primary: 260 30% 46%;
+  --accent: 265 28% 48%;
+  --secondary: 268 18% 92%;
+  --chart-1: 260 30% 46%;
+  --chart-2: 220 26% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 290 28% 55%;
+  --chart-5: 330 30% 50%;
+  --hero-foreground: 270 30% 14%;
+}
+.dark[data-theme="purple"] {
+  --primary: 260 30% 38%;
+  --accent: 265 24% 42%;
+  --hero-foreground: 265 24% 96%;
+}
+
+/* Soft theme surface tokens for purple */
+[data-theme="purple"] {
+  --card: 270 60% 96%;
+  --card-foreground: 270 30% 14%;
+  --muted: 270 60% 98%;
+  --muted-foreground: 270 32% 22%;
+  --border: 270 60% 90%;
+}
+.dark[data-theme="purple"] {
+  --card: 270 56% 12%;
+  --card-foreground: 265 24% 96%;
+  --muted: 270 50% 10%;
+  --muted-foreground: 265 24% 90%;
+  --border: 270 56% 26%;
+}
+
+[data-theme="orange"] {
+  --primary: 28 48% 48%;
+  --accent: 28 48% 50%;
+  --secondary: 30 20% 94%;
+  --chart-1: 28 48% 48%;
+  --chart-2: 200 28% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 30 28% 60%;
+  --chart-5: 340 30% 50%;
+}
+.dark[data-theme="orange"] {
+  --primary: 28 46% 40%;
+  --accent: 28 44% 44%;
+}
+
+/* Soft theme surface tokens for orange */
+[data-theme="orange"] {
+  --card: 25 90% 96%;
+  --card-foreground: 25 40% 12%;
+  --muted: 25 90% 98%;
+  --muted-foreground: 25 50% 20%;
+  --border: 25 90% 90%;
+}
+.dark[data-theme="orange"] {
+  --card: 25 86% 14%;
+  --card-foreground: 24 42% 96%;
+  --muted: 25 80% 12%;
+  --muted-foreground: 24 42% 90%;
+  --border: 25 86% 26%;
+}
+
+/* small utility swatches used by theme picker */
+.swatch-blue { background: hsl(215 36% 45%); }
+.swatch-green { background: hsl(150 32% 42%); }
+.swatch-purple { background: hsl(260 30% 46%); }
+.swatch-orange { background: hsl(28 48% 48%); }
+
+/* Soft/vivid aliases: keep existing soft names as default, add vivid variants */
+.swatch-blue-soft { background: hsl(215 36% 45%); }
+.swatch-green-soft { background: hsl(150 32% 42%); }
+.swatch-purple-soft { background: hsl(260 30% 46%); }
+.swatch-orange-soft { background: hsl(28 48% 48%); }
+
+.swatch-blue-vivid { background: hsl(222 90% 56%); }
+.swatch-green-vivid { background: hsl(142 60% 40%); }
+.swatch-purple-vivid { background: hsl(270 60% 48%); }
+.swatch-orange-vivid { background: hsl(25 90% 52%); }
+
+/* Vivid theme color blocks (light + dark variations). These provide the
+   legacy / non-soft palettes the user requested. */
+[data-theme="blue-vivid"] {
+  --primary: 222 90% 56%;
+  --accent: 210 100% 60%;
+  --secondary: 210 16% 96%;
+  --chart-1: 222 75% 45%;
+  --chart-2: 200 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
+}
+.dark[data-theme="blue-vivid"] {
+  --primary: 222 90% 52%;
+  --accent: 210 90% 54%;
+  --chart-1: 222 70% 44%;
+}
+
+/* Hero gradient overrides for vivid themes so hero-gradient reflects vivid palettes */
+[data-theme="blue-vivid"] {
+  --hero-from: 222 90% 56%;
+  --hero-via: 215 36% 45%;
+  --hero-to: 210 24% 36%;
+}
+.dark[data-theme="blue-vivid"] {
+  --hero-from: 222 90% 52%;
+  --hero-via: 213 30% 34%;
+  --hero-to: 210 24% 30%;
+}
+
+[data-theme="green-vivid"] {
+  --primary: 142 60% 40%;
+  --accent: 150 80% 45%;
+  --secondary: 145 22% 96%;
+  --chart-1: 142 60% 40%;
+  --chart-2: 190 45% 45%;
+}
+.dark[data-theme="green-vivid"] {
+  --primary: 142 56% 36%;
+  --accent: 150 72% 40%;
+}
+
+/* Hero gradient overrides for green vivid */
+[data-theme="green-vivid"] {
+  --hero-from: 142 60% 40%;
+  --hero-via: 150 80% 45%;
+  --hero-to: 145 22% 96%;
+}
+.dark[data-theme="green-vivid"] {
+  --hero-from: 142 56% 36%;
+  --hero-via: 150 72% 40%;
+  --hero-to: 142 50% 10%;
+}
+
+[data-theme="purple-vivid"] {
+  --primary: 270 60% 48%;
+  --accent: 285 75% 55%;
+  --secondary: 268 18% 92%;
+  --chart-1: 270 60% 48%;
+}
+.dark[data-theme="purple-vivid"] {
+  --primary: 270 56% 40%;
+  --accent: 285 68% 48%;
+}
+
+/* Hero gradient overrides for purple vivid */
+[data-theme="purple-vivid"] {
+  --hero-from: 270 60% 48%;
+  --hero-via: 285 75% 55%;
+  --hero-to: 268 18% 92%;
+}
+.dark[data-theme="purple-vivid"] {
+  --hero-from: 270 56% 40%;
+  --hero-via: 285 68% 48%;
+  --hero-to: 270 50% 10%;
+}
+
+[data-theme="orange-vivid"] {
+  --primary: 25 90% 52%;
+  --accent: 24 95% 54%;
+  --secondary: 30 20% 94%;
+  --chart-1: 25 90% 52%;
+}
+.dark[data-theme="orange-vivid"] {
+  --primary: 25 86% 46%;
+  --accent: 24 88% 48%;
+}
+
+/* Hero gradient overrides for orange vivid */
+[data-theme="orange-vivid"] {
+  --hero-from: 25 90% 52%;
+  --hero-via: 24 95% 54%;
+  --hero-foreground: 25 40% 12%;
+  --hero-to: 30 20% 94%;
+}
+.dark[data-theme="orange-vivid"] {
+  --hero-from: 25 86% 46%;
+  --hero-foreground: 24 42% 96%;
+  --hero-via: 24 88% 48%;
+  --hero-to: 25 80% 12%;
+}
+
+/* Ensure vivid themes also override semantic surface tokens so containers follow the chosen palette */
+[data-theme="blue-vivid"] {
+  --card: 215 36% 97%;
+  --card-foreground: 215 20% 12%;
+  --muted: 215 36% 98%;
+  --muted-foreground: 215 22% 20%;
+  --border: 215 36% 90%;
+}
+.dark[data-theme="blue-vivid"] {
+  --card: 215 36% 12%;
+  --card-foreground: 210 20% 98%;
+  --muted: 215 30% 8%;
+  --muted-foreground: 210 20% 90%;
+  --border: 215 36% 24%;
+}
+
+[data-theme="green-vivid"] {
+  --card: 142 60% 96%;
+  --card-foreground: 142 28% 12%;
+  --muted: 142 60% 98%;
+  --muted-foreground: 142 30% 20%;
+  --border: 142 60% 90%;
+}
+.dark[data-theme="green-vivid"] {
+  --card: 142 60% 12%;
+  --card-foreground: 150 24% 96%;
+  --muted: 142 50% 10%;
+  --muted-foreground: 150 24% 90%;
+  --border: 142 60% 26%;
+}
+
+[data-theme="purple-vivid"] {
+  --card: 270 60% 96%;
+  --card-foreground: 270 30% 14%;
+  --muted: 270 60% 98%;
+  --muted-foreground: 270 32% 22%;
+  --border: 270 60% 90%;
+}
+.dark[data-theme="purple-vivid"] {
+  --card: 270 56% 12%;
+  --card-foreground: 265 24% 96%;
+  --muted: 270 50% 10%;
+  --muted-foreground: 265 24% 90%;
+  --border: 270 56% 26%;
+}
+
+[data-theme="orange-vivid"] {
+  --card: 25 90% 96%;
+  --card-foreground: 25 40% 12%;
+  --muted: 25 90% 98%;
+  --muted-foreground: 25 50% 20%;
+  --border: 25 90% 90%;
+}
+.dark[data-theme="orange-vivid"] {
+  --card: 25 86% 14%;
+  --card-foreground: 24 42% 96%;
+  --muted: 25 80% 12%;
+  --muted-foreground: 24 42% 90%;
+  --border: 25 86% 26%;
+}
+
+.theme-swatch-btn {
+  border-color: transparent;
+}
+.theme-swatch-btn.active {
+  border-color: hsl(var(--ring));
+}
+
+/* Utility classes to apply Curve A/B/C as panel backgrounds with readable foregrounds */
+.curve-a {
+  background-color: hsl(var(--curve-a) / 0.85);
+  color: hsl(var(--curve-a-foreground));
+}
+.curve-b {
+  background-color: hsl(var(--curve-b) / 0.85);
+  color: hsl(var(--curve-b-foreground));
+}
+.curve-c {
+  background-color: hsl(var(--curve-c) / 0.85);
+  color: hsl(var(--curve-c-foreground));
+}
+
+.curve-a > *,
+.curve-b > *,
+.curve-c > * {
+  /* ensure child text/icons inherit the readable foreground */
+  color: inherit;
 }
 
 @layer base {

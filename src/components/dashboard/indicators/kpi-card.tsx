@@ -49,7 +49,7 @@ export function KpiCard({ title, value, change, changeType, description, icon: I
         <div className="text-2xl font-bold">{displayValue ?? (typeof value === 'number' ? 'Calculando...' : value)}</div>
         <div className="flex items-center text-xs text-muted-foreground">
           {change !== undefined && changeType && (
-            <div className={cn("flex items-center", changeType === 'increase' ? 'text-green-600' : 'text-red-600')}>
+            <div className={cn("flex items-center", changeType === 'increase' ? 'text-accent' : 'text-destructive')}>
               {changeType === 'increase' ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
               {change.toFixed(2)}%
               <span className="ml-1 text-muted-foreground">vs mês anterior</span>

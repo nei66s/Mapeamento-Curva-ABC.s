@@ -52,6 +52,20 @@ export async function PUT(req: Request) {
       ok = await updateVisitItemStatus(storeId, visitDate, itemId, status);
     }
     if (!ok) return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
+    // Try to return the updated visit/resource so the client can reconcile local state.
+    try {
+      const visits = await listScheduledVisits();
+      let updatedVisit: any = null;
+      if (visitId) {
+        // If caller provided visitId, try to find any visit that contains the updated item
+        updatedVisit = visits.find((v: any) => Array.isArray(v.items) && v.items.some((it: any) => String(it.itemId) === String(itemId)));
+      } else if (storeId && visitDate) {
+        updatedVisit = visits.find((v: any) => String(v.storeId) === String(storeId) && String(v.visitDate).startsWith(String(visitDate)));
+      }
+      if (updatedVisit) return NextResponse.json(updatedVisit);
+    } catch (err) {
+      console.error('PUT /api/compliance post-update fetch error', err);
+    }
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('PUT /api/compliance error', err);

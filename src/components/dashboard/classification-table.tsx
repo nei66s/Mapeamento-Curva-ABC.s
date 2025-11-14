@@ -54,7 +54,7 @@ export function ClassificationTable() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="relative w-full overflow-auto">
+        <div className="relative w-full overflow-auto max-h-80 md:max-h-96">
           <Table>
           <TableHeader>
             <TableRow>

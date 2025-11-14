@@ -117,8 +117,16 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
     newStatus: ComplianceStatus
   ) => {
     // optimistic UI + persist
-    setStoreData(prevData =>
-      prevData.map(store => {
+    // We must derive the visitDate from the previous state (prevData) —
+    // reading `storeData` here can be stale right after setState.
+    let visitDateStr = format(new Date(), 'yyyy-MM-dd');
+    setStoreData(prevData => {
+      const store = prevData.find(s => s.storeId === storeId);
+      if (store && store.visitDate) {
+        visitDateStr = format(new Date(store.visitDate), 'yyyy-MM-dd');
+      }
+
+      return prevData.map(store => {
         if (store.storeId === storeId) {
           return {
             ...store,
@@ -128,20 +136,39 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
           };
         }
         return store;
-      })
-    );
+      });
+    });
 
-    // find the scheduled visit's date for this store so the server can locate the visit row
-  const store = storeData.find(s => s.storeId === storeId);
-    const visitDateStr = store && store.visitDate ? format(new Date(store.visitDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
-
+    // persist change and reconcile with server response when possible
     (async () => {
       try {
-        await fetch('/api/compliance', {
+        const res = await fetch('/api/compliance', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ storeId, visitDate: visitDateStr, itemId, status: newStatus }),
         });
+
+        if (res.ok) {
+          // prefer server canonical shape in case it normalized or changed other fields
+          const updated = await res.json();
+          // update local state with server-provided visit (match by storeId + visitDate)
+          setStoreData(prevData => {
+            return prevData.map(s => {
+              // server may return a single updated visit or an array; handle object/array shapes
+              const serverVisit = Array.isArray(updated) ? updated.find((u: any) => String(u.storeId) === String(storeId) && format(new Date(u.visitDate), 'yyyy-MM-dd') === visitDateStr) : updated;
+              if (String(s.storeId) === String(storeId) && serverVisit && serverVisit.visitDate) {
+                return {
+                  ...s,
+                  items: Array.isArray(serverVisit.items)
+                    ? serverVisit.items.map((it: any) => ({ itemId: String(it.itemId ?? it.id ?? it.item), status: normalizeComplianceStatus(it.status) }))
+                    : s.items,
+                  visitDate: serverVisit.visitDate || s.visitDate,
+                };
+              }
+              return s;
+            });
+          });
+        }
       } catch (err) {
         console.error('persist status change error', err);
       }
@@ -451,7 +478,7 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
           <div className="mt-4 space-y-3">
             {upcomingVisits.length > 0 ? (
               upcomingVisits.map((visit) => (
-                <div key={`${visit.storeId}-${visit.visitDate}`} className="rounded-2xl border border-border bg-white/80 p-3 shadow-sm">
+                  <div key={`${visit.storeId}-${visit.visitDate}`} className="rounded-2xl border border-border bg-card/80 p-3 shadow-sm">
                   <p className="text-sm font-semibold">{visit.storeName}</p>
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(visit.visitDate), 'dd/MM/yyyy')} · {formatDistanceToNow(new Date(visit.visitDate), { addSuffix: true, locale: ptBR })}
