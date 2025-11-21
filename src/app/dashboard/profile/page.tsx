@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -15,6 +15,7 @@ import { Trash2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { useCurrentUser } from '@/hooks/use-current-user';
+import { useRouter } from 'next/navigation';
 // permissions management moved to the central Admin page
 
 const profileSchema = z.object({
@@ -27,6 +28,7 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
   const { user, setUser, loading } = useCurrentUser();
+  const router = useRouter();
   const [fetchedUser, setFetchedUser] = useState<any | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -137,12 +139,21 @@ export default function ProfilePage() {
 
   // permission changes handled in Admin page
 
+  React.useEffect(() => {
+    if (loading || fetchedUser) return;
+    // if logout is in progress, skip redirect here to avoid double navigation
+    if (typeof window !== 'undefined' && (window as any).__pm_logging_out) return;
+    try {
+      router.replace('/login');
+    } catch (e) {
+      // ignore
+    }
+  }, [loading, fetchedUser, router]);
+
   // While hydrating (client-only data), render nothing to keep server and client HTML identical.
   if (loading) return null;
 
-  if (!fetchedUser) {
-    return <div>Usuário não encontrado.</div>;
-  }
+  if (!fetchedUser) return null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -193,6 +204,9 @@ export default function ProfilePage() {
                         const formData = new FormData();
                         formData.append('file', file);
                         formData.append('dest', 'avatars');
+                        // store avatar in DB for this user (requires migration)
+                        formData.append('store', 'db');
+                        formData.append('userId', String(fetchedUser.id));
 
                         const response = await fetch('/api/upload', {
                           method: 'POST',
@@ -202,12 +216,15 @@ export default function ProfilePage() {
                         if (!response.ok) throw new Error('Erro ao fazer upload');
 
                         const data = await response.json();
-                        form.setValue('avatarUrl', data.imageUrl);
-                        
-                        toast({
-                          title: 'Sucesso!',
-                          description: 'Imagem enviada com sucesso.',
-                        });
+                        // mark the field as dirty so autosave picks the change up
+                        form.setValue('avatarUrl', data.imageUrl, { shouldDirty: true, shouldTouch: true });
+                        // trigger an immediate save so the avatarUrl is persisted now
+                        try {
+                          await form.handleSubmit(handleAutoSave)();
+                          toast({ title: 'Sucesso!', description: 'Imagem enviada e perfil atualizado.' });
+                        } catch (err) {
+                          toast({ variant: 'destructive', title: 'Erro', description: 'Upload feito, mas falha ao salvar perfil automaticamente.' });
+                        }
                       } catch (error) {
                         toast({
                           variant: 'destructive',

@@ -23,16 +23,19 @@ const chartConfig = {
 
 export function ParetoChart({ data }: ParetoChartProps) {
   const totalCount = data.reduce((acc, item) => acc + item.count, 0);
-  
-  let cumulativeCount = 0;
-  const chartData = data.map(item => {
-    cumulativeCount += item.count;
-    return {
-      category: item.category,
-      count: item.count,
-      cumulative: totalCount > 0 ? (cumulativeCount / totalCount) * 100 : 0,
-    };
-  });
+
+  const chartData = data.reduce(
+    (acc, item) => {
+      const running = acc.running + item.count;
+      acc.items.push({
+        category: item.category,
+        count: item.count,
+        cumulative: totalCount > 0 ? (running / totalCount) * 100 : 0,
+      });
+      return { running, items: acc.items };
+    },
+    { running: 0, items: [] as { category: string; count: number; cumulative: number }[] }
+  ).items;
 
   return (
     <div className="h-[520px] w-full">

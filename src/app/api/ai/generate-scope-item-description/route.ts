@@ -11,6 +11,7 @@ export async function POST(request: Request) {
       title: body.title,
       context: typeof body.context === 'string' ? body.context : undefined,
       tone: typeof body.tone === 'string' ? body.tone : undefined,
+      preferenceText: typeof body.preferenceText === 'string' ? body.preferenceText : undefined,
     });
     return NextResponse.json(result);
   } catch (error) {

@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { NotificationCenter } from "@/components/layout/notification-center";
 import { UserNav } from "@/components/layout/user-nav";
 import { Separator } from "../ui/separator";
 // logo removed per UI request
@@ -230,6 +231,7 @@ export default function AppHeader({ onToggleSidebar, sidebarVisible }: AppHeader
         </BreadcrumbList>
       </Breadcrumb>
       <div className="relative ml-auto flex items-center gap-2">
+        <NotificationCenter />
         <ThemeToggle />
         <UserNav />
       </div>

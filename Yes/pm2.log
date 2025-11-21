@@ -1,0 +1,37 @@
+2025-11-21T14:59:19: PM2 log: ===============================================================================
+2025-11-21T14:59:19: PM2 log: --- New PM2 Daemon started ----------------------------------------------------
+2025-11-21T14:59:19: PM2 log: Time                 : Fri Nov 21 2025 14:59:19 GMT-0300 (Horário Padrão de Brasília)
+2025-11-21T14:59:19: PM2 log: PM2 version          : 6.0.13
+2025-11-21T14:59:19: PM2 log: Node.js version      : 24.11.0
+2025-11-21T14:59:19: PM2 log: Current arch         : x64
+2025-11-21T14:59:19: PM2 log: PM2 home             : Yes
+2025-11-21T14:59:19: PM2 log: PM2 PID file         : C:\Users\neiol\OneDrive\Desktop\Mapeamento-Curva-ABC\Yes\pm2.pid
+2025-11-21T14:59:19: PM2 log: RPC socket file      : \\.\pipe\rpc.sock
+2025-11-21T14:59:19: PM2 log: BUS socket file      : \\.\pipe\pub.sock
+2025-11-21T14:59:19: PM2 log: Application log path : C:\Users\neiol\OneDrive\Desktop\Mapeamento-Curva-ABC\Yes\logs
+2025-11-21T14:59:19: PM2 log: Worker Interval      : 30000
+2025-11-21T14:59:19: PM2 log: Process dump file    : C:\Users\neiol\OneDrive\Desktop\Mapeamento-Curva-ABC\Yes\dump.pm2
+2025-11-21T14:59:19: PM2 log: Concurrent actions   : 2
+2025-11-21T14:59:19: PM2 log: SIGTERM timeout      : 1600
+2025-11-21T14:59:19: PM2 log: Runtime Binary       : C:\Program Files\nodejs\node.exe
+2025-11-21T14:59:19: PM2 log: ===============================================================================
+2025-11-21T14:59:20: PM2 log: PM2 successfully stopped
+2025-11-21T14:59:28: PM2 log: ===============================================================================
+2025-11-21T14:59:28: PM2 log: --- New PM2 Daemon started ----------------------------------------------------
+2025-11-21T14:59:28: PM2 log: Time                 : Fri Nov 21 2025 14:59:28 GMT-0300 (Horário Padrão de Brasília)
+2025-11-21T14:59:28: PM2 log: PM2 version          : 6.0.13
+2025-11-21T14:59:28: PM2 log: Node.js version      : 24.11.0
+2025-11-21T14:59:28: PM2 log: Current arch         : x64
+2025-11-21T14:59:28: PM2 log: PM2 home             : Yes
+2025-11-21T14:59:28: PM2 log: PM2 PID file         : C:\Users\neiol\OneDrive\Desktop\Mapeamento-Curva-ABC\Yes\pm2.pid
+2025-11-21T14:59:28: PM2 log: RPC socket file      : \\.\pipe\rpc.sock
+2025-11-21T14:59:28: PM2 log: BUS socket file      : \\.\pipe\pub.sock
+2025-11-21T14:59:28: PM2 log: Application log path : C:\Users\neiol\OneDrive\Desktop\Mapeamento-Curva-ABC\Yes\logs
+2025-11-21T14:59:28: PM2 log: Worker Interval      : 30000
+2025-11-21T14:59:28: PM2 log: Process dump file    : C:\Users\neiol\OneDrive\Desktop\Mapeamento-Curva-ABC\Yes\dump.pm2
+2025-11-21T14:59:28: PM2 log: Concurrent actions   : 2
+2025-11-21T14:59:28: PM2 log: SIGTERM timeout      : 1600
+2025-11-21T14:59:28: PM2 log: Runtime Binary       : C:\Program Files\nodejs\node.exe
+2025-11-21T14:59:28: PM2 log: ===============================================================================
+2025-11-21T14:59:36: PM2 log: App [curva-abc:0] starting in -fork mode-
+2025-11-21T14:59:36: PM2 log: App [curva-abc:0] online

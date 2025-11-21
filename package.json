@@ -9,7 +9,7 @@
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "cross-env NODE_ENV=production next build --webpack",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint \"middleware.ts\" \"src\" \"tests\" \"scripts\" --ext .ts,.tsx,.js,.jsx",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:normalize": "ts-node scripts/test-normalize-status.ts",
@@ -23,7 +23,8 @@
     "db:fix-schema": "node scripts/apply_sql.js --file sql/fix-users-and-unsalvageable.sql",
     "db:fix-tools": "node scripts/apply_sql.js --file sql/fix-tools.sql",
     "db:fix-tools-id": "node scripts/apply_sql.js --file sql/fix-tools-id-to-text.sql",
-    "db:fix-stores": "node scripts/apply_sql.js --file sql/fix-stores-add-lat-lng.sql"
+    "db:fix-stores": "node scripts/apply_sql.js --file sql/fix-stores-add-lat-lng.sql",
+    "prod": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-prod.ps1"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

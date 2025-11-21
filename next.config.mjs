@@ -13,6 +13,14 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  // Allow specific development origins (ngrok, etc.) to request Next.js dev assets.
+  // This suppresses the cross-origin warning during local development when using
+  // a forwarded dev URL such as an ngrok domain.
+  // `allowedDevOrigins` is expected at top-level in Next.js config, not under
+  // `experimental` (placing it under `experimental` produces a runtime warning).
+  allowedDevOrigins: [
+    'https://pamila-uneditable-soaked.ngrok-free.dev'
+  ],
   // NOTE: the `eslint` config key in next.config.mjs was removed in newer
   // Next.js versions. Configure ESLint using an `.eslintrc` file and run
   // linting via the `next lint` script. See:

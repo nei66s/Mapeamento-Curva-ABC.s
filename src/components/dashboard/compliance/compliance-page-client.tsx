@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/shared/page-header';
 import type { ComplianceChecklistItem, StoreComplianceData, ComplianceStatus, Store } from '@/lib/types';
@@ -343,6 +344,8 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
     }
   }, [selectedDate]);
 
+  const { user, loading: userLoading } = useCurrentUser();
+
   // Load stores for map and scheduling context
   useEffect(() => {
     const load = async () => {
@@ -355,8 +358,10 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
         console.error(e);
       }
     };
+    if (userLoading) return;
+    if (!user) return;
     load();
-  }, []);
+  }, [user, userLoading]);
 
   // Load compliance checklist items and scheduled visits from API
   useEffect(() => {
@@ -374,8 +379,10 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
         console.error('loadCompliance error', err);
       }
     };
+    if (userLoading) return;
+    if (!user) return;
     loadCompliance();
-  }, []);
+  }, [user, userLoading]);
 
   const complianceMetrics = useMemo(() => {
     let total = 0;

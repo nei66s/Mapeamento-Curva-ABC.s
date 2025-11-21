@@ -86,6 +86,17 @@
   --hero-to: 215 32% 6%;
 }
 
+:root[data-theme="seasonal"] {
+  --hero-from: 160 40% 95%;
+  --hero-via: 170 55% 85%;
+  --hero-to: 320 50% 75%;
+}
+.dark[data-theme="seasonal"] {
+  --hero-from: 220 20% 15%;
+  --hero-via: 210 20% 18%;
+  --hero-to: 200 30% 15%;
+}
+
 /* Per-theme hero gradients: these map to softer corporate accents */
 [data-theme="blue"] {
   --hero-from: 215 36% 45%;
@@ -298,6 +309,10 @@
 .swatch-green-vivid { background: hsl(142 60% 40%); }
 .swatch-purple-vivid { background: hsl(270 60% 48%); }
 .swatch-orange-vivid { background: hsl(25 90% 52%); }
+.swatch-seasonal-soft,
+.swatch-seasonal-vivid {
+  background: linear-gradient(135deg, hsl(330 80% 80%) 0%, hsl(40 90% 85%) 50%, hsl(150 60% 90%) 100%);
+}
 
 /* Vivid theme color blocks (light + dark variations). These provide the
    legacy / non-soft palettes the user requested. */

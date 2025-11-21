@@ -4,19 +4,24 @@
 import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, Bell, Languages, AppWindow, Rows3 } from 'lucide-react';
+import { Moon, Sun, Bell, Languages, AppWindow, Rows3, Palette } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCurrentUser } from '@/hooks/use-current-user';
+import { COLOR_OPTIONS } from '@/lib/theme-options';
+import { ThemeTone, SEASONAL_THEME_ID, updateThemeColor } from '@/lib/theme-manager';
 
 
 export default function SettingsPage() {
   const { user } = useCurrentUser();
   const [theme, setTheme] = useState('light');
+  const [themeColor, setThemeColor] = useState('blue');
+  const [tone, setTone] = useState<ThemeTone>('soft');
   const [notifications, setNotifications] = useState({
     incidents: true,
     compliance: false,
@@ -46,13 +51,23 @@ export default function SettingsPage() {
           compliance: Boolean(s.notifications.compliance),
           reports: Boolean(s.notifications.reports),
         });
+        if (s.themeColor) {
+          const storedTone = s.themeTone === 'vivid' ? 'vivid' : 'soft';
+          setThemeColor(s.themeColor);
+          setTone(storedTone);
+          try {
+            updateThemeColor(s.themeColor, storedTone as ThemeTone);
+          } catch (err) {
+            console.warn('Failed to apply stored theme color', err);
+          }
+        }
       } catch (e) {
         console.error('Failed to load user settings', e);
       }
     })();
   }, [user?.id]);
 
-  const persistSettings = async (changes: Partial<{ theme: string; language: string; density: string; defaultPage: string; notifications: any }>) => {
+  const persistSettings = async (changes: Partial<{ theme: string; themeColor: string; themeTone: string; language: string; density: string; defaultPage: string; notifications: any }>) => {
     try {
       if (!user?.id) return;
       await fetch('/api/settings', {
@@ -75,6 +90,28 @@ export default function SettingsPage() {
       description: `O tema foi alterado para ${isDark ? 'Escuro' : 'Claro'}.`,
     });
     persistSettings({ theme: newTheme });
+  };
+
+  const handleColorChange = (colorId: string) => {
+    if (colorId === themeColor) return;
+    setThemeColor(colorId);
+    updateThemeColor(colorId, tone);
+    toast({
+      title: 'Cor do tema atualizada',
+      description: `Agora o layout usa a paleta ${COLOR_OPTIONS.find(c => c.id === colorId)?.label}.`,
+    });
+    persistSettings({ themeColor: colorId, themeTone: tone });
+  };
+
+  const handleToneSelection = (newTone: ThemeTone) => {
+    if (newTone === tone) return;
+    setTone(newTone);
+    updateThemeColor(themeColor, newTone);
+    toast({
+      title: 'Intensidade atualizada',
+      description: `O tom do tema agora é ${newTone === 'soft' ? 'Suave' : 'Antigo'}.`,
+    });
+    persistSettings({ themeColor, themeTone: newTone });
   };
 
   const handleNotificationChange = (id: keyof typeof notifications, value: boolean) => {
@@ -123,6 +160,47 @@ export default function SettingsPage() {
               checked={theme === 'dark'}
               onCheckedChange={handleThemeChange}
             />
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-lg border p-4">
+            <div className="flex items-center gap-3">
+              <Palette className="h-4 w-4" />
+              <Label>Cor do tema</Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Escolha a paleta principal e a intensidade do visual.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {COLOR_OPTIONS.map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => handleColorChange(opt.id)}
+                  title={opt.label}
+                  aria-label={opt.label}
+                  className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-105 theme-swatch-btn ${
+                    themeColor === opt.id ? 'active' : ''
+                  } ${opt.seasonal ? `swatch-${SEASONAL_THEME_ID}-${tone}` : `swatch-${opt.id}-${tone}`}`}
+                />
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={tone === 'soft' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => handleToneSelection('soft')}
+                aria-pressed={tone === 'soft'}
+              >
+                Suave
+              </Button>
+              <Button
+                variant={tone === 'vivid' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => handleToneSelection('vivid')}
+                aria-pressed={tone === 'vivid'}
+              >
+                Antigo
+              </Button>
+            </div>
           </div>
 
           <div className="flex items-start justify-between rounded-lg border p-4">

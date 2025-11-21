@@ -132,6 +132,24 @@ CREATE TABLE IF NOT EXISTS tools (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- asset inventory (registro temporário de ativos e hierarquia)
+CREATE TABLE IF NOT EXISTS asset_inventory (
+  id TEXT PRIMARY KEY,
+  store_id TEXT,
+  store_name TEXT,
+  name TEXT NOT NULL,
+  patrimony TEXT,
+  hierarchy TEXT,
+  description TEXT,
+  complexity TEXT,
+  cost_estimate TEXT,
+  risk_notes TEXT,
+  insumos JSONB DEFAULT '[]'::jsonb,
+  componentes JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- technical reports (laudos)
 CREATE TABLE IF NOT EXISTS technical_reports (
   id TEXT PRIMARY KEY,

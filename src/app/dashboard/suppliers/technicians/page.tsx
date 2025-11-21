@@ -24,7 +24,12 @@ export default function TechniciansPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void load();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleAdd = async (name: string, role?: string) => {
     try {

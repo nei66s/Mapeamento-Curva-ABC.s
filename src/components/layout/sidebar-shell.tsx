@@ -5,29 +5,34 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import AppSidebar from '@/components/layout/app-sidebar';
 import AppHeader from '@/components/layout/app-header';
+import { ActivityTracker } from '@/components/layout/activity-tracker';
 import { CurrentUserProvider } from '@/hooks/use-current-user';
 import RequirePermission from '@/components/auth/RequirePermission.client';
 import { usePathname } from 'next/navigation';
 import MobileBottomNav from '@/components/layout/mobile-nav';
 
 export function SidebarShell({ children }: { children: ReactNode }) {
-  const [sidebarVisible, setSidebarVisible] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-  const [hasMounted, setHasMounted] = useState(false);
   const pathname = usePathname();
   const isAuthRoute = pathname?.startsWith('/login') ?? false;
   const STORAGE_KEY = 'app.sidebarVisible';
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
+  const [sidebarVisible, setSidebarVisible] = useState(() => {
+    if (typeof window === 'undefined') return true;
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw !== null) {
-        setSidebarVisible(raw === 'true');
+        return raw === 'true';
       }
-    } catch (err) {
-      // ignore localStorage errors
+    } catch {
+      // ignore
     }
-  }, []);
+    return true;
+  });
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 767px)').matches;
+  });
+  const hasMounted = typeof window !== 'undefined';
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -36,6 +41,7 @@ export function SidebarShell({ children }: { children: ReactNode }) {
       // ignore write errors
     }
   }, [sidebarVisible]);
+
   useEffect(() => {
     const handleOverflow = () => {
       const mobile = typeof window !== 'undefined' && window.innerWidth < 1024;
@@ -52,14 +58,11 @@ export function SidebarShell({ children }: { children: ReactNode }) {
       window.removeEventListener('resize', handleOverflow);
     };
   }, [sidebarVisible]);
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
+
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const media = window.matchMedia('(max-width: 767px)');
     const handler = (event: MediaQueryListEvent) => setIsMobile(event.matches);
-    setIsMobile(media.matches);
     if (media.addEventListener) {
       media.addEventListener('change', handler);
       return () => media.removeEventListener('change', handler);
@@ -67,16 +70,17 @@ export function SidebarShell({ children }: { children: ReactNode }) {
     media.addListener(handler);
     return () => media.removeListener(handler);
   }, []);
+
   if (isAuthRoute) {
     return <CurrentUserProvider>{children}</CurrentUserProvider>;
   }
+
   return (
     <div className={cn('flex min-h-screen w-full bg-background', sidebarVisible ? 'lg:overflow-x-hidden' : '')}>
       <AppSidebar visible={sidebarVisible} onRequestClose={() => setSidebarVisible(false)} />
       <div
         className={cn(
           'flex flex-1 flex-col gap-4 sm:gap-4 sm:py-4',
-          // on large screens reserve space when sidebar is visible; when hidden occupy full width
           sidebarVisible ? 'lg:pl-[18rem]' : 'lg:pl-0'
         )}
       >
@@ -91,6 +95,7 @@ export function SidebarShell({ children }: { children: ReactNode }) {
             </CurrentUserProvider>
           </div>
         </main>
+        <ActivityTracker />
       </div>
       {hasMounted && isMobile && (
         <div className="lg:hidden">

@@ -49,7 +49,8 @@ async function buildFlow() {
       outputSchema: SuggestContingencyPlansOutputSchema,
     },
     async (input: SuggestContingencyPlansInput) => {
-      const { output } = await prompt(input as any);
+      const { callWithRetries } = await import('@/ai/callWithRetries');
+      const { output } = await callWithRetries(() => prompt(input as any));
       return output!;
     }
   );

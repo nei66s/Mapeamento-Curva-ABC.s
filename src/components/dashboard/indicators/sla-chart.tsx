@@ -13,7 +13,7 @@ import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import type { MaintenanceIndicator } from "@/lib/types";
 
 interface SlaChartProps {
-    data: MaintenanceIndicator[];
+  data: MaintenanceIndicator[];
 }
 
 const chartConfig = {
@@ -27,12 +27,78 @@ const chartConfig = {
   },
 };
 
+const labelBoxWidth = (text: string) => Math.max(28, String(text).length * 8 + 8);
+
+interface CustomLabelProps {
+  x?: number | string;
+  y?: number | string;
+  value?: number | string;
+  maxSla: number;
+  minSla: number;
+}
+
+const CustomLabel = ({ x, y, value, maxSla, minSla }: CustomLabelProps) => {
+  if (value !== maxSla && value !== minSla) return null;
+  if (x == null || y == null) return null;
+  const nx = Number(x);
+  const ny = Number(y);
+  if (Number.isNaN(nx) || Number.isNaN(ny)) return null;
+  const text = `${value}%`;
+  const w = labelBoxWidth(text);
+  const h = 18;
+  return (
+    <g>
+      <rect x={nx - w / 2} y={ny - 28} width={w} height={h} rx={4} fill="#fff" stroke="var(--border)" />
+      <text x={nx} y={ny - 16} textAnchor="middle" fill="var(--muted-foreground)" fontSize={11} fontWeight={600}>
+        {text}
+      </text>
+    </g>
+  );
+};
+
+interface CustomDotProps {
+  cx?: number;
+  cy?: number;
+  payload?: {
+    sla?: number;
+    meta?: number;
+  };
+  index?: number;
+  lastIndex: number;
+}
+
+const CustomDot = ({ cx, cy, payload, index, lastIndex }: CustomDotProps) => {
+  if (cx == null || cy == null) return <g />;
+  const sla = Number(payload?.sla ?? 0);
+  const meta = payload?.meta;
+  const isAlert = typeof meta === "number" && sla < meta;
+  const isLast = index === lastIndex;
+  const r = isAlert ? 6 : isLast ? 5 : 3;
+  const fill = isAlert ? "var(--color-destructive,#ef4444)" : "#ffffff";
+  const stroke = isAlert ? "var(--color-destructive,#ef4444)" : "var(--color-sla)";
+  const labelText = `${sla.toFixed(0)}%`;
+  const w = labelBoxWidth(labelText);
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={r} fill={fill} stroke={stroke} strokeWidth={isAlert ? 2 : 1} />
+      {isLast && (
+        <g>
+          <rect x={cx - w / 2} y={cy - 28} width={w} height={18} rx={4} fill="#fff" stroke="var(--border)" />
+          <text x={cx} y={cy - 16} textAnchor="middle" fill="var(--muted-foreground)" fontSize={11} fontWeight={600}>
+            {labelText}
+          </text>
+        </g>
+      )}
+    </g>
+  );
+};
+
 export function SlaChart({ data }: SlaChartProps) {
-  
+
   const chartData = data.map(item => ({
-      name: new Date(`${item.mes}-02`).toLocaleString('default', { month: 'short' }),
-      sla: item.sla_mensal,
-      meta: item.meta_sla,
+    name: new Date(`${item.mes}-02`).toLocaleString("default", { month: "short" }),
+    sla: item.sla_mensal,
+    meta: item.meta_sla,
   }));
 
   const maxSla = Math.max(...chartData.map(d => d.sla));
@@ -40,23 +106,6 @@ export function SlaChart({ data }: SlaChartProps) {
   const avgMeta = chartData.length ? chartData.reduce((s, d) => s + (d.meta || 0), 0) / chartData.length : 0;
   const lastIndex = Math.max(0, chartData.length - 1);
 
-  function labelBoxWidth(text: string) {
-    return Math.max(28, String(text).length * 8 + 8);
-  }
-
-  const CustomLabel = (props: any) => {
-    const { x, y, value } = props;
-    if (value !== maxSla && value !== minSla) return null;
-    const text = `${value}%`;
-    const w = labelBoxWidth(text);
-    const h = 18;
-    return (
-      <g>
-        <rect x={x - w / 2} y={y - 28} width={w} height={h} rx={4} fill="#fff" stroke="var(--border)" />
-        <text x={x} y={y - 16} textAnchor="middle" fill="var(--muted-foreground)" fontSize={11} fontWeight={600}>{text}</text>
-      </g>
-    );
-  };
   // compute Y axis domain: if min is high, start the axis a bit below it (but not below 70)
   let yMin = Math.floor(minSla) - 5;
   if (minSla >= 70 && yMin < 70) yMin = 70;
@@ -138,34 +187,13 @@ export function SlaChart({ data }: SlaChartProps) {
                     dataKey="sla"
                     stroke={chartConfig.sla.color}
                     strokeWidth={2}
-                    dot={function CustomDot(props: any) {
-                      const { cx, cy, payload, index } = props;
-                      if (cx == null || cy == null) return <g />;
-                      const isAlert = payload && typeof payload.meta === 'number' && payload.sla < payload.meta;
-                      const isLast = index === lastIndex;
-                      const r = isAlert ? 6 : (isLast ? 5 : 3);
-                      const fill = isAlert ? 'var(--color-destructive,#ef4444)' : '#ffffff';
-                      const stroke = isAlert ? 'var(--color-destructive,#ef4444)' : 'var(--color-sla)';
-                      const labelText = `${Number(payload.sla).toFixed(0)}%`;
-                      const w = labelBoxWidth(labelText);
-                      return (
-                        <g key={`dot-${index}`}>
-                          <circle cx={cx} cy={cy} r={r} fill={fill} stroke={stroke} strokeWidth={isAlert ? 2 : 1} />
-                          {isLast && (
-                            <g key={`last-${index}`}>
-                              <rect x={cx - w / 2} y={cy - 28} width={w} height={18} rx={4} fill="#fff" stroke="var(--border)" />
-                              <text x={cx} y={cy - 16} textAnchor="middle" fill="var(--muted-foreground)" fontSize={11} fontWeight={600}>{labelText}</text>
-                            </g>
-                          )}
-                        </g>
-                      );
-                    }}
+                    dot={(props) => <CustomDot {...props} lastIndex={lastIndex} />}
                     activeDot={{ r: 6 }}
                     animationDuration={800}
                     animationEasing="ease-in-out"
                     name="SLA Mensal"
                 >
-                    <LabelList dataKey="sla" content={<CustomLabel />} />
+                    <LabelList dataKey="sla" content={(props) => <CustomLabel {...props} maxSla={maxSla} minSla={minSla} />} />
                 </Line>
                  <Line 
                     type="monotone"

@@ -63,7 +63,8 @@ async function buildFlow() {
       if (input.incidents.length === 0) {
         return { analysis: [] };
       }
-      const { output } = await prompt(input);
+      const { callWithRetries } = await import('@/ai/callWithRetries');
+      const { output } = await callWithRetries(() => prompt(input));
       return output!;
     }
   );

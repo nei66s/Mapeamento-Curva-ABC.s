@@ -25,10 +25,23 @@ export async function POST(request: NextRequest) {
     // Remove a senha antes de retornar
     const { password: _, ...userWithoutPassword } = user;
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       user: userWithoutPassword,
       message: 'Login bem-sucedido'
     });
+    // Set a server-readable cookie with the user id so server layouts can load preferences
+    try {
+      res.cookies.set('userId', String(user.id), {
+        path: '/',
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+      });
+    } catch (e) {
+      // ignore cookie set errors
+    }
+    return res;
   } catch (error) {
     console.error('Erro no login:', error);
     return NextResponse.json(

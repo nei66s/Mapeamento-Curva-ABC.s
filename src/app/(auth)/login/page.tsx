@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -19,12 +19,14 @@ import { useCurrentUser } from '@/hooks/use-current-user';
 import { cloneDefaultPermissions, moduleDefinitions } from '@/lib/permissions-config';
 import type { UserRole } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 // logo removed per UI request
 
 // Removed Google sign-in option per request
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { setUser } = useCurrentUser();
   const [email, setEmail] = useState('');
@@ -63,6 +65,38 @@ export default function LoginPage() {
         } catch (e) {
           // não bloquear o fluxo de login se storage falhar
           console.warn('Não foi possível salvar usuário no localStorage', e);
+        }
+
+        // Persist user theme preferences to server-side settings (best-effort)
+        try {
+          if (typeof window !== 'undefined' && data?.user?.id) {
+            const payload = {
+              userId: data.user.id,
+              theme: localStorage.getItem('theme'),
+              themeColor: localStorage.getItem('themeColor'),
+              themeTone: localStorage.getItem('themeTone'),
+            };
+            // Fire-and-forget; no need to block navigation on failures
+            fetch('/api/settings', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            }).catch(() => {});
+          }
+        } catch (e) {
+          // não bloquear o fluxo de login se storage falhar
+          console.warn('Não foi possível salvar usuário no localStorage', e);
+        }
+
+        // If a returnTo param exists (set by middleware or client guard), prefer it.
+        try {
+          const returnTo = searchParams?.get?.('returnTo') ?? undefined;
+          if (returnTo && typeof returnTo === 'string' && returnTo.startsWith('/')) {
+            router.push(returnTo);
+            return;
+          }
+        } catch (e) {
+          // ignore and fall through to role-based redirect
         }
 
         // Decide where to navigate based on role permissions. Prefer the first
@@ -125,7 +159,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-950 px-4 py-10 overflow-hidden">
+    <div className="relative min-h-screen bg-slate-950 px-4 py-10 overflow-hidden flex items-center justify-center">
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 opacity-90" />
       <div className="absolute left-[-10%] top-20 h-72 w-72 rounded-full bg-primary/70 blur-3xl" />
       <div className="absolute right-[-5%] bottom-10 h-64 w-64 rounded-full bg-cyan-500/60 blur-3xl" />
