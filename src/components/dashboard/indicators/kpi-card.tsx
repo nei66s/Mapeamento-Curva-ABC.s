@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 
 interface KpiCardProps {
   title: string;
@@ -23,20 +23,14 @@ interface KpiCardProps {
 }
 
 export function KpiCard({ title, value, change, changeType, description, icon: Icon, iconColor, formatAsCurrency = false }: KpiCardProps) {
-  const [displayValue, setDisplayValue] = useState<string | null>(null);
-
-  useEffect(() => {
+  const displayValue = useMemo(() => {
     let formattedValue: string;
-    if (typeof value === 'number') {
-      if (formatAsCurrency) {
-        formattedValue = value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      } else {
-        formattedValue = value.toLocaleString('pt-BR');
-      }
+    if (typeof value === "number") {
+      formattedValue = value.toLocaleString("pt-BR", formatAsCurrency ? { style: "currency", currency: "BRL" } : undefined);
     } else {
-        formattedValue = value;
+      formattedValue = value;
     }
-    setDisplayValue(formattedValue);
+    return formattedValue;
   }, [value, formatAsCurrency]);
 
   return (

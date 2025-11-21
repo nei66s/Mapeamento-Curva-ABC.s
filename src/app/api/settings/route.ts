@@ -22,6 +22,8 @@ export async function PUT(request: Request) {
     if (!userId) return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     const saved = await upsertUserSettings(String(userId), {
       theme: body.theme,
+      themeColor: body.themeColor,
+      themeTone: body.themeTone,
       language: body.language,
       density: body.density,
       defaultPage: body.defaultPage,

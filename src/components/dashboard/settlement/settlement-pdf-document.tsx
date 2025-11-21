@@ -42,7 +42,7 @@ export function SettlementPdfDocument({ letter, supplier }: SettlementPdfDocumen
         <p className="mb-6 leading-relaxed">
             Pela presente, nós, <span className="font-bold">{supplier?.name || '[NOME DO FORNECEDOR]'}</span>, pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº <span className="font-bold">{supplier?.cnpj || '[CNPJ DO FORNECEDOR]'}</span>, com sede em <span className="font-bold">[Endereço do Fornecedor]</span>, declaramos, para todos os fins de direito, que recebemos da 
             <span className="font-bold">EMPREENDIMENTOS PAGUE MENOS S/A</span> o valor total referente à prestação de serviços/fornecimento de materiais, conforme Contrato/Ordem de Serviço nº 
-            <span className="font-bold"> {letter.contractId}</span>, cujo objeto foi <span className="font-bold">"{letter.description}"</span>, {period}.
+            <span className="font-bold"> {letter.contractId}</span>, cujo objeto foi <span className="font-bold">&ldquo;{letter.description}&rdquo;</span>, {period}.
         </p>
         
         <p className="mb-6 leading-relaxed">

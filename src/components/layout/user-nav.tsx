@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,9 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from 'next/link';
 import { useCurrentUser } from '@/hooks/use-current-user';
+import { useRouter } from 'next/navigation';
 
 export function UserNav() {
   const { user, setUser } = useCurrentUser();
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     const handleStorage = () => {
@@ -51,7 +54,16 @@ export function UserNav() {
   }, [setUser]);
 
   return (
-    <DropdownMenu>
+    <>
+      {isLoggingOut && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="flex flex-col items-center gap-4 rounded-md bg-white/5 px-6 py-5 backdrop-blur-md">
+            <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="text-sm text-white">Finalizando logout...</div>
+          </div>
+        </div>
+      )}
+      <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
@@ -81,10 +93,44 @@ export function UserNav() {
       <DropdownMenuItem>Configurações</DropdownMenuItem>
     </Link>
         <DropdownMenuSeparator />
-         <Link href="/login" passHref>
-            <DropdownMenuItem>Sair</DropdownMenuItem>
-        </Link>
+        <DropdownMenuItem
+          onClick={async () => {
+            // Mark global flag and show logout overlay immediately
+            try { (window as any).__pm_logging_out = true; } catch (e) {}
+            setIsLoggingOut(true);
+
+            // Immediately clear client-side auth state to avoid any flash
+            try { setUser(null); } catch (e) {}
+            try { localStorage.removeItem('pm_user'); } catch (e) {}
+            try { window.dispatchEvent(new CustomEvent('pm_user_changed', { detail: null })); } catch (e) {}
+            try { document.cookie = 'pm_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'; } catch (e) {}
+
+            // Attempt to notify server to clear session, but don't block longer than 3s.
+            try {
+              const controller = new AbortController();
+              const timeout = setTimeout(() => controller.abort(), 3000);
+              try {
+                // debug log
+                try { console.log('[logout] sending POST /api/logout'); } catch (e) {}
+                await fetch('/api/logout', { method: 'POST', signal: controller.signal });
+                try { console.log('[logout] server responded'); } catch (e) {}
+              } catch (e) {
+                // ignore fetch errors/timeouts
+                try { console.log('[logout] fetch failed or timed out', e); } catch (err) {}
+              }
+              clearTimeout(timeout);
+            } catch (e) {}
+
+            // Use full-page navigation to /login to avoid duplicate client-side
+            // app-router navigations which can produce two GETs for the same path.
+            try { console.log('[logout] navigating to /login'); } catch (e) {}
+            try { window.location.replace('/login'); } catch (e) { try { router.replace('/login'); } catch (err) {} }
+          }}
+        >
+          Sair
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    </>
   );
 }

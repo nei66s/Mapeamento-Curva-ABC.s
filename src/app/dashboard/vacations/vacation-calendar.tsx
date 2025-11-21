@@ -202,10 +202,12 @@ export function VacationCalendar({
   }
   function MonthFooter(props: FooterProps) {
     const displayMonth: Date | undefined = props.displayMonth;
-    if (!displayMonth) return null;
 
     const { monthUsers, hasConflict } = useMemo(() => {
-  const users = new Map<string, { id: string; name: string; color: string }>();
+      if (!displayMonth) {
+        return { monthUsers: [], hasConflict: false };
+      }
+      const users = new Map<string, { id: string; name: string; color: string }>();
       let conflict = false;
       const monthStart = startOfMonth(displayMonth);
       const monthEnd = endOfMonth(displayMonth);
@@ -220,7 +222,7 @@ export function VacationCalendar({
         }
       });
 
-          vacations.forEach(v => {
+      vacations.forEach(v => {
         const isSynthetic = v.userId && String(v.userId).startsWith('local-user-');
         if (isSynthetic || visibleUsers.has(v.userId)) {
           const vacationStart = parseISO(v.startDate);
@@ -235,6 +237,10 @@ export function VacationCalendar({
       });
       return { monthUsers: Array.from(users.values()), hasConflict: conflict };
     }, [displayMonth, visibleUsers, vacations, userColors, vacationsByDay]);
+
+    if (!displayMonth) {
+      return null;
+    }
 
     if (monthUsers.length === 0 && !hasConflict) {
       return null;

@@ -64,7 +64,8 @@ async function buildFlow() {
     },
     async (input: KpiSummaryInput) => {
       try {
-        const { output } = await kpiSummaryPrompt(input as any);
+        const { callWithRetries } = await import('@/ai/callWithRetries');
+        const { output } = await callWithRetries(() => kpiSummaryPrompt(input as any), 3, 300);
         return output!;
       } catch (err: any) {
         console.error('Error running kpiSummaryPrompt:', err);
@@ -83,7 +84,9 @@ async function buildFlow() {
 
         // For other errors, rethrow a friendlier message so callers can
         // still surface a readable error in the UI.
-        throw new Error('Falha ao rodar análise de IA. Verifique as credenciais e veja os logs do servidor para detalhes. ' + (err?.message ?? ''));
+        // Include status/code when available to help debugging transient provider errors.
+        const statusInfo = err?.status || err?.statusCode || err?.code ? ` [status=${err?.status ?? err?.statusCode ?? err?.code}]` : '';
+        throw new Error('Falha ao rodar análise de IA. Verifique as credenciais e veja os logs do servidor para detalhes. ' + (err?.message ?? '') + statusInfo);
       }
     }
   );

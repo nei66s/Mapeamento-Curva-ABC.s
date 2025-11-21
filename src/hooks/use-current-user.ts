@@ -81,7 +81,6 @@ export function CurrentUserProvider({ children }: { children: React.ReactNode })
 
 export function useCurrentUser() {
   const ctx = useContext(CurrentUserContext);
-  if (ctx) return ctx;
-  return useCurrentUserInternal();
+  const internal = useCurrentUserInternal();
+  return ctx ?? internal;
 }
-

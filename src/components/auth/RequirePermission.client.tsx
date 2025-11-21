@@ -54,28 +54,44 @@ export default function RequirePermission({ children }: { children: React.ReactN
   // Do not return early here: hooks must be registered in the same order every render.
   // We'll perform the early-return after all hooks/effects are registered below.
 
-  const role = user?.role ?? 'visualizador';
+  const role = user?.role;
 
   const mId = moduleId as string | undefined;
-  const allowed = (mId ? perms?.[role]?.[mId] : undefined) ?? (mId ? cloneDefaultPermissions()[role]?.[mId] : undefined) ?? false;
+  const allowed = user
+    ? ((mId ? perms?.[role ?? 'visualizador']?.[mId] : undefined) ?? (mId ? cloneDefaultPermissions()[role ?? 'visualizador']?.[mId] : undefined) ?? false)
+    : false;
   // Always register the redirect effect in the same hook order.
   // Effect will early-return when not applicable to avoid changing behavior.
   useEffect(() => {
     if (loading) return; // wait for user
     if (!moduleId) return; // no module mapping, allow access
+    // if logout is in progress, skip client-side redirects to avoid double navigation
+    if (typeof window !== 'undefined' && (window as any).__pm_logging_out) return;
+    // if no user, force login
+    if (!user) {
+      if (!pathname || pathname === '/login') return;
+      // include returnTo so user can be redirected back after successful login
+      try {
+        router.replace('/login?returnTo=' + encodeURIComponent(pathname));
+      } catch (e) {
+        router.replace('/login');
+      }
+      return;
+    }
     if (allowed) return; // user allowed, no redirect
-    // prevent endless redirect if already in root/dashboard area
+    // prevent endless redirect if already in root area or already on indicators
     if (!pathname) return;
-    if (pathname === '/' || pathname === '/indicators') return;
+    if (pathname === '/' || pathname.startsWith('/indicators') || pathname.startsWith('/dashboard/indicators')) return;
     router.replace('/indicators');
   }, [loading, moduleId, allowed, pathname, router]);
 
   // Now that hooks and effects are registered consistently, apply the same
   // early-return logic that previously existed.
   if (loading) return null; // while we know user
+  // If a logout is in progress, don't render any protected UI (avoids flash)
+  if (typeof window !== 'undefined' && (window as any).__pm_logging_out) return null;
   // if moduleId not mapped, allow access
   if (!moduleId) return <>{children}</>;
-
   if (allowed) return <>{children}</>;
 
   return (

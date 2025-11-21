@@ -258,7 +258,7 @@ export default function UsersRoutePage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Redefinir Senha?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  A senha do usuário <span className="font-bold">{user.name}</span> será redefinida para a senha padrão "paguemenos". O usuário será solicitado a alterá-la no próximo login.
+                                  A senha do usuário <span className='font-bold'>{user.name}</span> será redefinida para a senha padrão paguemenos. O usuário será solicitado a alterá-la no próximo login.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>

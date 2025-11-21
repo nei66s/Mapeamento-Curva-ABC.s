@@ -54,13 +54,15 @@ import { PermissionsMatrix } from '@/components/dashboard/admin/permissions-matr
 import { cloneDefaultPermissions, moduleDefinitions, roleList } from '@/lib/permissions-config';
 
 
-const currentUserRole: UserRole = 'admin';
-const currentUserId = 'user-001';
+import { useCurrentUser } from '@/hooks/use-current-user';
 
 const roles: UserRole[] = roleList;
 
 
 export default function AdminPage() {
+  const { user, loading } = useCurrentUser();
+  const currentUserRole: UserRole | undefined = user?.role;
+  const currentUserId = user?.id ?? '';
   const [users, setUsers] = useState<User[]>([]);
   const [permissions, setPermissions] = useState(() => cloneDefaultPermissions());
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -200,7 +202,7 @@ export default function AdminPage() {
     }
   };
 
-  if (currentUserRole !== 'admin') {
+  if (!loading && currentUserRole !== 'admin') {
     return (
       <div className="flex flex-col gap-8">
         <PageHeader
@@ -304,7 +306,7 @@ export default function AdminPage() {
                        <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" disabled={user.id === currentUserId}>
+                              <Button variant="ghost" size="icon" disabled={user.id === currentUserId}>
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -319,7 +321,7 @@ export default function AdminPage() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Redefinir Senha?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    A senha do usuário <span className="font-bold">{user.name}</span> será redefinida para a senha padrão "paguemenos". O usuário será solicitado a alterá-la no próximo login.
+                                  A senha do usuário <span className='font-bold'>{user.name}</span> será redefinida para a senha padrão paguemenos. O usuário será solicitado a alterá-la no próximo login.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>

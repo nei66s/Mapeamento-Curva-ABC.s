@@ -2,7 +2,7 @@ import type { ImpactFactor } from './impact-factors';
 
 export type Classification = 'A' | 'B' | 'C';
 export type IncidentStatus = 'Aberto' | 'Em Andamento' | 'Resolvido' | 'Fechado';
-export type UserRole = 'admin' | 'gestor' | 'regional' | 'visualizador' | 'fornecedor';
+export type UserRole = 'admin' | 'gestor' | 'regional' | 'visualizador' | 'fornecedor' | 'usuario';
 export type ComplianceStatus = 'completed' | 'pending' | 'not-applicable';
 export type RncStatus = 'Aberta' | 'Em Análise' | 'Concluída' | 'Cancelada';
 export type RncClassification = 'Crítica' | 'Moderada' | 'Baixa';
@@ -194,6 +194,40 @@ export type Tool = {
   lastMaintenance?: string; // ISO date string
 };
 
+export type AssetInsumo = {
+  name: string;
+  description?: string;
+  quantity?: number;
+  safetyStock?: boolean;
+  stockLocation?: string;
+};
+
+export type AssetComponente = {
+  name: string;
+  description?: string;
+  maintenanceComplexity?: string;
+  costEstimate?: string;
+  stockAvailable?: boolean;
+  criticality?: 'Baixa' | 'Média' | 'Alta' | 'Crítica';
+};
+
+export type AssetRecord = {
+  id: string;
+  storeId?: string;
+  storeName: string;
+  name: string;
+  patrimony?: string;
+  hierarchy?: string;
+  description?: string;
+  complexity?: string;
+  costEstimate?: string;
+  riskNotes?: string;
+  insumos: AssetInsumo[];
+  componentes: AssetComponente[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type SettlementLetter = {
   id: string;
   supplierId: string;
@@ -234,8 +268,48 @@ export type TechnicalReport = {
   status: ReportStatus;
 };
 
-export const userRoles = ['admin', 'gestor', 'regional', 'visualizador', 'fornecedor'] as const;
+export const userRoles = ['admin', 'gestor', 'regional', 'visualizador', 'fornecedor', 'usuario'] as const;
 
 export function isValidUserRole(role: any): role is UserRole {
   return userRoles.includes(role);
 }
+
+export type NotificationSeverity = 'info' | 'success' | 'warning' | 'error';
+export type NotificationRecord = {
+  id: number;
+  userId: string;
+  module?: string | null;
+  title: string;
+  message?: string | null;
+  severity: NotificationSeverity;
+  relatedId?: string | null;
+  meta?: Record<string, any> | null;
+  createdAt: string;
+  readAt: string | null;
+};
+
+export type NotificationPayload = {
+  module?: string | null;
+  title: string;
+  message?: string | null;
+  severity?: NotificationSeverity;
+  relatedId?: string | null;
+  meta?: Record<string, any> | null;
+};
+
+export type UserHistoryEntry = {
+  id: number;
+  userId: string;
+  module?: string | null;
+  action?: string | null;
+  pathname: string;
+  details?: Record<string, any> | null;
+  createdAt: string;
+};
+
+export type HistoryPayload = {
+  module?: string | null;
+  action?: string | null;
+  pathname: string;
+  details?: Record<string, any> | null;
+};

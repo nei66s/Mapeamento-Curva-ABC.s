@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import '@/lib/leaflet-init';
 import 'leaflet/dist/leaflet.css';
@@ -226,9 +226,9 @@ export default function ComplianceMap({ allStores, scheduledVisits }: Compliance
       }
     }
 
-  }, [allStores, scheduledVisits]);
+  }, [allStores, scheduledVisits, userLocation]);
 
-  const centerOnUser = () => {
+  const centerOnUser = useCallback(() => {
     const isMapAttached = (m?: L.Map | null) => {
       try { return !!m && typeof m.getContainer === 'function' && document.contains(m.getContainer()); } catch (e) { return false; }
     };
@@ -288,13 +288,14 @@ export default function ComplianceMap({ allStores, scheduledVisits }: Compliance
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  };
+  }, [userLocation, toast]);
   // Expose centerOnUser on the map object so the control can call it
   useEffect(() => {
     if (mapRef.current) {
       (mapRef.current as any)._centerOnUser = centerOnUser;
     }
-  }, [mapRef.current]);
+  }, [centerOnUser]);
+
 
   return (
     <div className="relative">

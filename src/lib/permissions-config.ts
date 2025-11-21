@@ -5,7 +5,7 @@ export type ModuleDefinition = {
   label: string;
 };
 
-export const roleList: UserRole[] = ['admin', 'gestor', 'regional', 'visualizador', 'fornecedor'];
+export const roleList: UserRole[] = ['admin', 'gestor', 'regional', 'visualizador', 'fornecedor', 'usuario'];
 
 export const moduleDefinitions: ModuleDefinition[] = [
   { id: 'indicators', label: 'Painel de Indicadores' },
@@ -19,12 +19,15 @@ export const moduleDefinitions: ModuleDefinition[] = [
   { id: 'suppliers', label: 'Gestão de Fornecedores' },
   { id: 'warranty', label: 'Controle de Garantias' },
   { id: 'tools', label: 'Almoxarifado de Ferramentas' },
+  { id: 'assets', label: 'Gestão de Ativos' },
   { id: 'vacations', label: 'Gestão de Férias' },
   { id: 'settlement', label: 'Cartas de Quitação' },
   { id: 'escopos', label: 'Criação de Escopos' },
   { id: 'profile', label: 'Meu Perfil' },
   { id: 'settings', label: 'Configurações' },
   { id: 'about', label: 'Sobre a Plataforma' },
+  { id: 'users', label: 'Usuários' },
+  { id: 'administration', label: 'Administração' },
 ];
 
 const adminPermissions = Object.fromEntries(moduleDefinitions.map(m => [m.id, true]));
@@ -43,12 +46,15 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     suppliers: true,
     warranty: true,
     tools: true,
+    assets: true,
     settlement: true,
     vacations: true,
     escopos: true,
     profile: true,
     settings: true,
     about: true,
+    users: true,
+    administration: false,
   },
   regional: {
     indicators: true,
@@ -61,12 +67,15 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     suppliers: false,
     warranty: true,
     tools: true,
+    assets: true,
     settlement: false,
     vacations: false,
     escopos: true,
     profile: true,
     settings: true,
     about: true,
+    users: false,
+    administration: false,
   },
   visualizador: {
     indicators: true,
@@ -79,12 +88,15 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     suppliers: false,
     warranty: false,
     tools: false,
+    assets: false,
     settlement: false,
     vacations: false,
     escopos: false,
     profile: true,
     settings: false,
     about: true,
+    users: false,
+    administration: false,
   },
   fornecedor: {
     indicators: false,
@@ -97,12 +109,36 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     suppliers: false,
     warranty: false,
     tools: false,
+    assets: false,
     settlement: true,
     vacations: false,
     escopos: false,
     profile: true,
     settings: true,
     about: true,
+    users: false,
+    administration: false,
+  },
+  usuario: {
+    indicators: true,
+    releases: false,
+    incidents: false,
+    rncs: false,
+    categories: false,
+    matrix: false,
+    compliance: false,
+    suppliers: false,
+    warranty: false,
+    tools: false,
+    assets: false,
+    settlement: false,
+    vacations: false,
+    escopos: false,
+    profile: true,
+    settings: true,
+    about: true,
+    users: false,
+    administration: false,
   },
 };
 

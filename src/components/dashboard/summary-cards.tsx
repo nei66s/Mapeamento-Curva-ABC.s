@@ -18,13 +18,10 @@ interface SummaryCardsProps {
 }
 
 export function SummaryCards({ items: propItems, hideOverallStats = false }: SummaryCardsProps = {}) {
-  const [items, setItems] = useState<Item[]>(propItems ?? []);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [items, setItems] = useState<Item[]>([]);
 
   useEffect(() => {
     if (propItems) {
-      setItems(propItems);
-      setLoadError(null);
       return;
     }
 
@@ -50,25 +47,25 @@ export function SummaryCards({ items: propItems, hideOverallStats = false }: Sum
             bodyStr = String(body);
           }
           console.error(`Failed to load items: status=${res.status} body=${bodyStr}`);
-          if (mounted) setLoadError(`Failed to load items (status ${res.status})`);
+          if (mounted) setItems([]);
           return;
         }
         const data: Item[] = await res.json();
         if (mounted) {
           setItems(data);
-          setLoadError(null);
         }
       } catch (e) {
         console.error('Error loading items', e);
-        if (mounted) setLoadError(String(e ?? 'unknown error'));
       }
     };
     load();
     return () => { mounted = false; };
   }, [propItems]);
 
-  const totalItems = items.length;
-  const criticalItems = items.filter(i => i.classification === 'A').length;
+  const resolvedItems = propItems ?? items;
+
+  const totalItems = resolvedItems.length;
+  const criticalItems = resolvedItems.filter(i => i.classification === 'A').length;
   const openIncidents = 0;
   const summaryData = [
     {

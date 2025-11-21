@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -71,6 +72,8 @@ export default function ToolsPage() {
 
   const usersMap = useMemo(() => new Map(users.map(u => [u.id, u.name])), [users]);
 
+  const { user, loading: userLoading } = useCurrentUser();
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -84,8 +87,10 @@ export default function ToolsPage() {
         console.error(e);
       }
     };
+    if (userLoading) return;
+    if (!user) return;
     load();
-  }, []);
+  }, [user, userLoading]);
 
   const filteredTools = useMemo(() => {
     return tools.filter(tool => {

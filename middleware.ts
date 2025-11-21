@@ -25,50 +25,109 @@ function getModuleId(path: string) {
 export function middleware(req: NextRequest) {
   const { nextUrl, cookies } = req;
   const path = nextUrl.pathname;
-  if (!path.startsWith('/dashboard')) return NextResponse.next();
+  // allow public/internal asset routes to pass through
+  if (
+    path.startsWith('/_next') ||
+    path.startsWith('/api') ||
+    path.startsWith('/static') ||
+    path.startsWith('/public') ||
+    path === '/favicon.ico' ||
+    path.startsWith('/_static')
+  ) {
+    return NextResponse.next();
+  }
 
-  const moduleId = getModuleId(path);
-  if (!moduleId) return NextResponse.next();
+  // allow explicit auth pages
+  if (path === '/login' || path.startsWith('/(auth)') || path.startsWith('/auth')) {
+    return NextResponse.next();
+  }
 
-  // try read role from cookie pm_user (we store small JSON client-side)
-  const raw = cookies.get('pm_user')?.value;
-  let role = 'visualizador';
-  if (raw) {
+  // Accept presence of any of these cookies as authentication proof.
+  const pmRaw = cookies.get('pm_user')?.value;
+  const sessionRaw = cookies.get('session')?.value;
+  const nextAuthRaw = cookies.get('next-auth.session-token')?.value;
+  if (!pmRaw && !sessionRaw && !nextAuthRaw) {
+    // Debug log to help diagnose duplicate /login requests in dev
     try {
-      const parsed = JSON.parse(decodeURIComponent(raw));
-      if (parsed && parsed.role) role = parsed.role;
+      // eslint-disable-next-line no-console
+      console.log('[middleware] unauthenticated request', { path, cookie: cookies.get('pm_user')?.value ? 'pm_user' : (cookies.get('session')?.value ? 'session' : (cookies.get('next-auth.session-token')?.value ? 'next-auth' : 'none')) });
+    } catch (e) {}
+    const url = nextUrl.clone();
+    url.pathname = '/login';
+    // preserve the originally requested path so the app can navigate back after login
+    try { url.searchParams.set('returnTo', path); } catch (e) {}
+    return NextResponse.redirect(url);
+  }
+  // Development-only debug: log which cookie is being used to allow access.
+  try {
+    if (process.env.NODE_ENV !== 'production') {
+      let used = 'none';
+      let parsedRole: string | undefined = undefined;
+      if (pmRaw) {
+        used = 'pm_user';
+        try {
+          const parsed = JSON.parse(decodeURIComponent(pmRaw));
+          parsedRole = parsed?.role;
+        } catch (e) {
+          parsedRole = 'malformed';
+        }
+      } else if (sessionRaw) {
+        used = 'session';
+      } else if (nextAuthRaw) {
+        used = 'next-auth.session-token';
+      }
+      // eslint-disable-next-line no-console
+      console.log('[middleware] authenticated request', { path, used, role: parsedRole ?? null });
+    }
+  } catch (e) {
+    // ignore logging errors
+  }
+
+  // If pm_user is present, try parse role for permission checks. If not present
+  // we treat the request as authenticated (server session may be available),
+  // but skip module-level permission enforcement since we can't derive role here.
+  let role = 'visualizador';
+  let hasPm = false;
+  if (pmRaw) {
+    try {
+      const parsed = JSON.parse(decodeURIComponent(pmRaw));
+      // if parsing succeeds and we have an id, treat as pm_user present
+      if (parsed && (parsed.id || parsed.role)) {
+        hasPm = true;
+        if (parsed.role) role = parsed.role;
+      } else {
+        // malformed pm_user: treat as not authenticated
+        const url = nextUrl.clone();
+        url.pathname = '/login';
+        try { url.searchParams.set('returnTo', path); } catch (e) {}
+        return NextResponse.redirect(url);
+      }
     } catch (e) {
-      // ignore
+      // malformed cookie content - treat as unauthenticated
+      const url = nextUrl.clone();
+      url.pathname = '/login';
+      try { url.searchParams.set('returnTo', path); } catch (e) {}
+      return NextResponse.redirect(url);
     }
   }
 
-  const defaults: any = cloneDefaultPermissions();
-  const allowed = Boolean(defaults[role]?.[moduleId]);
-  if (allowed) return NextResponse.next();
+  // enforce module-level permissions for known module paths
+  const moduleId = getModuleId(path);
+  if (moduleId && hasPm) {
+    const defaults: any = cloneDefaultPermissions();
+    const allowed = Boolean(defaults[role]?.[moduleId]);
+    if (!allowed) {
+      const url = nextUrl.clone();
+      url.pathname = '/indicators';
+      return NextResponse.redirect(url);
+    }
+  }
 
-  // redirect to indicators root if not allowed
-  const url = nextUrl.clone();
-  url.pathname = '/indicators';
-  return NextResponse.redirect(url);
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/indicators/:path*',
-    '/releases/:path*',
-    '/incidents/:path*',
-    '/rncs/:path*',
-    '/categories/:path*',
-    '/matrix/:path*',
-    '/compliance/:path*',
-    '/vacations/:path*',
-    '/suppliers/:path*',
-    '/warranty/:path*',
-    '/tools/:path*',
-    '/settlement/:path*',
-    '/profile/:path*',
-    '/settings/:path*',
-    '/admin/:path*',
+    '/:path*',
   ],
 };

@@ -4,6 +4,7 @@ export type ScopeTextImprovementInput = {
   text: string;
   context?: string;
   tone?: string;
+  preferenceText?: string;
 };
 
 export type ScopeTextImprovementOutput = {
@@ -17,7 +18,8 @@ async function buildFlow() {
   const ScopeTextImprovementInputSchema = z.object({
     text: z.string().min(3).describe('Texto base do escopo ou item que precisa ser melhorado.'),
     context: z.string().max(400).optional().describe('Contexto adicional para deixar a resposta alinhada com o objetivo.'),
-    tone: z.string().max(50).optional().describe('Tom desejado para o texto.')
+    tone: z.string().max(50).optional().describe('Tom desejado para o texto.'),
+    preferenceText: z.string().max(200).optional().describe('Preferência do autor sobre detalhamento ou deixar ao fornecedor.')
   });
 
   const ScopeTextImprovementOutputSchema = z.object({
@@ -28,18 +30,20 @@ async function buildFlow() {
     name: 'scopeTextImprovementPrompt',
     input: { schema: ScopeTextImprovementInputSchema },
     output: { schema: ScopeTextImprovementOutputSchema },
-    prompt: `Você é um especialista em planejamento de manutenção e escopos técnicos. Sua missão é reescrever o texto abaixo para deixá-lo mais claro, conciso e orientado para ação.` +
-      `
+      prompt: `Você é um especialista em planejamento de manutenção e escopos técnicos. Sua missão é reescrever o texto abaixo para deixá-lo mais claro, conciso e orientado para ação.` +
+    `
 
-Contexto extra: {{{context}}}` +
-      `
-Tom desejado: {{{tone}}}` +
-      `
+  Contexto extra: {{{context}}}` +
+    `
+  Preferência: {{{preferenceText}}}` +
+    `
+  Tom desejado: {{{tone}}}` +
+    `
 
-Texto original:
-{{{text}}}
+  Texto original:
+  {{{text}}}
 
-Texto reescrito:`
+  Texto reescrito:`
   });
 
   const flow = ai.defineFlow(
@@ -49,7 +53,8 @@ Texto reescrito:`
       outputSchema: ScopeTextImprovementOutputSchema,
     },
     async (input: ScopeTextImprovementInput) => {
-      const { output } = await prompt(input as any);
+      const { callWithRetries } = await import('@/ai/callWithRetries');
+      const { output } = await callWithRetries(() => prompt(input as any));
       return output!;
     }
   );
