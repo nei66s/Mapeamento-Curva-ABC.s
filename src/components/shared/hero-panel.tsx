@@ -35,7 +35,7 @@ export function HeroPanel({
   className,
 }: HeroPanelProps) {
   return (
-    <div className={cn('rounded-3xl p-6 shadow-xl', gradientClassName, 'hero-gradient', className)}>
+    <div className={cn('rounded-lg p-6 shadow-sm hero-soft', gradientClassName, className)}>
       <div className="flex items-center justify-between gap-2">
         <p className="text-[0.65rem] uppercase tracking-[0.3em] text-muted-foreground">{label}</p>
         {badge && <div>{badge}</div>}
