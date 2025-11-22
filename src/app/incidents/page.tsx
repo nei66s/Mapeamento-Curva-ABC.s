@@ -275,7 +275,7 @@ export default function IncidentsPage() {
       toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar o incidente.' });
     }
   };
-  
+
   const handleBulkSubmit = async (newIncidents: Omit<Incident, 'id' | 'openedAt' | 'status'>[]) => {
     const created: Incident[] = [];
     for (const inc of newIncidents) {
@@ -386,7 +386,7 @@ export default function IncidentsPage() {
             helper: stat.helper,
           }))}
         />
-        <Card className="rounded-3xl border border-border/40 bg-card/80 shadow-lg">
+        <Card className="">
           <CardHeader>
             <CardTitle>Curva ABC em foco</CardTitle>
             <CardDescription>Distribuição dos itens cadastrados.</CardDescription>
@@ -412,7 +412,7 @@ export default function IncidentsPage() {
 
       <section className="space-y-6">
         <div className="grid gap-6 lg:grid-cols-[1.4fr,0.6fr]">
-          <Card className="rounded-3xl border border-border/40 shadow-lg">
+          <Card className="">
             <CardHeader>
               <CardTitle>Mapa de Lojas e Incidentes</CardTitle>
               <CardDescription>Visualização geográfica de todas as lojas e incidentes ativos.</CardDescription>
@@ -421,7 +421,7 @@ export default function IncidentsPage() {
               <IncidentMap incidents={filteredIncidents} />
             </CardContent>
           </Card>
-          <Card className="rounded-3xl border border-border/40 shadow-lg">
+          <Card className="">
             <CardHeader>
               <CardTitle>Status dos incidentes</CardTitle>
               <CardDescription>Distribuição atual dos status.</CardDescription>
@@ -441,7 +441,7 @@ export default function IncidentsPage() {
             </CardContent>
           </Card>
         </div>
-        <Card className="rounded-3xl border border-border/40 shadow-lg">
+        <Card className="">
           <CardHeader className='flex-row items-center justify-between'>
             <div className='flex items-center gap-4'>
               <div>
@@ -462,7 +462,7 @@ export default function IncidentsPage() {
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-10 gap-1">
+                  <Button variant="outline" size="sm" className="h-10 gap-2">
                     <ListFilter className="h-3.5 w-3.5" />
                     <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                       Filtros
