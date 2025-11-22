@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import { PageHeader } from '@/components/shared/page-header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { MaintenanceIndicator, Incident } from '@/lib/types';
@@ -23,6 +24,8 @@ import { Separator } from '@/components/ui/separator';
 import type { Item } from '@/lib/types';
 import { Progress } from '@/components/ui/progress';
 import { HeroPanel } from '@/components/shared/hero-panel';
+import { AiStatusIndicator, type AiStatusSummary } from '@/components/dashboard/ai-status';
+import { getSeasonSnapshot } from '@/lib/season';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, options);
@@ -68,6 +71,8 @@ export default function IndicatorsPage() {
     return data;
   }, []);
 
+  const { user, loading: userLoading } = useCurrentUser();
+
   useEffect(() => {
     let mounted = true;
     const load = async () => {
@@ -85,11 +90,14 @@ export default function IndicatorsPage() {
         });
       }
     };
+    // Do not start loading data until we know the current user state.
+    if (userLoading) return;
+    if (!user) return; // unauthenticated - RequirePermission/middleware will redirect
     load();
     return () => {
       mounted = false;
     };
-  }, [refreshIndicators, refreshIncidents, toast]);
+  }, [refreshIndicators, refreshIncidents, toast, user, userLoading]);
 
   // manual refetch for the alert action
   const refetchIncidents = useCallback(async () => {
@@ -259,8 +267,53 @@ export default function IndicatorsPage() {
   }, [refreshIndicators, refreshIncidents, toast]);
 
   const [inventoryError, setInventoryError] = useState<string | null>(null);
+  const [aiStatus, setAiStatus] = useState<AiStatusSummary>({
+    available: null,
+    envKey: false,
+    credFile: false,
+    checkedAt: null,
+    loading: true,
+  });
+
+  const refreshAiStatus = useCallback(async () => {
+    setAiStatus(prev => ({ ...prev, loading: true, error: undefined }));
+    try {
+      const res = await fetch('/api/ai/status');
+      if (!res.ok) {
+        throw new Error(`AI status check failed (${res.status})`);
+      }
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await res.text();
+        throw new Error(`Resposta inesperada: ${text.slice(0, 120)}`);
+      }
+      const data = await res.json();
+      setAiStatus({
+        available: Boolean(data?.available),
+        envKey: Boolean(data?.envKey),
+        credFile: Boolean(data?.credFile),
+        checkedAt: Date.now(),
+        loading: false,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setAiStatus(prev => ({
+        available: false,
+        envKey: prev.envKey,
+        credFile: prev.credFile,
+        checkedAt: Date.now(),
+        loading: false,
+        error: message,
+      }));
+    }
+  }, []);
+
+  const seasonSnapshot = useMemo(() => getSeasonSnapshot(), []);
+  const { theme } = seasonSnapshot;
 
   useEffect(() => {
+    refreshAiStatus();
+
     const controller = new AbortController();
     let mounted = true;
     const load = async () => {
@@ -283,7 +336,7 @@ export default function IndicatorsPage() {
       mounted = false;
       controller.abort();
     };
-  }, []);
+  }, [refreshAiStatus]);
 
   const inventoryHeroStats = useMemo(() => {
     const total = inventoryItems.length;
@@ -427,7 +480,7 @@ export default function IndicatorsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <section className="relative overflow-hidden rounded-[32px] border border-border/60 bg-card/90 p-8 shadow-2xl">
+      <section className="relative overflow-hidden rounded-lg bg-card/90 p-8 shadow-sm border border-border/40">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.2),_transparent_60%)] opacity-80" />
         <div className="relative z-10 grid gap-8">
           <PageHeader
@@ -491,7 +544,7 @@ export default function IndicatorsPage() {
         </HeroPanel>
       </section>
 
-      <section className="space-y-6 rounded-[28px] border border-border/60 bg-card/80 p-6 shadow-lg">
+      <section className="space-y-6 rounded-lg bg-card/80 p-6 shadow-sm border border-border/40">
         <div className="flex items-center gap-3 text-2xl font-semibold text-foreground">
           <BarChart3 className="h-6 w-6 text-primary" />
           Indicadores Gerais
@@ -527,7 +580,7 @@ export default function IndicatorsPage() {
 
       {!selectedData && (
         <section>
-          <Card className="border border-border rounded-3xl shadow-sm p-6 bg-card/80">
+          <Card className="p-6">
             <CardHeader>
               <CardTitle>Sem dados para este mês</CardTitle>
               <CardDescription>
@@ -548,7 +601,7 @@ export default function IndicatorsPage() {
             Indicadores Operacionais do Mês
           </div>
 
-          <Card className="rounded-3xl border border-border/40 bg-card/80 shadow-lg">
+          <Card className="p-6">
             <CardHeader>
               <CardTitle>Causas recorrentes</CardTitle>
               <CardDescription>Itens mais citados nos incidentes deste mês.</CardDescription>
@@ -585,14 +638,44 @@ export default function IndicatorsPage() {
 
           <Card className="rounded-3xl border border-primary/40 bg-card shadow-lg">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-primary">
-                <BrainCircuit className="h-6 w-6" />
-                Central de Análises com IA
-              </CardTitle>
-              <CardDescription>
-                Utilize inteligência artificial para obter insights sobre seus dados de manutenção.
-              </CardDescription>
-            </CardHeader>
+                <CardTitle className="flex items-center gap-2 text-primary">
+                  <BrainCircuit className="h-6 w-6" />
+                  Central de Análises com IA
+                  <span className="ml-2">
+                    {aiStatus.loading ? (
+                      <span className="inline-flex items-center rounded-full bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">Verificando IA</span>
+                    ) : aiStatus.available ? (
+                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">IA disponível</span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-800">IA indisponível</span>
+                    )}
+                  </span>
+                </CardTitle>
+            <CardDescription>
+              Utilize inteligência artificial para obter insights sobre seus dados de manutenção.
+            </CardDescription>
+            <div
+              className={`mt-3 rounded-2xl border border-dashed p-3 text-sm ${theme.backgroundClass} ${theme.borderClass}`}
+            >
+              <p className="text-[0.65rem] uppercase tracking-wider text-slate-500">Estação atual</p>
+              <p className={`text-base font-semibold ${theme.textClass}`}>{seasonSnapshot.seasonLabel}</p>
+              <p className="text-xs text-muted-foreground">{seasonSnapshot.seasonNote}</p>
+              {seasonSnapshot.activeEvent && (
+                <div
+                  className={`mt-3 rounded-xl border bg-white/80 p-3 text-[0.75rem] shadow-inner ${theme.borderClass}`}
+                >
+                  <p className="font-semibold text-[0.85rem] text-foreground">
+                    {theme.eventEmoji ?? theme.emoji} {seasonSnapshot.activeEvent.name}
+                  </p>
+                  <p className="text-xs text-foreground">{seasonSnapshot.activeEvent.description}</p>
+                  <p className="mt-1 text-[0.65rem] text-foreground">
+                    {seasonSnapshot.activeEvent.impact}
+                  </p>
+                </div>
+              )}
+            </div>
+            <AiStatusIndicator status={aiStatus} onRefresh={refreshAiStatus} />
+          </CardHeader>
             <CardContent className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <KpiAnalysis indicator={selectedData} />
               <ParetoAnalysis incidents={incidentsForMonth} />
