@@ -1,6 +1,19 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { cloneDefaultPermissions } from './src/lib/permissions-config';
+async function fetchSession(req: NextRequest) {
+  const base = req.nextUrl.origin;
+  try {
+    const res = await fetch(`${base}/api/admin-panel/session`, {
+      headers: {
+        cookie: req.headers.get('cookie') ?? '',
+      },
+    });
+    return res;
+  } catch (e) {
+    return null;
+  }
+}
 
 function getModuleId(path: string) {
   // support both legacy /dashboard/* and new top-level routes
@@ -19,11 +32,18 @@ function getModuleId(path: string) {
   if (path.startsWith('/dashboard/profile') || path.startsWith('/profile')) return 'profile';
   if (path.startsWith('/dashboard/settings') || path.startsWith('/settings')) return 'settings';
   if (path.startsWith('/dashboard/admin') || path.startsWith('/admin')) return 'admin';
+  if (path.startsWith('/admin-panel/audit')) return 'admin-audit';
+  if (path.startsWith('/admin-panel/analytics')) return 'admin-analytics';
+  if (path.startsWith('/admin-panel/modules')) return 'admin-modules';
+  if (path.startsWith('/admin-panel/users')) return 'admin-users';
+  if (path.startsWith('/admin-panel/config')) return 'admin-config';
+  if (path.startsWith('/admin-panel/health')) return 'admin-health';
+  if (path.startsWith('/admin-panel')) return 'admin-dashboard';
   return undefined;
 }
 
-export function middleware(req: NextRequest) {
-  const { nextUrl, cookies } = req;
+export async function middleware(req: NextRequest) {
+  const { nextUrl } = req;
   const path = nextUrl.pathname;
   // allow public/internal asset routes to pass through
   if (
@@ -42,85 +62,38 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Accept presence of any of these cookies as authentication proof.
-  const pmRaw = cookies.get('pm_user')?.value;
-  const sessionRaw = cookies.get('session')?.value;
-  const nextAuthRaw = cookies.get('next-auth.session-token')?.value;
-  if (!pmRaw && !sessionRaw && !nextAuthRaw) {
-    // Debug log to help diagnose duplicate /login requests in dev
-    try {
-      // eslint-disable-next-line no-console
-      console.log('[middleware] unauthenticated request', { path, cookie: cookies.get('pm_user')?.value ? 'pm_user' : (cookies.get('session')?.value ? 'session' : (cookies.get('next-auth.session-token')?.value ? 'next-auth' : 'none')) });
-    } catch (e) {}
-    const url = nextUrl.clone();
-    url.pathname = '/login';
-    // preserve the originally requested path so the app can navigate back after login
-    try { url.searchParams.set('returnTo', path); } catch (e) {}
-    return NextResponse.redirect(url);
-  }
-  // Development-only debug: log which cookie is being used to allow access.
-  try {
-    if (process.env.NODE_ENV !== 'production') {
-      let used = 'none';
-      let parsedRole: string | undefined = undefined;
-      if (pmRaw) {
-        used = 'pm_user';
-        try {
-          const parsed = JSON.parse(decodeURIComponent(pmRaw));
-          parsedRole = parsed?.role;
-        } catch (e) {
-          parsedRole = 'malformed';
-        }
-      } else if (sessionRaw) {
-        used = 'session';
-      } else if (nextAuthRaw) {
-        used = 'next-auth.session-token';
-      }
-      // eslint-disable-next-line no-console
-      console.log('[middleware] authenticated request', { path, used, role: parsedRole ?? null });
-    }
-  } catch (e) {
-    // ignore logging errors
-  }
+  const moduleId = getModuleId(path);
+  const isAdminRoute = path.startsWith('/admin-panel');
 
-  // If pm_user is present, try parse role for permission checks. If not present
-  // we treat the request as authenticated (server session may be available),
-  // but skip module-level permission enforcement since we can't derive role here.
-  let role = 'visualizador';
-  let hasPm = false;
-  if (pmRaw) {
-    try {
-      const parsed = JSON.parse(decodeURIComponent(pmRaw));
-      // if parsing succeeds and we have an id, treat as pm_user present
-      if (parsed && (parsed.id || parsed.role)) {
-        hasPm = true;
-        if (parsed.role) role = parsed.role;
-      } else {
-        // malformed pm_user: treat as not authenticated
-        const url = nextUrl.clone();
-        url.pathname = '/login';
-        try { url.searchParams.set('returnTo', path); } catch (e) {}
-        return NextResponse.redirect(url);
-      }
-    } catch (e) {
-      // malformed cookie content - treat as unauthenticated
+  if (isAdminRoute) {
+    const sessionRes = await fetchSession(req);
+    if (!sessionRes || sessionRes.status === 401) {
       const url = nextUrl.clone();
       url.pathname = '/login';
       try { url.searchParams.set('returnTo', path); } catch (e) {}
       return NextResponse.redirect(url);
     }
-  }
-
-  // enforce module-level permissions for known module paths
-  const moduleId = getModuleId(path);
-  if (moduleId && hasPm) {
-    const defaults: any = cloneDefaultPermissions();
-    const allowed = Boolean(defaults[role]?.[moduleId]);
-    if (!allowed) {
+    if (sessionRes.status === 403) {
       const url = nextUrl.clone();
-      url.pathname = '/indicators';
+      url.pathname = '/';
       return NextResponse.redirect(url);
     }
+    let sessionJson: any = null;
+    try {
+      sessionJson = await sessionRes.json();
+    } catch (e) {
+      sessionJson = null;
+    }
+    if (moduleId && sessionJson) {
+      const allowed = Boolean(sessionJson.permissions?.[moduleId]);
+      const active = sessionJson.activeModules?.[moduleId] !== false;
+      if (!allowed || !active) {
+        const url = nextUrl.clone();
+        url.pathname = '/indicators';
+        return NextResponse.redirect(url);
+      }
+    }
+    return NextResponse.next();
   }
 
   return NextResponse.next();

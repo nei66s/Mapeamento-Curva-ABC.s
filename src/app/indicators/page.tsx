@@ -480,7 +480,7 @@ export default function IndicatorsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <section className="relative overflow-hidden rounded-[32px] border border-border/60 bg-card/90 p-8 shadow-2xl">
+      <section className="relative overflow-hidden rounded-lg bg-card/90 p-8 shadow-sm border border-border/40">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.2),_transparent_60%)] opacity-80" />
         <div className="relative z-10 grid gap-8">
           <PageHeader
@@ -544,7 +544,7 @@ export default function IndicatorsPage() {
         </HeroPanel>
       </section>
 
-      <section className="space-y-6 rounded-[28px] border border-border/60 bg-card/80 p-6 shadow-lg">
+      <section className="space-y-6 rounded-lg bg-card/80 p-6 shadow-sm border border-border/40">
         <div className="flex items-center gap-3 text-2xl font-semibold text-foreground">
           <BarChart3 className="h-6 w-6 text-primary" />
           Indicadores Gerais
@@ -580,7 +580,7 @@ export default function IndicatorsPage() {
 
       {!selectedData && (
         <section>
-          <Card className="border border-border rounded-3xl shadow-sm p-6 bg-card/80">
+          <Card className="p-6">
             <CardHeader>
               <CardTitle>Sem dados para este mês</CardTitle>
               <CardDescription>
@@ -601,7 +601,7 @@ export default function IndicatorsPage() {
             Indicadores Operacionais do Mês
           </div>
 
-          <Card className="rounded-3xl border border-border/40 bg-card/80 shadow-lg">
+          <Card className="p-6">
             <CardHeader>
               <CardTitle>Causas recorrentes</CardTitle>
               <CardDescription>Itens mais citados nos incidentes deste mês.</CardDescription>
@@ -636,7 +636,7 @@ export default function IndicatorsPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl border border-primary/40 bg-card shadow-lg">
+          <Card className="rounded-lg border border-primary/40 bg-card elevation-2">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-primary">
                   <BrainCircuit className="h-6 w-6" />

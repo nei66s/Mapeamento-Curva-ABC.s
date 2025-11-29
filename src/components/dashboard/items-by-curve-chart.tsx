@@ -82,7 +82,7 @@ export function ItemsByCurveChart() {
   }, []);
 
   return (
-    <Card className="shadow-lg h-full">
+    <Card className="elevation-2 h-full">
       <CardHeader>
         <CardTitle>Itens por Curva ABC</CardTitle>
         <CardDescription>Distribuição dos itens por classificação.</CardDescription>

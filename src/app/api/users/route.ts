@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getUsers, createUser, updateUser, deleteUser } from '@/lib/users.server';
+import { listUsers, createUser, updateUser, deleteUser } from '@/server/adapters/users-adapter';
 
 type UpdatePayload = {
   id?: string;
@@ -14,9 +14,13 @@ type UpdatePayload = {
 
 export async function GET() {
   try {
-    const users = await getUsers();
-    // Remove passwords before returning
-    const safe = users.map(({ password, ...rest }) => rest);
+    // reuse adapter listUsers (defaults to limit=50, offset=0)
+    const rows = await listUsers();
+    // adapter returns DB rows with no password by select; ensure we don't leak password
+    const safe = rows.map((r: any) => {
+      const { password, password_hash, ...rest } = r || {};
+      return rest;
+    });
     return NextResponse.json(safe);
   } catch (error) {
     console.error('Erro ao buscar usuários:', error);
@@ -32,9 +36,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Nome e email são obrigatórios.' }, { status: 400 });
     }
 
-  const created = await createUser({ name, email, role, password, avatarUrl, supplierId, department });
-  // Avoid shadowing the earlier `password` variable by aliasing during destructure
-  const { password: _omitted, ...safe } = created as any;
+    const created = await createUser({ name, email, password_hash: password || null, role });
+    const { password_hash: _ph, password: _pw, ...safe } = created || ({} as any);
     return NextResponse.json(safe, { status: 201 });
   } catch (error) {
     console.error('Erro ao criar usuário:', error);
@@ -48,10 +51,19 @@ export async function PUT(request: Request) {
     const { id, ...updates } = body;
     if (!id) return NextResponse.json({ error: 'id é obrigatório' }, { status: 400 });
 
-    const updated = await updateUser(id, updates as any);
+    const patch: any = {};
+    if (updates.name !== undefined) patch.name = updates.name;
+    if (updates.email !== undefined) patch.email = updates.email;
+    if (updates.role !== undefined) patch.role = updates.role;
+    if (updates.password !== undefined) patch.password_hash = updates.password;
+    if (updates.avatarUrl !== undefined) patch.avatar_url = updates.avatarUrl;
+    if (updates.supplierId !== undefined) patch.supplier_id = updates.supplierId;
+    if (updates.department !== undefined) patch.department = updates.department;
+
+    const updated = await updateUser(id, patch);
     if (!updated) return NextResponse.json({ error: 'Usuário não encontrado ou nada para atualizar' }, { status: 404 });
 
-    const { password, ...safe } = updated as any;
+    const { password_hash: _ph, password: _pw, ...safe } = updated as any;
     return NextResponse.json(safe);
   } catch (error) {
     console.error('Erro ao atualizar usuário:', error);

@@ -475,7 +475,7 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
             },
           ]}
         />
-        <div className="rounded-3xl border border-border/40 bg-card/80 p-6 shadow-lg">
+        <div className="card p-6 bg-card/80 border-border/40 elevation-2">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-muted-foreground">Próximas inspeções</p>
             <Badge variant="secondary" className="text-[0.6rem] uppercase tracking-[0.2em]">
@@ -502,7 +502,7 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
         </div>
       </section>
 
-      <Card className="rounded-3xl border border-border/40 bg-card/80 shadow-lg">
+      <Card className="card elevation-2 bg-card/80 border-border/40">
         <CardContent className='p-4 sm:p-6'>
            <ComplianceMap 
          allStores={stores}
@@ -525,7 +525,7 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
           </div>
         </div>
 
-        <Card className="rounded-3xl border border-border/40 shadow-lg">
+        <Card className="card elevation-2 border-border/40">
           <CardContent className="p-4 sm:p-6 grid gap-6 md:grid-cols-3">
             <div className="md:col-span-1">
                  <div className="flex items-center justify-between mb-4">

@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import { getUserSettings } from '@/lib/settings.server';
 import { getSeasonSnapshot } from '@/lib/season';
+import { AppProviders } from '@/components/providers/app-providers';
 
 export const metadata: Metadata = {
   title: 'Manutenção',
@@ -79,10 +80,12 @@ export default async function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <SidebarShell>
-          {children}
-        </SidebarShell>
-        <Toaster />
+        <AppProviders>
+          <SidebarShell>
+            {children}
+          </SidebarShell>
+          <Toaster />
+        </AppProviders>
       </body>
     </html>
   );
