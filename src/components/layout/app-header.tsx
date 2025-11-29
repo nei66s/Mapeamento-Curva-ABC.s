@@ -193,7 +193,7 @@ export default function AppHeader({ onToggleSidebar, sidebarVisible }: AppHeader
             <Separator />
             
             <Link
-              href="/admin"
+              href="/admin-panel"
               className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
             >
               <Settings className="h-5 w-5" />

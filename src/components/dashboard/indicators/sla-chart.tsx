@@ -135,9 +135,11 @@ export function SlaChart({ data }: SlaChartProps) {
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis 
                     dataKey="name"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tick={{ angle: -20, textAnchor: 'end', dy: 6 } as any}
+                  interval={0}
                 />
         <YAxis 
           tickLine={false}
@@ -187,7 +189,10 @@ export function SlaChart({ data }: SlaChartProps) {
                     dataKey="sla"
                     stroke={chartConfig.sla.color}
                     strokeWidth={2}
-                    dot={(props) => <CustomDot {...props} lastIndex={lastIndex} />}
+                    dot={(props) => {
+                      const { key, ...rest } = props as any;
+                      return <CustomDot key={key} {...rest} lastIndex={lastIndex} />;
+                    }}
                     activeDot={{ r: 6 }}
                     animationDuration={800}
                     animationEasing="ease-in-out"

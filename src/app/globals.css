@@ -10,31 +10,31 @@
     --card-foreground: 224 71.4% 4.1%;
     --popover: 0 0% 100%;
     --popover-foreground: 224 71.4% 4.1%;
-    --primary: 24 90% 54%;
+    --primary: 24 72% 56%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 24 86% 60%;
+    --secondary: 24 68% 62%;
     --secondary-foreground: 0 0% 18%;
     --muted: 24 40% 95%;
     --muted-foreground: 24 30% 40%;
-    --accent: 24 100% 60%;
+    --accent: 24 78% 58%;
     --accent-foreground: 0 0% 15%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 220 13% 91%;
     --input: 24 40% 96%;
-    --ring: 24 100% 60%;
+    --ring: 24 78% 58%;
     --radius: 0.75rem;
-    --chart-1: 220 75% 45%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
+    --chart-1: 220 60% 47%;
+    --chart-2: 160 50% 47%;
+    --chart-3: 30 70% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
     /* Curve ABC default palette (light theme): A = red, B = yellow, C = green */
-    --curve-a: 0 75% 48%;
+    --curve-a: 0 65% 50%;
     --curve-a-foreground: 0 0% 98%;
-    --curve-b: 48 100% 50%;
+    --curve-b: 48 88% 52%;
     --curve-b-foreground: 220 12% 12%;
-    --curve-c: 142 60% 40%;
+    --curve-c: 142 50% 44%;
     --curve-c-foreground: 0 0% 98%;
   }
 
@@ -263,18 +263,18 @@
 }
 
 [data-theme="orange"] {
-  --primary: 28 48% 48%;
-  --accent: 28 48% 50%;
+  --primary: 28 44% 52%;
+  --accent: 28 44% 52%;
   --secondary: 30 20% 94%;
-  --chart-1: 28 48% 48%;
+  --chart-1: 28 44% 50%;
   --chart-2: 200 28% 45%;
   --chart-3: 30 80% 55%;
   --chart-4: 30 28% 60%;
   --chart-5: 340 30% 50%;
 }
 .dark[data-theme="orange"] {
-  --primary: 28 46% 40%;
-  --accent: 28 44% 44%;
+  --primary: 28 42% 42%;
+  --accent: 28 40% 44%;
 }
 
 /* Soft theme surface tokens for orange */
@@ -392,14 +392,14 @@
 }
 
 [data-theme="orange-vivid"] {
-  --primary: 25 90% 52%;
-  --accent: 24 95% 54%;
+  --primary: 25 78% 50%;
+  --accent: 24 82% 52%;
   --secondary: 30 20% 94%;
   --chart-1: 25 90% 52%;
 }
 .dark[data-theme="orange-vivid"] {
-  --primary: 25 86% 46%;
-  --accent: 24 88% 48%;
+  --primary: 25 76% 46%;
+  --accent: 24 78% 48%;
 }
 
 /* Hero gradient overrides for orange vivid */
@@ -506,14 +506,35 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  /* Removed global border on all elements — this caused heavy visual noise
+     across the app. Borders should be applied to semantic components only. */
   body {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Small utility helpers for consistent UI surfaces and elevation. Use
+     these deliberately on components instead of applying borders to * */
+  .card {
+    @apply rounded-lg border border-border bg-card p-4 shadow-sm;
+  }
+
+  /* Generic panel helper to replace repeated 'rounded-lg border p-4' patterns
+     across the app. Use `panel` on simple containers; use `card` for semantic
+     card components that require text foreground and default padding. */
+  .panel {
+    @apply rounded-lg border border-border p-4 bg-card elevation-1;
+  }
+
+  .elevation-0 { box-shadow: none; }
+  .elevation-1 { @apply shadow-sm; }
+  .elevation-2 { @apply shadow-md; }
+  .elevation-3 { @apply shadow-lg; }
+
+  /* Use a softened hero style when you want a toned panel instead of a full
+     vivid gradient. Apply `hero-soft` alongside or instead of `hero-gradient`. */
+  .hero-soft { opacity: 0.95; filter: saturate(0.95); }
 }
 
 /* PDF / A4 helper styles used for html2canvas capture */

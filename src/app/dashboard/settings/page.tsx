@@ -146,7 +146,7 @@ export default function SettingsPage() {
           <CardDescription>Personalize a aparência do aplicativo.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center justify-between rounded-lg border p-4">
+          <div className="flex items-center justify-between panel">
             <div className="flex items-center space-x-3">
               <div className="flex items-center gap-2">
                 <Sun className="h-5 w-5 transition-all" />
@@ -162,7 +162,7 @@ export default function SettingsPage() {
             />
           </div>
 
-          <div className="flex flex-col gap-3 rounded-lg border p-4">
+          <div className="flex flex-col gap-3 panel">
             <div className="flex items-center gap-3">
               <Palette className="h-4 w-4" />
               <Label>Cor do tema</Label>
@@ -203,7 +203,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="flex items-start justify-between rounded-lg border p-4">
+          <div className="flex items-start justify-between panel">
             <div className="space-y-1">
               <div className="flex items-center gap-3">
                 <Rows3 />
@@ -242,7 +242,7 @@ export default function SettingsPage() {
            <CardDescription>Ajuste o idioma e a navegação padrão.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-            <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="flex items-center justify-between panel">
                 <div className="flex items-center gap-3">
                   <Languages />
                   <Label htmlFor="language-select">Idioma da Interface</Label>
@@ -264,7 +264,7 @@ export default function SettingsPage() {
                     </SelectContent>
                   </Select>
             </div>
-             <div className="flex items-center justify-between rounded-lg border p-4">
+             <div className="flex items-center justify-between panel">
                 <div className="flex items-center gap-3">
                   <AppWindow />
                   <Label htmlFor="default-page-select">Página Inicial Padrão</Label>
@@ -298,7 +298,7 @@ export default function SettingsPage() {
           <CardDescription>Escolha quais notificações por e-mail você deseja receber.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6">
-          <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+          <div className="flex items-center justify-between space-x-2 panel">
             <Label htmlFor="incidents-notification" className="flex items-center gap-3">
               <Bell />
               <span>Novos incidentes críticos (Curva A)</span>
@@ -309,7 +309,7 @@ export default function SettingsPage() {
               onCheckedChange={(checked) => handleNotificationChange('incidents', checked)}
             />
           </div>
-           <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+           <div className="flex items-center justify-between space-x-2 panel">
             <Label htmlFor="compliance-notification" className="flex items-center gap-3">
               <Bell />
               <span>Lembretes de checklist de conformidade</span>
@@ -320,7 +320,7 @@ export default function SettingsPage() {
               onCheckedChange={(checked) => handleNotificationChange('compliance', checked)}
             />
           </div>
-           <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+           <div className="flex items-center justify-between space-x-2 panel">
             <Label htmlFor="reports-notification" className="flex items-center gap-3">
               <Bell />
               <span>Relatórios mensais de desempenho</span>

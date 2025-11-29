@@ -26,6 +26,10 @@ import {
   X,
   ChevronDown,
   ChevronRight,
+  LayoutDashboard,
+  Flag,
+  ActivitySquare,
+  Shield,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -33,6 +37,7 @@ import { cn } from '@/lib/utils';
 // logo removed per UI request
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { cloneDefaultPermissions } from '@/lib/permissions-config';
+import { useAdminSession } from '@/hooks/use-admin-session';
 // logo removed per UI request
 import { usePathname } from 'next/navigation';
 import { SidebarDemandCard } from '@/components/layout/sidebar-demand-card';
@@ -88,11 +93,18 @@ const linkGroups = [
   { title: 'Utilitários', links: secondaryLinks },
 ];
 
+const adminLinks = [
+  { href: '/admin-panel', icon: LayoutDashboard, label: 'Dashboard Admin', moduleId: 'admin-dashboard' },
+  { href: '/admin-panel/users', icon: Users, label: 'Usuários e Papéis', moduleId: 'admin-users' },
+  { href: '/admin-panel/modules', icon: Flag, label: 'Módulos e Flags', moduleId: 'admin-modules' },
+  { href: '/admin-panel/analytics', icon: LineChart, label: 'Analytics', moduleId: 'admin-analytics' },
+  { href: '/admin-panel/audit', icon: Shield, label: 'Auditoria', moduleId: 'admin-audit' },
+  { href: '/admin-panel/config', icon: Settings, label: 'Configuração', moduleId: 'admin-config' },
+  { href: '/admin-panel/health', icon: ActivitySquare, label: 'Healthcheck', moduleId: 'admin-health' },
+];
+
 const bottomLinks = [
-  { href: '/profile', icon: UserIcon, label: 'Meu Perfil', moduleId: 'profile' },
   { href: '/settings', icon: Settings, label: 'Configurações', moduleId: 'settings' },
-  { href: '/admin/users', icon: Users, label: 'Usuários', moduleId: 'users' },
-  { href: '/admin', icon: Info, label: 'Administração', moduleId: 'administration' },
 ];
 
 interface AppSidebarProps {
@@ -104,6 +116,8 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
   const pathname = usePathname();
   const { user, loading } = useCurrentUser();
   const [perms, setPerms] = useState<Record<string, Record<string, boolean>> | null>(null);
+  const [activeModules, setActiveModules] = useState<Record<string, boolean>>({});
+  const { data: session } = useAdminSession();
 
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
@@ -129,22 +143,16 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
   };
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const res = await fetch('/api/permissions');
-        if (!res.ok) throw new Error('failed');
-        const json = await res.json();
-        if (mounted && json && json.permissions) setPerms(json.permissions);
-      } catch (e) {
-        if (mounted) {
-          const defaults = cloneDefaultPermissions();
-          setPerms(defaults as any);
-        }
-      }
-    })();
-    return () => { mounted = false };
-  }, []);
+    if (session?.permissions) {
+      const merged: Record<string, Record<string, boolean>> = cloneDefaultPermissions();
+      const role = user?.role ?? 'visualizador';
+      merged[role] = { ...merged[role], ...session.permissions };
+      setPerms(merged);
+    }
+    if (session?.activeModules) {
+      setActiveModules(session.activeModules);
+    }
+  }, [session, user?.role]);
 
   const isActive = (href: string) => {
     if (href === '/indicators') {
@@ -156,8 +164,11 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
   const canAccess = (moduleId?: string) => {
     if (!moduleId) return true;
     const role = user?.role ?? 'visualizador';
-    // Admin should always see the administration page regardless of stored permissions
     if (moduleId === 'administration' && role === 'admin') return true;
+    if (session?.activeModules && session.activeModules[moduleId] === false) return false;
+    if (session?.permissions && typeof session.permissions[moduleId] !== 'undefined') {
+      return Boolean(session.permissions[moduleId]);
+    }
     if (perms && perms[role] && typeof perms[role][moduleId] !== 'undefined') {
       return Boolean(perms[role][moduleId]);
     }
@@ -169,13 +180,17 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
     ...group,
     links: group.links.filter(link => canAccess(link.moduleId)),
   }));
-  const renderedGroups = visibleGroups.filter(group => group.links.length > 0);
+  const adminGroup = {
+    title: 'Administração',
+    links: adminLinks.filter(link => canAccess(link.moduleId)),
+  };
+  const renderedGroups = [...visibleGroups, ...(adminGroup.links.length ? [adminGroup] : [])].filter(group => group.links.length > 0);
   const totalVisibleLinks = renderedGroups.reduce((total, group) => total + group.links.length, 0);
 
   const sidebarClasses = cn(
-    // use the theme hero gradient so the sidebar matches HeroPanel look and tone
-    // use semantic foreground so text adapts to light/dark themes
-    'hero-gradient text-foreground shadow-lg border-r border-border/20 transition-transform duration-300',
+    // Use a subtle surface instead of heavy hero gradient for sidebar.
+    // Keeps readable foreground while avoiding strong gradients and deep shadows.
+    'bg-card/95 text-foreground border-r border-border/20 transition-transform duration-300',
     // fixed on all breakpoints so content padding (lg:pl-[18rem]) aligns correctly
     'fixed inset-y-0 left-0 z-50 w-72 lg:w-72 lg:z-50',
     // slide in/out and respect visibility on all breakpoints
@@ -242,8 +257,8 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
                       className={cn(
                         'flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm font-semibold transition',
                         isActive(link.href)
-                          ? 'border-border/20 bg-card/10 text-foreground'
-                          : 'border-transparent text-muted-foreground hover:border-border/20 hover:bg-card/5 hover:text-foreground'
+                                  ? 'border-border/20 bg-card/10 text-foreground'
+                                  : 'border-transparent text-muted-foreground hover:border-border/20 hover:bg-card/5 hover:text-foreground'
                       )}
                     >
                       <link.icon className="h-5 w-5" />
@@ -265,7 +280,7 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
               className={cn(
                 'flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm font-semibold transition',
                 isActive(link.href)
-                  ? 'border-border/30 bg-card/10 text-foreground shadow-[0_8px_30px_rgba(2,6,23,0.35)]'
+                  ? 'border-border/30 bg-card/10 text-foreground shadow-sm'
                   : 'border-transparent text-muted-foreground hover:border-border/20 hover:bg-card/5 hover:text-foreground'
               )}
             >

@@ -46,7 +46,7 @@ export function ClassificationTable() {
     });
 
   return (
-    <Card className="shadow-lg">
+    <Card className="elevation-2">
       <CardHeader>
         <CardTitle>Ranking de Categorias</CardTitle>
         <CardDescription>

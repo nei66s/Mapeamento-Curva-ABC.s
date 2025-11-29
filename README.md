@@ -100,3 +100,11 @@ Foi adicionada a funcionalidade para remover a foto de perfil (avatar) de um usu
   - Retorna o usuário atualizado (sem a senha).
 
 No front-end (página "Meu Perfil"), há um botão "Remover Foto" que chama esse endpoint e atualiza o estado do usuário imediatamente.
+
+## Painel Administrativo — Execução
+
+- **Instalação de dependências:** `npm install --legacy-peer-deps`
+- **Variáveis de ambiente principais:** `NEXT_PUBLIC_API_BASE_URL=/api/admin-panel` (padrão), `NODE_ENV`, credenciais de banco se for usar endpoints reais. O fluxo de auth usa JWT com refresh via cookies seguros.
+- **Rodar em desenvolvimento:** `npm run dev` (sidebar + guardas de rota já aplicados; tracking de pageview ativo por padrão).
+- **Build de produção:** `npm run build` e depois `npm start`.
+- **Testes:** `npm test` (requer Node >=20 para rodar Vitest/JS DOM sem erros de engine; no Node 18 o runner pode falhar). Cobertura mínima adicionada para página de analytics, hook de tracking e serviço de módulos.

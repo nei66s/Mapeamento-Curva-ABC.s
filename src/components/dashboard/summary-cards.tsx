@@ -96,7 +96,7 @@ export function SummaryCards({ items: propItems, hideOverallStats = false }: Sum
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {summaryData.map((item, index) => (
-        <Card key={index} className="shadow-md hover:shadow-lg transition-shadow duration-300">
+        <Card key={index} className="elevation-1 hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{item.title}</CardTitle>
             <item.icon className={`h-5 w-5 ${item.color}`} />

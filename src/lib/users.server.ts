@@ -1,5 +1,12 @@
-import { User } from './types';
-import pool from './db';
+import type { User } from './types';
+import {
+  getUserByEmail as adapterGetUserByEmail,
+  getUserById as adapterGetUserById,
+  listUsers as adapterListUsers,
+  createUser as adapterCreateUser,
+  updateUser as adapterUpdateUser,
+  deleteUser as adapterDeleteUser,
+} from '@/server/adapters/users-adapter';
 
 function pickRow(row: any, keys: string[]) {
   for (const k of keys) {
@@ -11,131 +18,62 @@ function pickRow(row: any, keys: string[]) {
 }
 
 function mapUser(row: any): User {
+  if (!row) return null as unknown as User;
   return {
     id: String(row.id),
     name: String(pickRow(row, ['name']) ?? ''),
     email: String(pickRow(row, ['email']) ?? ''),
     role: String(pickRow(row, ['role']) ?? 'visualizador') as User['role'],
-    password: pickRow(row, ['password']) ? String(pickRow(row, ['password'])) : undefined,
+    password: pickRow(row, ['password', 'password_hash']) ? String(pickRow(row, ['password', 'password_hash'])) : undefined,
     avatarUrl: (pickRow(row, ['avatarurl', 'avatar_url', 'avatarUrl']) as string | undefined) || undefined,
     supplierId: (pickRow(row, ['supplier_id', 'supplierid', 'supplier']) as string | undefined) || undefined,
     department: (pickRow(row, ['department', 'dept']) as string | undefined) || undefined,
   };
 }
 
-async function getUserColumns(): Promise<string[]> {
-  try {
-    const res = await pool.query(`SELECT column_name FROM information_schema.columns WHERE table_name = 'users'`);
-    return res.rows.map((r: any) => String(r.column_name));
-  } catch (err) {
-    return [];
-  }
-}
-
 export async function getUsers(): Promise<User[]> {
-  // Use SELECT * to be resilient to column naming differences
-  const res = await pool.query('SELECT * FROM users ORDER BY id ASC');
-  return res.rows.map(mapUser);
+  const rows = await adapterListUsers(10000, 0);
+  return (rows || []).map(mapUser);
 }
 
 export async function getUserById(id: string): Promise<User | null> {
-  const res = await pool.query('SELECT * FROM users WHERE id = $1 LIMIT 1', [id]);
-  if (res.rowCount === 0) return null;
-  return mapUser(res.rows[0]);
+  const row = await adapterGetUserById(id);
+  if (!row) return null;
+  return mapUser(row);
+}
+
+export async function getUserByEmail(email: string): Promise<User | null> {
+  const row = await adapterGetUserByEmail(email);
+  if (!row) return null;
+  return mapUser(row);
 }
 
 export async function createUser(user: Omit<User, 'id'>): Promise<User> {
-  const cols = await getUserColumns();
-  // Map logical fields to existing column names
-  const fieldMap: Record<string, string[]> = {
-    name: ['name'],
-    email: ['email'],
-    role: ['role'],
-    password: ['password'],
-    avatarUrl: ['avatarUrl', 'avatar_url', 'avatarurl'],
-    supplierId: ['supplier_id', 'supplierid', 'supplier'],
-    department: ['department', 'dept'],
-  };
-  const insertCols: string[] = [];
-  const values: any[] = [];
-  let i = 1;
-  const add = (logical: keyof typeof fieldMap, v: any) => {
-    const actual = fieldMap[logical].find(c => cols.includes(c));
-    if (actual) {
-      insertCols.push(actual);
-      values.push(v);
-      return true;
-    }
-    return false;
-  };
-  add('name', user.name);
-  add('email', user.email);
-  add('role', user.role);
-  add('password', user.password ?? '');
-  add('avatarUrl', user.avatarUrl ?? null);
-  add('supplierId', user.supplierId ?? null);
-  add('department', user.department ?? null);
-
-  if (insertCols.length === 0) {
-    // As a last resort, try minimal insert with name/email
-    const res = await pool.query(
-      `INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *`,
-      [user.name, user.email]
-    );
-    return mapUser(res.rows[0]);
-  }
-
-  const placeholders = insertCols.map((_, idx) => `$${idx + 1}`).join(', ');
-  const sql = `INSERT INTO users (${insertCols.join(', ')}) VALUES (${placeholders}) RETURNING *`;
-  const res = await pool.query(sql, values);
-  return mapUser(res.rows[0]);
+  const created = await adapterCreateUser({
+    id: (user as any).id,
+    name: user.name,
+    email: user.email,
+    password_hash: (user as any).password ?? null,
+    role: user.role as string,
+  });
+  return mapUser(created as any);
 }
 
-// Função para atualizar um usuário existente, adaptando-se aos nomes de colunas
-export async function updateUser(id: string, updates: Partial<Omit<User, 'id'> & { avatarUrl?: string | null }>): Promise<User | null> {
-  const cols = await getUserColumns();
-  if (cols.length === 0) return null;
-  const map: Record<string, string[]> = {
-    name: ['name'],
-    email: ['email'],
-    role: ['role'],
-    password: ['password'],
-    avatarUrl: ['avatarUrl', 'avatar_url', 'avatarurl'],
-    supplierId: ['supplier_id', 'supplierid', 'supplier'],
-    department: ['department', 'dept'],
-  };
-  const fields: string[] = [];
-  const values: any[] = [];
-  let idx = 1;
-  const setIfPresent = (logical: keyof typeof map, v: any) => {
-    const actual = map[logical].find(c => cols.includes(c));
-    if (actual) {
-      fields.push(`${actual} = $${idx++}`);
-      values.push(v);
-    }
-  };
-  if (updates.name !== undefined) setIfPresent('name', updates.name);
-  if (updates.email !== undefined) setIfPresent('email', updates.email);
-  if (updates.role !== undefined) setIfPresent('role', updates.role);
-  if (updates.password !== undefined) setIfPresent('password', updates.password);
-  if (updates.avatarUrl !== undefined) setIfPresent('avatarUrl', updates.avatarUrl ?? null);
-  if ((updates as any).supplierId !== undefined) setIfPresent('supplierId', (updates as any).supplierId ?? null);
-  if (updates.department !== undefined) setIfPresent('department', updates.department ?? null);
+export async function updateUser(id: string, updates: Partial<Omit<User, 'id'>>) {
+  const patch: any = {};
+  if ((updates as any).name !== undefined) patch.name = (updates as any).name;
+  if ((updates as any).email !== undefined) patch.email = (updates as any).email;
+  if ((updates as any).role !== undefined) patch.role = (updates as any).role;
+  if ((updates as any).password !== undefined) patch.password_hash = (updates as any).password;
+  if ((updates as any).avatarUrl !== undefined) patch.avatar_url = (updates as any).avatarUrl;
+  if ((updates as any).supplierId !== undefined) patch.supplier_id = (updates as any).supplierId;
+  if ((updates as any).department !== undefined) patch.department = (updates as any).department;
 
-  if (fields.length === 0) {
-    // Nothing to update; return current row if exists
-    const cur = await pool.query('SELECT * FROM users WHERE id = $1 LIMIT 1', [id]);
-    if (cur.rowCount === 0) return null;
-    return mapUser(cur.rows[0]);
-  }
-
-  values.push(id);
-  const res = await pool.query(`UPDATE users SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`, values);
-  if (!res.rows[0]) return null;
-  return mapUser(res.rows[0]);
+  const updated = await adapterUpdateUser(id, patch as any);
+  if (!updated) return null;
+  return mapUser(updated as any);
 }
 
 export async function deleteUser(id: string): Promise<boolean> {
-  const res = await pool.query('DELETE FROM users WHERE id = $1', [id]);
-  return res.rowCount > 0;
+  return await adapterDeleteUser(id);
 }

@@ -15,11 +15,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { KeyRound, Mail, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useCurrentUser } from '@/hooks/use-current-user';
-import { cloneDefaultPermissions, moduleDefinitions } from '@/lib/permissions-config';
-import type { UserRole } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
+import { useAuth } from '@/hooks/use-auth';
+import { useQueryClient } from '@tanstack/react-query';
+import { useTracking } from '@/hooks/use-tracking';
 // logo removed per UI request
 
 // Removed Google sign-in option per request
@@ -28,7 +28,9 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { setUser } = useCurrentUser();
+  const { login } = useAuth();
+  const { trackAction } = useTracking();
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -42,116 +44,45 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      const user = await login.mutateAsync({ email, password });
+      toast({
+        title: 'Login bem-sucedido!',
+        description: `Bem-vindo de volta, ${user.name}.`,
       });
+      trackAction('login', { email });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        toast({
-          title: 'Login bem-sucedido!',
-          description: `Bem-vindo de volta, ${data.user.name}.`,
-        });
-        try {
-          // Persistir usuário no localStorage para uso nas páginas cliente
-          // Use the shared hook to persist user state + cookie/localStorage.
-          // This ensures other mounted components receive the updated user immediately.
-          setUser?.(data.user);
-        } catch (e) {
-          // não bloquear o fluxo de login se storage falhar
-          console.warn('Não foi possível salvar usuário no localStorage', e);
+      // Persistir tema no backend (best-effort) sem expor token em localStorage.
+      try {
+        if (typeof window !== 'undefined' && user?.id) {
+          const payload = {
+            userId: user.id,
+            theme: localStorage.getItem('theme'),
+            themeColor: localStorage.getItem('themeColor'),
+            themeTone: localStorage.getItem('themeTone'),
+          };
+          fetch('/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          }).catch(() => {});
         }
-
-        // Persist user theme preferences to server-side settings (best-effort)
-        try {
-          if (typeof window !== 'undefined' && data?.user?.id) {
-            const payload = {
-              userId: data.user.id,
-              theme: localStorage.getItem('theme'),
-              themeColor: localStorage.getItem('themeColor'),
-              themeTone: localStorage.getItem('themeTone'),
-            };
-            // Fire-and-forget; no need to block navigation on failures
-            fetch('/api/settings', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-            }).catch(() => {});
-          }
-        } catch (e) {
-          // não bloquear o fluxo de login se storage falhar
-          console.warn('Não foi possível salvar usuário no localStorage', e);
-        }
-
-        // If a returnTo param exists (set by middleware or client guard), prefer it.
-        try {
-          const returnTo = searchParams?.get?.('returnTo') ?? undefined;
-          if (returnTo && typeof returnTo === 'string' && returnTo.startsWith('/')) {
-            router.push(returnTo);
-            return;
-          }
-        } catch (e) {
-          // ignore and fall through to role-based redirect
-        }
-
-        // Decide where to navigate based on role permissions. Prefer the first
-        // allowed module (using server mapping when available, falling back to defaults).
-        (async () => {
-          try {
-            const permRes = await fetch('/api/permissions');
-            const permJson = await permRes.json();
-            const role = data.user.role;
-            const serverPerms = (permJson && permJson.permissions) || {};
-            const rolePerms = serverPerms[role as UserRole] ?? cloneDefaultPermissions()[role as UserRole] ?? {};
-
-            const firstAllowed = moduleDefinitions.find((m) => rolePerms[m.id]);
-
-            const routeForModule = (id: string) => {
-              // Prefer new top-level routes where available. Keep legacy /dashboard/* only as fallback.
-              switch (id) {
-                case 'indicators': return '/indicators';
-                case 'releases': return '/releases';
-                case 'incidents': return '/incidents';
-                case 'rncs': return '/rncs';
-                case 'categories': return '/categories';
-                case 'matrix': return '/matrix';
-                case 'compliance': return '/compliance';
-                case 'suppliers': return '/suppliers';
-                case 'warranty': return '/warranty';
-                case 'tools': return '/tools';
-                case 'settlement': return '/settlement';
-                case 'profile': return '/profile';
-                case 'settings': return '/settings';
-                case 'about': return '/';
-                default: return '/indicators';
-              }
-            };
-
-            const target = firstAllowed ? routeForModule(firstAllowed.id) : '/indicators';
-            router.push(target);
-          } catch (e) {
-            router.push('/dashboard');
-          }
-        })();
-      } else {
-        setError(data.error || 'Email ou senha inválidos. Tente novamente.');
-        toast({
-          variant: 'destructive',
-          title: 'Falha no Login',
-          description: data.error || 'Credenciais inválidas.',
-        });
+      } catch (e) {
+        // ignore best-effort theme sync
       }
-    } catch (error) {
-      setError('Erro ao conectar com o servidor. Tente novamente.');
+
+      const returnTo = searchParams?.get?.('returnTo') ?? undefined;
+      await queryClient.invalidateQueries({ queryKey: ['admin-session'] });
+      if (returnTo && typeof returnTo === 'string' && returnTo.startsWith('/')) {
+        router.push(returnTo);
+      } else {
+        router.push('/admin-panel');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Email ou senha inválidos. Tente novamente.');
       toast({
         variant: 'destructive',
-        title: 'Erro',
-        description: 'Erro ao conectar com o servidor.',
+        title: 'Falha no Login',
+        description: err?.message || 'Credenciais inválidas.',
       });
     } finally {
       setLoading(false);
@@ -168,7 +99,7 @@ export default function LoginPage() {
       <div className="absolute right-[-5%] bottom-10 h-64 w-64 rounded-full bg-cyan-500/60 blur-3xl" />
 
       <div className="relative mx-auto flex max-w-5xl flex-col gap-6 lg:grid lg:grid-cols-[1.05fr,0.95fr] items-center">
-        <div className="w-full rounded-[32px] border border-white/10 bg-muted/5 p-10 shadow-2xl backdrop-blur-lg text-white">
+        <div className="w-full rounded-lg border border-white/10 bg-muted/5 p-10 shadow-md backdrop-blur-lg text-white">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/10 text-2xl font-semibold">
               F
@@ -216,10 +147,10 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <Card className="w-full rounded-[28px] border border-white/20 bg-card/90 shadow-2xl">
+        <Card className="w-full rounded-lg border border-white/20 bg-card/90 shadow-md">
           <CardHeader className="text-center space-y-2 pt-8">
             <div className="flex justify-center">
-              <span className="flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-900 text-2xl font-semibold text-white">
+              <span className="flex h-14 w-14 items-center justify-center rounded-lg bg-slate-900 text-2xl font-semibold text-white">
                 F
               </span>
             </div>
