@@ -42,6 +42,45 @@ CREATE TABLE IF NOT EXISTS admin_dashboard_settings (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Admin modules
+CREATE TABLE IF NOT EXISTS modules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  is_visible BOOLEAN NOT NULL DEFAULT TRUE,
+  beta BOOLEAN NOT NULL DEFAULT FALSE,
+  experimental BOOLEAN NOT NULL DEFAULT FALSE,
+  dependencies TEXT[],
+  owner TEXT,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Feature flags (toggled values used by admin panel)
+CREATE TABLE IF NOT EXISTS feature_flags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key TEXT UNIQUE NOT NULL,
+  label TEXT,
+  description TEXT,
+  module_id TEXT,
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  audience TEXT,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Tracking events used for metrics (pageviews, realtime, heatmap)
+CREATE TABLE IF NOT EXISTS tracking_events (
+  id SERIAL PRIMARY KEY,
+  user_id TEXT,
+  route TEXT NOT NULL,
+  device TEXT,
+  browser TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_tracking_events_route_created_at ON tracking_events(route, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tracking_events_user_created_at ON tracking_events(user_id, created_at DESC);
+
 -- Default roles
 -- Ensure description column exists for compatibility with older schemas
 ALTER TABLE roles ADD COLUMN IF NOT EXISTS description TEXT;

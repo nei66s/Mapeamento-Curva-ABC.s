@@ -1,50 +1,41 @@
-import { isModuleActive, json, getRequestIp } from '../../_utils';
+import { json, getRequestIp } from '../../_utils';
 import { NextRequest } from 'next/server';
-import { recordAudit } from '../../_data';
+import { getModuleByKey } from '@/server/adapters/modules-adapter';
+import { logAudit } from '@/server/adapters/audit-adapter';
 import { getRoleById, updateRoleById, deleteRoleById } from '@/server/adapters/roles-adapter';
 
-export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
-  if (!isModuleActive('admin-roles')) return json({ message: 'Módulo de papéis inativo.' }, 403);
-  const role = await getRoleById(params.id);
+export async function GET(_: NextRequest, context: { params: any }) {
+  const { id } = await context.params as { id: string };
+  const mod = await getModuleByKey('admin-roles');
+  if (mod && !mod.is_active) return json({ message: 'Módulo de papéis inativo.' }, 403);
+  const role = await getRoleById(id);
   if (!role) return json({ message: 'Papel não encontrado.' }, 404);
   return json(role);
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  if (!isModuleActive('admin-roles')) return json({ message: 'Módulo de papéis inativo.' }, 403);
+export async function PUT(request: NextRequest, context: { params: any }) {
+  const { id } = await context.params as { id: string };
+  const mod = await getModuleByKey('admin-roles');
+  if (mod && !mod.is_active) return json({ message: 'Módulo de papéis inativo.' }, 403);
   const body = await request.json();
-  const before = await getRoleById(params.id);
+  const before = await getRoleById(id);
   if (!before) return json({ message: 'Papel não encontrado.' }, 404);
-  const updated = await updateRoleById(params.id, { name: body.name, description: body.description, permissions: body.permissions });
-  recordAudit({
-    userId: body.actorId || 'u-admin',
-    userName: body.actorName || 'Sistema',
-    entity: 'role',
-    entityId: params.id,
-    action: 'role.update',
-    before,
-    after: updated,
-    ip: getRequestIp(request),
-    userAgent: request.headers.get('user-agent') || undefined,
-  });
+  const updated = await updateRoleById(id, { name: body.name, description: body.description, permissions: body.permissions });
+  try {
+    await logAudit({ user_id: body.actorId || 'u-admin', entity: 'role', entity_id: id, action: 'role.update', before_data: before, after_data: updated, ip: getRequestIp(request), user_agent: request.headers.get('user-agent') ?? undefined });
+  } catch (e) {}
   return json(updated);
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  if (!isModuleActive('admin-roles')) return json({ message: 'Módulo de papéis inativo.' }, 403);
-  const before = await getRoleById(params.id);
+export async function DELETE(request: NextRequest, context: { params: any }) {
+  const { id } = await context.params as { id: string };
+  const mod = await getModuleByKey('admin-roles');
+  if (mod && !mod.is_active) return json({ message: 'Módulo de papéis inativo.' }, 403);
+  const before = await getRoleById(id);
   if (!before) return json({ message: 'Papel não encontrado.' }, 404);
-  await deleteRoleById(params.id);
-  recordAudit({
-    userId: 'u-admin',
-    userName: 'Sistema',
-    entity: 'role',
-    entityId: params.id,
-    action: 'role.delete',
-    before,
-    after: null,
-    ip: getRequestIp(request),
-    userAgent: request.headers.get('user-agent') || undefined,
-  });
+  await deleteRoleById(id);
+  try {
+    await logAudit({ user_id: 'u-admin', entity: 'role', entity_id: id, action: 'role.delete', before_data: before, after_data: null, ip: getRequestIp(request), user_agent: request.headers.get('user-agent') ?? undefined });
+  } catch (e) {}
   return json({ success: true });
 }

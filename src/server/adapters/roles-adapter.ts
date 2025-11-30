@@ -47,8 +47,8 @@ export async function getRolePermissions(roleId: string) {
   const q = `
     select distinct coalesce(p.${keyCol}::text, rp.permission_id::text) as permission_key
     from role_permissions rp
-    left join permissions p on (p.id::text = rp.permission_id OR p.${keyCol}::text = rp.permission_id)
-    where rp.role_id = $1
+    left join permissions p on (p.id::text = rp.permission_id::text OR p.${keyCol}::text = rp.permission_id::text)
+    where rp.role_id::text = $1::text
   `;
   const res = await pool.query(q, [roleId]);
   return res.rows.map((r: any) => r.permission_key);

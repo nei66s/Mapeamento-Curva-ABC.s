@@ -1,21 +1,21 @@
 import { NextRequest } from 'next/server';
-import { pageviewEvents } from '../../_data';
-import { isModuleActive, json } from '../../_utils';
+import { json } from '../../_utils';
+import { getModuleByKey } from '@/server/adapters/modules-adapter';
+import pool from '@/lib/db';
 
 export async function GET(request: NextRequest) {
-  if (!isModuleActive('admin-analytics')) return json({ message: 'Módulo de analytics inativo.' }, 403);
+  const mod = await getModuleByKey('admin-analytics');
+  if (mod && !mod.is_active) return json({ message: 'Módulo de analytics inativo.' }, 403);
   const { searchParams } = new URL(request.url);
   const from = searchParams.get('from');
   const to = searchParams.get('to');
-  let items = pageviewEvents;
-  if (from) items = items.filter((e) => new Date(e.createdAt).getTime() >= new Date(from).getTime());
-  if (to) items = items.filter((e) => new Date(e.createdAt).getTime() <= new Date(to).getTime());
-
-  const map = new Map<string, number>();
-  items.forEach((e) => map.set(e.route, (map.get(e.route) || 0) + 1));
-  const topRoutes = Array.from(map.entries())
-    .map(([route, count]) => ({ route, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
-  return json(topRoutes);
+  const wheres: string[] = [];
+  const vals: any[] = [];
+  let idx = 1;
+  if (from) { wheres.push(`created_at >= $${idx}`); vals.push(from); idx++; }
+  if (to) { wheres.push(`created_at <= $${idx}`); vals.push(to); idx++; }
+  const whereSql = wheres.length ? `where ${wheres.join(' and ')}` : '';
+  const q = `select route, count(*) as count from tracking_events ${whereSql} group by route order by count desc limit 10`;
+  const res = await pool.query(q, vals);
+  return json(res.rows.map((r: any) => ({ route: r.route, count: Number(r.count) })));
 }

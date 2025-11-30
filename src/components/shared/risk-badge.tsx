@@ -1,30 +1,67 @@
 import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import type { Classification } from "@/lib/types";
+import {
+  AlertCircle,
+  AlertTriangle,
+  ShieldCheck,
+  type LucideIcon,
+} from "lucide-react";
 
 interface ClassificationBadgeProps extends Omit<BadgeProps, "variant" | "children"> {
   classification: Classification;
   showLabel?: boolean;
 }
 
-const classificationMap: Record<
-  Classification,
-  { variant: BadgeProps["variant"]; label: string }
-> = {
-  A: { variant: "destructive", label: "A - Mais Valiosos" },
-  B: { variant: "accent", label: "B - Valor Intermediário" },
-  C: { variant: "success", label: "C - Menos Valiosos" },
+type ClassificationConfig = {
+  variant: BadgeProps["variant"];
+  label: string;
+  icon?: LucideIcon;
+  iconClassName?: string;
 };
 
-export function ClassificationBadge({ classification, showLabel = false, ...props }: ClassificationBadgeProps) {
-  // Defensive: the runtime value for `classification` may be missing or
-  // outside the expected 'A'|'B'|'C' union (e.g. coming from incomplete
-  // data). Avoid destructuring undefined which causes a runtime TypeError.
-  const mapping = classification ? classificationMap[classification as Classification] : undefined;
-  const { variant, label } = mapping ?? { variant: "default", label: classification ?? "—" };
+const classificationMap: Record<Classification, ClassificationConfig> = {
+  A: {
+    variant: "destructive",
+    label: "A - Mais Valiosos",
+    icon: AlertCircle,
+    iconClassName: "text-destructive-foreground",
+  },
+  B: {
+    variant: "warning",
+    label: "B - Valor Intermediário",
+    icon: AlertTriangle,
+    iconClassName: "text-warning-foreground",
+  },
+  C: {
+    variant: "success",
+    label: "C - Menos Valiosos",
+    icon: ShieldCheck,
+    iconClassName: "text-chart-2",
+  },
+};
+
+export function ClassificationBadge({
+  classification,
+  showLabel = false,
+  ...props
+}: ClassificationBadgeProps) {
+  const fallback: ClassificationConfig = {
+    variant: "default",
+    label: classification ?? "—",
+    iconClassName: "text-muted-foreground",
+  };
+  const config = classificationMap[classification as Classification] ?? fallback;
+  const { variant, label, icon: Icon, iconClassName } = config;
 
   return (
     <Badge variant={variant} {...props}>
-      {showLabel ? label : classification ?? "—"}
+      <span className="flex items-center gap-1">
+        {Icon && (
+          <Icon className={cn("h-3 w-3 shrink-0", iconClassName)} aria-hidden />
+        )}
+        <span>{showLabel ? label : classification ?? "—"}</span>
+      </span>
     </Badge>
   );
 }

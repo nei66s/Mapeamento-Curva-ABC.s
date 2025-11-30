@@ -1,31 +1,25 @@
 import { NextRequest } from 'next/server';
-import { featureFlags, recordAudit } from '../../_data';
 import { json, getRequestIp } from '../../_utils';
+import { getFlagByKey, setFlag } from '@/server/adapters/feature-flags-adapter';
+import { logAudit } from '@/server/adapters/audit-adapter';
 
-export async function GET(request: NextRequest, { params }: { params: { key: string } }) {
-  const flag = featureFlags.find((f) => f.key === params.key);
+export async function GET(request: NextRequest, context: { params: any }) {
+  const { key } = await context.params as { key: string };
+  const flag = await getFlagByKey(key);
   if (!flag) return json({ message: 'Flag não encontrada.' }, 404);
   return json({ ok: true, result: flag });
 }
 
-export async function POST(request: NextRequest, { params }: { params: { key: string } }) {
+export async function POST(request: NextRequest, context: { params: any }) {
+  const { key } = await context.params as { key: string };
   const body = await request.json();
-  const flag = featureFlags.find((f) => f.key === params.key);
-  if (!flag) return json({ message: 'Flag não encontrada.' }, 404);
-  const updated = { ...flag, enabled: Boolean(body.enabled) };
-  featureFlags[featureFlags.findIndex((f) => f.key === params.key)] = updated;
+  const existing = await getFlagByKey(key);
+  if (!existing) return json({ message: 'Flag não encontrada.' }, 404);
+  const updated = await setFlag(key, Boolean(body.enabled));
 
-  recordAudit({
-    userId: body.actorId || 'u-admin',
-    userName: body.actorName || 'Sistema',
-    entity: 'flag',
-    entityId: params.key,
-    action: 'flag.toggle',
-    before: flag,
-    after: updated,
-    ip: getRequestIp(request),
-    userAgent: request.headers.get('user-agent') || undefined,
-  });
+  try {
+    await logAudit({ user_id: body.actorId || 'u-admin', entity: 'flag', entity_id: key, action: 'flag.toggle', before_data: existing, after_data: updated, ip: getRequestIp(request), user_agent: request.headers.get('user-agent') ?? undefined });
+  } catch (e) {}
 
   return json(updated);
 }

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getModuleByKey, updateModuleByKey } from '@/server/adapters/modules-adapter';
 import { verifyAccessToken } from '@/lib/auth/jwt';
 
-export async function GET(request: NextRequest, { params }: { params: { key: string } }) {
-  const { key } = params;
+export async function GET(request: NextRequest, context: { params: any }) {
+  const { key } = await context.params as { key: string };
   const token = request.cookies.get('pm_access_token')?.value || request.headers.get('authorization')?.replace('Bearer ', '');
   const verified = verifyAccessToken(token);
   if (!verified.valid) return NextResponse.json({ message: 'unauthorized' }, { status: 401 });
@@ -12,8 +12,8 @@ export async function GET(request: NextRequest, { params }: { params: { key: str
   return NextResponse.json({ ok: true, result: m });
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { key: string } }) {
-  const { key } = params;
+export async function PUT(request: NextRequest, context: { params: any }) {
+  const { key } = await context.params as { key: string };
   const token = request.cookies.get('pm_access_token')?.value || request.headers.get('authorization')?.replace('Bearer ', '');
   const verified = verifyAccessToken(token);
   if (!verified.valid) return NextResponse.json({ message: 'unauthorized' }, { status: 401 });

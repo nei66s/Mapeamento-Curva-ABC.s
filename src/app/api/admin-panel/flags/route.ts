@@ -1,6 +1,7 @@
 import { json } from '../_utils';
-import { featureFlags } from '../_data';
+import { listFlags } from '@/server/adapters/feature-flags-adapter';
 
 export async function GET() {
-  return json(featureFlags);
+  const rows = await listFlags();
+  return json(rows);
 }

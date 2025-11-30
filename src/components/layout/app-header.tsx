@@ -22,12 +22,6 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationCenter } from "@/components/layout/notification-center";
@@ -47,7 +41,7 @@ export default function AppHeader({ onToggleSidebar, sidebarVisible }: AppHeader
   // Minimal header on auth pages: only show theme toggle to allow dark mode switching
   if (pathname && pathname.startsWith('/login')) {
     return (
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-card px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border/60 bg-background/80 px-4 backdrop-blur-sm sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
         </div>
@@ -56,164 +50,164 @@ export default function AppHeader({ onToggleSidebar, sidebarVisible }: AppHeader
   }
   const toggleIcon = sidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />;
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-card px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border/60 bg-background/80 px-4 backdrop-blur-sm transition-colors sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <div className="flex items-center gap-2">
         <Sheet>
           <SheetTrigger asChild>
-            <Button size="icon" variant="outline" className="sm:hidden">
+            <Button size="icon" variant="ghost" className="sm:hidden bg-transparent">
               <PanelLeft className="h-5 w-5" />
               <span className="sr-only">Toggle Menu</span>
             </Button>
           </SheetTrigger>
-        <SheetContent side="left" className="sm:max-w-xs">
-          <nav className="grid gap-6 text-lg font-medium">
+          <SheetContent side="left" className="sm:max-w-xs border border-border/40 bg-background/95 p-6 shadow-lg">
+            <nav className="space-y-5 text-sm font-medium">
             <Link
               href="/indicators"
-              className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
+              className="text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground"
             >
-              <span className="sr-only">Fixly</span>
+              Fixly
             </Link>
             
-            <Separator />
+            <Separator className="border-border/40" />
             
             <Link
               href="/indicators"
-              className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+              className="flex items-center gap-3 px-2.5 text-sm text-muted-foreground transition hover:text-foreground"
             >
-              <LineChart className="h-5 w-5" />
+              <LineChart className="h-4 w-4" />
               Indicadores
             </Link>
 
             <div>
-              <h2 className="mb-2 flex items-center gap-2 px-2.5 text-lg font-semibold tracking-tight text-primary">
-                <Wrench className="h-5 w-5" />
+              <h2 className="mb-2 flex items-center gap-2 px-2.5 text-xs font-semibold uppercase tracking-[0.45em] text-muted-foreground">
+                <Wrench className="h-4 w-4" />
                 Execução
               </h2>
-               <div className="grid gap-2">
+               <div className="space-y-2">
                 <Link
                   href="/incidents"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-3 px-2.5 text-sm text-muted-foreground transition hover:text-foreground"
                 >
-                  <Activity className="h-5 w-5" />
+                  <Activity className="h-4 w-4" />
                   Incidentes
                 </Link>
                 <Link
                   href="/rncs"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-3 px-2.5 text-sm text-muted-foreground transition hover:text-foreground"
                 >
-                  <FileWarning className="h-5 w-5" />
+                  <FileWarning className="h-4 w-4" />
                   Registros de Não Conformidade
                 </Link>
                 <Link
                   href="/releases"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-3 px-2.5 text-sm text-muted-foreground transition hover:text-foreground"
                 >
-                  <ClipboardPaste className="h-5 w-5" />
+                  <ClipboardPaste className="h-4 w-4" />
                   Lançamentos
                 </Link>
                </div>
             </div>
 
             <div>
-              <h2 className="mb-2 flex items-center gap-2 px-2.5 text-lg font-semibold tracking-tight text-primary">
-                <Map className="h-5 w-5" />
+              <h2 className="mb-2 flex items-center gap-2 px-2.5 text-xs font-semibold uppercase tracking-[0.45em] text-muted-foreground">
+                <Map className="h-4 w-4" />
                 Mapeamento
               </h2>
-               <div className="grid gap-2">
+               <div className="space-y-2">
                 <Link
                   href="/categories"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-3 px-2.5 text-sm text-muted-foreground transition hover:text-foreground"
                 >
-                  <ListCollapse className="h-5 w-5" />
+                  <ListCollapse className="h-4 w-4" />
                   Categorias
                 </Link>
                 <Link
                   href="/matrix"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-3 px-2.5 text-sm text-muted-foreground transition hover:text-foreground"
                 >
-                  <Grid3x3 className="h-5 w-5" />
+                  <Grid3x3 className="h-4 w-4" />
                   Matriz de Itens
                 </Link>
                </div>
             </div>
             
              <div>
-              <h2 className="mb-2 flex items-center gap-2 px-2.5 text-lg font-semibold tracking-tight text-primary">
-                <ClipboardList className="h-5 w-5" />
+              <h2 className="mb-2 flex items-center gap-2 px-2.5 text-xs font-semibold uppercase tracking-[0.45em] text-muted-foreground">
+                <ClipboardList className="h-4 w-4" />
                 Preventivas
               </h2>
-               <div className="grid gap-2">
+               <div className="space-y-2">
                  <Link
                   href="/compliance"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-3 px-2.5 text-sm text-muted-foreground transition hover:text-foreground"
                 >
-                  <ClipboardCheck className="h-5 w-5" />
+                  <ClipboardCheck className="h-4 w-4" />
                   Preventivas
                 </Link>
                </div>
             </div>
             
             <div>
-              <h2 className="mb-2 flex items-center gap-2 px-2.5 text-lg font-semibold tracking-tight text-primary">
-                <Archive className="h-5 w-5" />
+              <h2 className="mb-2 flex items-center gap-2 px-2.5 text-xs font-semibold uppercase tracking-[0.45em] text-muted-foreground">
+                <Archive className="h-4 w-4" />
                 Recursos
               </h2>
-               <div className="grid gap-2">
+               <div className="space-y-2">
                  <Link
                   href="/suppliers"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-3 px-2.5 text-sm text-muted-foreground transition hover:text-foreground"
                 >
-                  <Users className="h-5 w-5" />
+                  <Users className="h-4 w-4" />
                   Fornecedores
                 </Link>
                  <Link
                   href="/warranty"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-3 px-2.5 text-sm text-muted-foreground transition hover:text-foreground"
                 >
-                  <ShieldCheck className="h-5 w-5" />
+                  <ShieldCheck className="h-4 w-4" />
                   Garantias
                 </Link>
                 <Link
                   href="/tools"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-3 px-2.5 text-sm text-muted-foreground transition hover:text-foreground"
                 >
-                  <Construction className="h-5 w-5" />
+                  <Construction className="h-4 w-4" />
                   Almoxarifado
                 </Link>
                 <Link
                   href="/settlement"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                  className="flex items-center gap-3 px-2.5 text-sm text-muted-foreground transition hover:text-foreground"
                 >
-                  <Handshake className="h-5 w-5" />
+                  <Handshake className="h-4 w-4" />
                   Quitação
                 </Link>
                </div>
             </div>
             
-            <Separator />
+            <Separator className="border-border/40" />
             
             <Link
               href="/admin-panel"
-              className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+              className="flex items-center gap-3 px-2.5 text-sm text-muted-foreground transition hover:text-foreground"
             >
-              <Settings className="h-5 w-5" />
+              <Settings className="h-4 w-4" />
               Administração
             </Link>
              <Link
               href="/about"
-              className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+              className="flex items-center gap-3 px-2.5 text-sm text-muted-foreground transition hover:text-foreground"
             >
-              <Info className="h-5 w-5" />
+              <Info className="h-4 w-4" />
               Sobre
             </Link>
-          </nav>
-        </SheetContent>
+            </nav>
+          </SheetContent>
         </Sheet>
         {onToggleSidebar && (
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className="hidden rounded-xl border-primary/40 bg-primary/5 text-primary hover:border-primary hover:bg-primary/10 sm:inline-flex"
+            className="hidden rounded-xl border border-border/40 text-muted-foreground hover:text-foreground sm:inline-flex"
             onClick={onToggleSidebar}
           >
             {toggleIcon}
@@ -221,15 +215,9 @@ export default function AppHeader({ onToggleSidebar, sidebarVisible }: AppHeader
           </Button>
         )}
       </div>
-      <Breadcrumb className="hidden md:flex">
-        <BreadcrumbList>
-              <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-              <Link href="/indicators">Fixly</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+      <div className="hidden md:flex text-xs uppercase tracking-[0.4em] text-muted-foreground">
+        Fixly
+      </div>
       <div className="relative ml-auto flex items-center gap-2">
         <NotificationCenter />
         <ThemeToggle />

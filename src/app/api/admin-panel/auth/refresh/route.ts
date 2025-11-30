@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminUsers, issueAccessToken, verifyRefreshToken } from '../../_data';
+import { verifyRefreshToken, issueAccessToken } from '@/lib/auth/jwt';
+import { getUserById } from '@/server/adapters/users-adapter';
 
 export async function POST(request: NextRequest) {
   const { refreshToken: bodyRefreshToken } = await request.json();
@@ -9,10 +10,10 @@ export async function POST(request: NextRequest) {
 
   const verified = verifyRefreshToken(refreshToken);
   if (!verified.valid) return NextResponse.json({ message: 'Token inválido.' }, { status: 401 });
-  const user = adminUsers.find((u) => u.id === verified.userId);
+  const user = await getUserById(String(verified.userId));
   if (!user) return NextResponse.json({ message: 'Token inválido.' }, { status: 401 });
 
-  const accessToken = issueAccessToken(user.id, user.role);
+  const accessToken = issueAccessToken(String(user.id), (user as any).role || undefined);
   const res = NextResponse.json({
     accessToken,
     refreshToken,

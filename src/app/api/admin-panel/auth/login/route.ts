@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminUsers, recordAudit, issueAccessToken, issueRefreshToken } from '../../_data';
 import { json, getRequestIp } from '../../_utils';
+import { getUserByEmail } from '@/server/adapters/users-adapter';
+import { issueAccessToken, issueRefreshToken } from '@/lib/auth/jwt';
+import { logAudit } from '@/server/adapters/audit-adapter';
+import bcrypt from 'bcryptjs';
 
 const DEFAULT_PASSWORD = process.env.ADMIN_DEFAULT_PASSWORD || 'Admin@123';
 
@@ -11,51 +14,38 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Credenciais obrigatórias.' }, { status: 400 });
   }
 
-  const user = adminUsers.find((u) => u.email.toLowerCase() === String(email).toLowerCase());
+  const user = await getUserByEmail(String(email).toLowerCase());
   if (!user) return NextResponse.json({ message: 'Usuário não encontrado.' }, { status: 401 });
-  if (user.status === 'blocked') {
+  // status may be stored under different column names; adapters surface `status` when available
+  if ((user as any).status === 'blocked') {
     return NextResponse.json({ message: 'Usuário bloqueado.' }, { status: 403 });
   }
-  // Mock password check; for real backends, validate hash server-side.
-  if (password !== DEFAULT_PASSWORD) {
-    return NextResponse.json({ message: 'Senha inválida.' }, { status: 401 });
+
+  // If a password_hash exists, verify it. Otherwise allow DEFAULT_PASSWORD for local/dev.
+  const stored = (user as any).password_hash || (user as any).password || null;
+  let ok = false;
+  try {
+    if (stored) ok = await bcrypt.compare(password, stored);
+    else ok = password === DEFAULT_PASSWORD;
+  } catch (e) {
+    ok = password === DEFAULT_PASSWORD;
   }
 
-  const accessToken = issueAccessToken(user.id, user.role);
-  const refreshToken = issueRefreshToken(user.id);
+  if (!ok) return NextResponse.json({ message: 'Senha inválida.' }, { status: 401 });
 
-  const res = NextResponse.json({
-    user,
-    accessToken,
-    refreshToken,
-    expiresIn: 3600,
-  });
+  const accessToken = issueAccessToken(String(user.id), (user as any).role || undefined);
+  const refreshToken = issueRefreshToken(String(user.id));
 
-  res.cookies.set('pm_access_token', accessToken, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60,
-    path: '/',
-  });
-  res.cookies.set('pm_refresh_token', refreshToken, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60 * 24 * 7,
-    path: '/',
-  });
-  recordAudit({
-    userId: user.id,
-    userName: user.name,
-    entity: 'auth',
-    entityId: user.id,
-    action: 'login',
-    before: null,
-    after: { success: true },
-      ip: getRequestIp(request),
-    userAgent: request.headers.get('user-agent') || undefined,
-  });
+  const res = NextResponse.json({ user, accessToken, refreshToken, expiresIn: 3600 });
+  res.cookies.set('pm_access_token', accessToken, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 60 * 60, path: '/' });
+  res.cookies.set('pm_refresh_token', refreshToken, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 60 * 60 * 24 * 7, path: '/' });
+
+  // record audit
+  try {
+    await logAudit({ user_id: String(user.id), entity: 'auth', entity_id: String(user.id), action: 'login', before_data: null, after_data: { success: true }, ip: getRequestIp(request), user_agent: request.headers.get('user-agent') ?? undefined });
+  } catch (e) {
+    // ignore audit errors
+  }
 
   return res;
 }

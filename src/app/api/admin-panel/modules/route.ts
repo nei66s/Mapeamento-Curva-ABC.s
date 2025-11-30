@@ -1,6 +1,7 @@
 import { json } from '../_utils';
-import { featureModules } from '../_data';
+import { listModules } from '@/server/adapters/modules-adapter';
 
 export async function GET() {
-  return json(featureModules);
+  const rows = await listModules();
+  return json(rows);
 }

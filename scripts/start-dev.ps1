@@ -7,4 +7,4 @@ if ($portOpen) {
 	Write-Host "Postgres not reachable on localhost:5432 — skipping seed scripts."
 }
 
-npx next dev --webpack -p 9002
+	npx next dev -p 9002

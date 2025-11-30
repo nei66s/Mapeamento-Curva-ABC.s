@@ -2,6 +2,7 @@ import { getUserById } from './users-adapter';
 import { getRolePermissions, getRoleByName } from './roles-adapter';
 import { getActiveModules } from './modules-adapter';
 import { listFlags } from './feature-flags-adapter';
+import pool from '@/lib/db';
 
 // Retorna AdminSession no formato correto:
 // {
@@ -38,14 +39,52 @@ export async function buildAdminSession(userId: string) {
   }
 
   // Active modules → map
-  const moduleRows = await getActiveModules();
-  const activeModules: Record<string, boolean> = {};
-  for (const m of moduleRows) activeModules[m.key] = true;
+  // Active modules → map (tolerant to missing modules table)
+  let activeModules: Record<string, boolean> = {};
+  try {
+    const moduleRows = await getActiveModules();
+    activeModules = {};
+    for (const m of moduleRows) {
+      if (m && m.key) activeModules[m.key] = true;
+    }
+  } catch (e) {
+    // ignore and fallback to empty modules
+    // eslint-disable-next-line no-console
+    console.debug('buildAdminSession: getActiveModules failed, continuing with empty set', e && (e as any).message ? (e as any).message : e);
+    activeModules = {};
+  }
 
   // Flags → map
-  const flags = await listFlags();
+  // Flags → map (tolerant to missing feature_flags table)
   const featureFlags: Record<string, boolean> = {};
-  for (const f of flags) featureFlags[f.key] = Boolean(f.enabled);
+  try {
+    const flags = await listFlags();
+    for (const f of flags) {
+      if (f && f.key) featureFlags[f.key] = Boolean(f.enabled);
+    }
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.debug('buildAdminSession: listFlags failed, continuing with empty set', e && (e as any).message ? (e as any).message : e);
+  }
+
+  // Dashboard settings (optional)
+  let dashboardSettings: any = null;
+  try {
+    // admin_dashboard_settings stores key, value (json)
+    // be tolerant if table or key missing
+    const res = await pool.query("select value from admin_dashboard_settings where key = $1 limit 1", ['dashboard_widgets']);
+    if (res.rowCount) {
+      try {
+        dashboardSettings = JSON.parse(res.rows[0].value);
+      } catch (e) {
+        dashboardSettings = res.rows[0].value;
+      }
+    }
+  } catch (e) {
+    // ignore: optional feature
+    // eslint-disable-next-line no-console
+    console.debug('buildAdminSession: admin_dashboard_settings missing or unreadable', e && (e as any).message ? (e as any).message : e);
+  }
 
   return {
     user: {
@@ -56,5 +95,6 @@ export async function buildAdminSession(userId: string) {
     permissions,
     activeModules,
     featureFlags,
+    dashboardSettings,
   };
 }

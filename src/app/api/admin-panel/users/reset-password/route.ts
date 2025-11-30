@@ -1,11 +1,13 @@
 import { NextRequest } from 'next/server';
-import { json, isModuleActive } from '../../_utils';
+import { json } from '../../_utils';
+import { getModuleByKey } from '@/server/adapters/modules-adapter';
 import pool from '@/lib/db';
 import { createHash } from 'crypto';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
-  if (!isModuleActive('admin-users')) return json({ message: 'Módulo de usuários inativo.' }, 403);
+  const mod = await getModuleByKey('admin-users');
+  if (mod && !mod.is_active) return json({ message: 'Módulo de usuários inativo.' }, 403);
   const body = await request.json();
   const token = body.token;
   const newPassword = body.newPassword;

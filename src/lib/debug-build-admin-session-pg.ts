@@ -23,9 +23,9 @@ const pool = new Pool(
     : {
         host: process.env.PGHOST || 'localhost',
         port: Number(process.env.PGPORT || 5432),
-        user: process.env.PGUSER || 'postgres',
+        user: process.env.PGUSER || 'mapeamento_user',
         password: resolvePassword(),
-        database: process.env.PGDATABASE || 'postgres',
+        database: process.env.PGDATABASE || 'mapeamento',
       }
 );
 

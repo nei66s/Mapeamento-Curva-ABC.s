@@ -8,6 +8,8 @@ export type DbUser = {
   password_hash?: string | null;
   role?: string | null;
   created_at?: string | null;
+  roles?: string[];
+  profile?: any;
 };
 
 export async function getUserByEmail(email: string): Promise<DbUser | null> {
@@ -23,11 +25,48 @@ export async function getUserByEmail(email: string): Promise<DbUser | null> {
 
   const q = `select ${selectCols.join(', ')} from users where email = $1 limit 1`;
   const res = await pool.query(q, [email]);
-  const row = res.rows[0];
-  if (!row) return null;
-  // Normalize password field to `password_hash` for compatibility
-  if (!row.password_hash && row.password) {
-    row.password_hash = row.password;
+  // Optimize listUsers to avoid N+1 queries: aggregate roles and fetch profile in one query
+  const q = `
+    SELECT u.id, u.name, u.email, u.role, u.created_at${hasStatus ? ', u.status' : ''}${hasPerm ? ', u.permissions' : ''},
+      COALESCE(jsonb_agg(DISTINCT jsonb_build_object('name', r.name)) FILTER (WHERE r.name IS NOT NULL), '[]') as roles_agg,
+      (SELECT extra FROM user_profile up WHERE up.user_id = u.id::text LIMIT 1) as profile
+    FROM users u
+    LEFT JOIN user_roles ur ON ur.user_id = u.id::text
+    LEFT JOIN roles r ON r.id::text = ur.role_id
+    GROUP BY u.id, u.name, u.email, u.role, u.created_at${hasStatus ? ', u.status' : ''}${hasPerm ? ', u.permissions' : ''}
+    ORDER BY u.created_at DESC
+    LIMIT $1 OFFSET $2
+  `;
+  const res = await pool.query(q, [limit, offset]);
+  const rows = res.rows.map((r: any) => {
+    // normalize permissions
+    if (r.permissions && typeof r.permissions === 'string') {
+      try {
+        if (r.permissions === '') r.permissions = [];
+        else r.permissions = JSON.parse(r.permissions);
+      } catch (e) { r.permissions = [] }
+    }
+    // roles_agg comes as JSONB array of objects with {name}; normalize to string array
+    try {
+      r.roles = Array.isArray(r.roles_agg) ? r.roles_agg.map((x: any) => x.name) : [];
+    } catch (e) { r.roles = []; }
+    delete r.roles_agg;
+    // profile is JSONB or null
+    r.profile = r.profile ?? null;
+    return r;
+  });
+
+  // enrich rows with lastAccessAt from audit_logs when available
+  await Promise.all(rows.map(async (r: any) => {
+    try {
+      const last = await pool.query("select created_at from audit_logs where user_id = $1 and action in ('user.login','login') order by created_at desc limit 1", [r.id]);
+      if (last.rowCount) {
+        r.lastAccessAt = last.rows[0].created_at instanceof Date ? last.rows[0].created_at.toISOString() : String(last.rows[0].created_at);
+      }
+    } catch (e) {}
+  }));
+
+  return rows;
     delete row.password;
   }
   if (row.permissions && typeof row.permissions === 'string') {
@@ -36,33 +75,15 @@ export async function getUserByEmail(email: string): Promise<DbUser | null> {
       else row.permissions = JSON.parse(row.permissions);
     } catch (e) { row.permissions = [] }
   }
-  return row || null;
-}
+  try {
+    const rolesRes = await pool.query(`SELECT r.name FROM user_roles ur JOIN roles r ON r.id::text = ur.role_id WHERE ur.user_id = $1`, [String(row.id)]);
+    row.roles = rolesRes.rows.map((r: any) => String(r.name));
+  } catch (e) { row.roles = []; }
+  try {
+    const prof = await pool.query(`SELECT extra FROM user_profile WHERE user_id = $1 LIMIT 1`, [String(row.id)]);
+    row.profile = prof.rowCount ? prof.rows[0].extra : null;
+  } catch (e) { row.profile = null; }
 
-export async function getUserById(id: string): Promise<DbUser | null> {
-  const colsRes = await pool.query(
-    "select column_name from information_schema.columns where table_name = 'users' and column_name in ('password_hash','password','permissions')"
-  );
-  const cols = new Set(colsRes.rows.map((r: any) => String(r.column_name)));
-  const selectCols = ['id', 'name', 'email', 'role', 'created_at'];
-  if (cols.has('password_hash')) selectCols.splice(3, 0, 'password_hash');
-  else if (cols.has('password')) selectCols.splice(3, 0, 'password');
-  if (cols.has('permissions')) selectCols.push('permissions');
-
-  const q = `select ${selectCols.join(', ')} from users where id = $1 limit 1`;
-  const res = await pool.query(q, [id]);
-  const row = res.rows[0];
-  if (!row) return null;
-  if (!row.password_hash && row.password) {
-    row.password_hash = row.password;
-    delete row.password;
-  }
-  if (row.permissions && typeof row.permissions === 'string') {
-    try {
-      if (row.permissions === '') row.permissions = [];
-      else row.permissions = JSON.parse(row.permissions);
-    } catch (e) { row.permissions = [] }
-  }
   return row || null;
 }
 
@@ -85,21 +106,53 @@ export async function listUsers(limit = 50, offset = 0) {
     "select column_name from information_schema.columns where table_name = 'users' and column_name = 'permissions'"
   );
   const hasPerm = colsRes.rowCount > 0;
+  // Also detect optional 'status' column to include it in list queries
+  const colsStatusRes = await pool.query(
+    "select column_name from information_schema.columns where table_name = 'users' and column_name = 'status'"
+  );
+  const hasStatus = colsStatusRes.rowCount > 0;
+
   const q = hasPerm
-    ? 'select id, name, email, role, created_at, permissions from users order by created_at desc limit $1 offset $2'
-    : 'select id, name, email, role, created_at from users order by created_at desc limit $1 offset $2';
+    ? `select id, name, email, role, created_at${hasStatus ? ', status' : ''}, permissions from users order by created_at desc limit $1 offset $2`
+    : `select id, name, email, role, created_at${hasStatus ? ', status' : ''} from users order by created_at desc limit $1 offset $2`;
   const res = await pool.query(q, [limit, offset]);
   if (hasPerm) {
-    return res.rows.map((r: any) => {
+    const rows = res.rows.map((r: any) => {
       if (r.permissions && typeof r.permissions === 'string') {
         try {
           if (r.permissions === '') r.permissions = [];
           else r.permissions = JSON.parse(r.permissions);
         } catch (e) { r.permissions = [] }
       }
-      // if permissions is null/undefined, will be derived later
       return r;
     });
+
+    // enrich rows with lastAccessAt from audit_logs when available
+    await Promise.all(rows.map(async (r: any) => {
+      try {
+        const last = await pool.query("select created_at from audit_logs where user_id = $1 and action in ('user.login','login') order by created_at desc limit 1", [r.id]);
+        if (last.rowCount) {
+          // provide camelCase field expected by frontend
+          r.lastAccessAt = last.rows[0].created_at instanceof Date ? last.rows[0].created_at.toISOString() : String(last.rows[0].created_at);
+        }
+      } catch (e) {
+        // ignore enrichment errors
+      }
+    }));
+
+    // attach roles and profile per-row
+    await Promise.all(rows.map(async (r: any) => {
+      try {
+        const rolesRes = await pool.query(`SELECT r.name FROM user_roles ur JOIN roles r ON r.id::text = ur.role_id WHERE ur.user_id = $1`, [String(r.id)]);
+        r.roles = rolesRes.rows.map((x: any) => String(x.name));
+      } catch (e) { r.roles = []; }
+      try {
+        const prof = await pool.query(`SELECT extra FROM user_profile WHERE user_id = $1 LIMIT 1`, [String(r.id)]);
+        r.profile = prof.rowCount ? prof.rows[0].extra : null;
+      } catch (e) { r.profile = null; }
+    }));
+
+    return rows;
   }
   // if no `permissions` column, derive from roles where possible
   const rows = res.rows;
@@ -109,6 +162,27 @@ export async function listUsers(limit = 50, offset = 0) {
     }
     return r;
   }));
+  // enrich mapped rows with lastAccessAt from audit_logs when available
+  await Promise.all(mapped.map(async (r: any) => {
+    try {
+      const last = await pool.query("select created_at from audit_logs where user_id = $1 and action in ('user.login','login') order by created_at desc limit 1", [r.id]);
+      if (last.rowCount) {
+        r.lastAccessAt = last.rows[0].created_at instanceof Date ? last.rows[0].created_at.toISOString() : String(last.rows[0].created_at);
+      }
+    } catch (e) {}
+  }));
+  // attach roles and profile to mapped rows
+  await Promise.all(mapped.map(async (r: any) => {
+    try {
+      const rolesRes = await pool.query(`SELECT r.name FROM user_roles ur JOIN roles r ON r.id::text = ur.role_id WHERE ur.user_id = $1`, [String(r.id)]);
+      r.roles = rolesRes.rows.map((x: any) => String(x.name));
+    } catch (e) { r.roles = []; }
+    try {
+      const prof = await pool.query(`SELECT extra FROM user_profile WHERE user_id = $1 LIMIT 1`, [String(r.id)]);
+      r.profile = prof.rowCount ? prof.rows[0].extra : null;
+    } catch (e) { r.profile = null; }
+  }));
+
   return mapped;
 }
 

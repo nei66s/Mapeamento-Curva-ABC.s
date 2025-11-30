@@ -1,25 +1,18 @@
 import { NextRequest } from 'next/server';
-import { featureModules, recordAudit } from '../../../_data';
 import { json, getRequestIp } from '../../../_utils';
+import { getModuleByKey, updateModuleByKey } from '@/server/adapters/modules-adapter';
+import { logAudit } from '@/server/adapters/audit-adapter';
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, context: { params: any }) {
+  const { id } = await context.params as { id: string };
   const body = await request.json();
-  const module = featureModules.find((m) => m.id === params.id);
-  if (!module) return json({ message: 'Módulo não encontrado.' }, 404);
-  const updated = { ...module, beta: Boolean(body.beta), updatedAt: new Date().toISOString() };
-  featureModules[featureModules.findIndex((m) => m.id === params.id)] = updated;
+  const currentModule = await getModuleByKey(id);
+  if (!currentModule) return json({ message: 'Módulo não encontrado.' }, 404);
+  const updated = await updateModuleByKey(id, { beta: Boolean(body.beta) } as any);
 
-  recordAudit({
-    userId: body.actorId || 'u-admin',
-    userName: body.actorName || 'Sistema',
-    entity: 'module',
-    entityId: params.id,
-    action: 'module.beta',
-    before: module,
-    after: updated,
-    ip: getRequestIp(request),
-    userAgent: request.headers.get('user-agent') || undefined,
-  });
+  try {
+    await logAudit({ user_id: body.actorId || 'u-admin', entity: 'module', entity_id: id, action: 'module.beta', before_data: currentModule, after_data: updated, ip: getRequestIp(request), user_agent: request.headers.get('user-agent') ?? undefined });
+  } catch (e) {}
 
   return json(updated);
 }

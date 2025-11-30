@@ -20,7 +20,7 @@ import { ThemeTone, SEASONAL_THEME_ID, updateThemeColor } from '@/lib/theme-mana
 export default function SettingsPage() {
   const { user } = useCurrentUser();
   const [theme, setTheme] = useState('light');
-  const [themeColor, setThemeColor] = useState('blue');
+  const [themeColor, setThemeColor] = useState('orange');
   const [tone, setTone] = useState<ThemeTone>('soft');
   const [notifications, setNotifications] = useState({
     incidents: true,
