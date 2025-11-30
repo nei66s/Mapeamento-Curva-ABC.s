@@ -1,34 +1,25 @@
 import { NextRequest } from 'next/server';
-import { recordAudit, recordPageview } from '../../admin-panel/_data';
 import { isModuleActive, json, getRequestIp } from '../../admin-panel/_utils';
+import { insertTrackingEvent } from '@/server/adapters/tracking-adapter';
+import { logAudit } from '@/server/adapters/audit-adapter';
 
 export async function POST(request: NextRequest) {
-  if (!isModuleActive('admin-analytics')) return json({ message: 'Módulo de analytics inativo.' }, 403);
+  if (!(await isModuleActive('admin-analytics'))) return json({ message: 'Módulo de analytics inativo.' }, 403);
   const body = await request.json();
   if (body.type === 'pageview') {
-    recordPageview({
-      route: body.route || '/',
-      userId: body.userId,
-      device: body.device,
-      browser: body.browser,
-      city: body.city,
-      country: body.country,
-      sessionId: body.sessionId,
-    });
+    try {
+      await insertTrackingEvent({ user_id: body.userId, route: body.route || '/', device: body.device, browser: body.browser });
+    } catch (e) {
+      // ignore insertion errors
+    }
     return json({ success: true });
   }
 
-  recordAudit({
-    userId: body.userId || 'u-admin',
-    userName: body.userName || 'Sistema',
-    entity: 'action',
-    entityId: body.name || 'event',
-    action: body.name || 'custom.event',
-    before: null,
-    after: body.payload || {},
-    ip: getRequestIp(request),
-    userAgent: request.headers.get('user-agent') || undefined,
-  });
+  try {
+    await logAudit({ user_id: body.userId || 'u-admin', entity: 'action', entity_id: body.name || 'event', action: body.name || 'custom.event', before_data: null, after_data: body.payload || {}, ip: getRequestIp(request), user_agent: request.headers.get('user-agent') ?? undefined });
+  } catch (e) {
+    // ignore
+  }
 
   return json({ success: true });
 }

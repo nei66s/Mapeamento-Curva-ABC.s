@@ -2,11 +2,10 @@
 -- Objetivo: comandos de verificação e instruções de uso do psql no PowerShell
 -- Substitua HOST, USER, DB pelos valores do seu ambiente (sem < >).
 
--- 1) Verificar extensões (execute no PowerShell):
--- Use valores reais, por exemplo HOST=localhost USER=postgres DB=mydb
-psql -h HOST -U USER -d DB -c "SELECT extname FROM pg_extension WHERE extname IN ('pgcrypto','uuid-ossp');"
-
--- 2) Ver a definição da tabela (recomendado: use single quotes em PowerShell para preservar \-metacomandos do psql):
+psql -h localhost -U mapeamento_user -d mapeamento -c "SELECT extname FROM pg_extension WHERE extname IN ('pgcrypto','uuid-ossp');"
+-- Use valores reais, por exemplo HOST=localhost USER=mapeamento_user DB=mapeamento
+-- - Substitua pelos valores reais ou use variáveis do PowerShell:
+--   $HOST = 'localhost'; $USER = 'mapeamento_user'; $DB = 'mapeamento'; psql -h $HOST -U $USER -d $DB -c "SELECT 1;"
 psql -h HOST -U USER -d DB -c '\d+ public.lancamentos_mensais'
 
 -- 3) Contagem de linhas e visualização rápida

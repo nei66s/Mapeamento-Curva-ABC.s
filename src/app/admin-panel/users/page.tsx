@@ -291,17 +291,19 @@ export default function UsersAdminPage() {
                 {(users.data?.items || []).map((user: any) => (
                   <TableRow key={user.id}>
                     <TableCell className="flex items-center gap-3">
-                      <Avatar>
-                        {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.name} /> : null}
-                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
+                        <Avatar>
+                          { (user.avatarUrl || (user.profile && user.profile.avatar_url)) ? (
+                            <AvatarImage src={user.avatarUrl || user.profile.avatar_url} alt={user.name} />
+                          ) : null }
+                          <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
                       <div>
                         <div className="font-medium">{user.name}</div>
                         <div className="text-xs text-muted-foreground">{user.email}</div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{user.role}</Badge>
+                      <Badge variant="outline">{user.role || (user.roles && user.roles[0]) || '—'}</Badge>
                     </TableCell>
                     <TableCell>
                       <Badge

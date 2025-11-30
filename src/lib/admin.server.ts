@@ -1,4 +1,4 @@
-import { pool } from './db';
+import pool from './db';
 
 /**
  * Exemplo de função para buscar dados para o painel de administração.

@@ -8,8 +8,8 @@ export async function GET() {
     // Get some basic context for debugging
     const env = {
       host: process.env.PGHOST || 'localhost',
-      database: process.env.PGDATABASE || 'postgres',
-      user: process.env.PGUSER || 'postgres',
+      database: process.env.PGDATABASE || 'mapeamento',
+      user: process.env.PGUSER || 'mapeamento_user',
       port: Number(process.env.PGPORT || 5432),
     };
     return NextResponse.json({ status: ok ? 'ok' : 'error', ok, env });

@@ -11,7 +11,7 @@ export default {
     extend: {
       fontFamily: {
         body: ['Inter', 'sans-serif'],
-        headline: ['Lexend', 'sans-serif'],
+        headline: ['Inter', 'sans-serif'],
         code: ['Source Code Pro', 'monospace'],
       },
       colors: {
@@ -40,6 +40,10 @@ export default {
         accent: {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))',
+        },
+        warning: {
+          DEFAULT: 'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning-foreground))',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',

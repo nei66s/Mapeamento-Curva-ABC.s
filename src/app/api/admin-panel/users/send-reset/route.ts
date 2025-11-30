@@ -1,12 +1,14 @@
 import { NextRequest } from 'next/server';
-import { json, isModuleActive } from '../../_utils';
+import { json } from '../../_utils';
+import { getModuleByKey } from '@/server/adapters/modules-adapter';
 import pool from '@/lib/db';
 import { getUserByEmail } from '@/server/adapters/users-adapter';
 import nodemailer from 'nodemailer';
 import { randomBytes, createHash } from 'crypto';
 
 export async function POST(request: NextRequest) {
-  if (!isModuleActive('admin-users')) return json({ message: 'Módulo de usuários inativo.' }, 403);
+  const mod = await getModuleByKey('admin-users');
+  if (mod && !mod.is_active) return json({ message: 'Módulo de usuários inativo.' }, 403);
   const body = await request.json();
   const email = (body.email || '').toLowerCase();
   if (!email) return json({ message: 'Email é obrigatório' }, 400);

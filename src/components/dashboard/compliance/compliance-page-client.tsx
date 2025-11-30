@@ -21,6 +21,7 @@ import { ScheduleVisitForm } from '@/components/dashboard/compliance/schedule-vi
 import { Skeleton } from '@/components/ui/skeleton';
 import { HeroPanel } from '@/components/shared/hero-panel';
 import { Badge } from '@/components/ui/badge';
+import { PagePanel } from '@/components/layout/page-panel';
 
 export default function CompliancePageClient({ searchParams = {} }: { searchParams?: Record<string, any> } = {}) {
   const [checklistItems, setChecklistItems] = useState<ComplianceChecklistItem[]>([]);
@@ -449,43 +450,48 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
       </PageHeader>
 
       <section className="grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
-        <HeroPanel
-          label="Compliance Hero"
-          title="Preventivas em destaque"
-          description={
-            complianceMetrics.total > 0
-              ? 'Monitoramento em tempo real do checklist em campo.'
-              : 'Ainda não há visitas agendadas. Agende uma nova visita para começar o acompanhamento.'
-          }
-          stats={[
-            {
-              label: 'Itens concluídos',
-              value: complianceMetrics.completed,
-              helper: `${complianceMetrics.completionRate}% de conclusão`,
-            },
-            {
-              label: 'Itens pendentes',
-              value: complianceMetrics.pending,
-              helper: `${complianceMetrics.notApplicable} não aplicáveis`,
-            },
-            {
-              label: 'Visitas agendadas',
-              value: storeData.length,
-              helper: `Última atualização: ${formatDistanceToNow(new Date(complianceMetrics.lastUpdated), { addSuffix: true, locale: ptBR })}`,
-            },
-          ]}
-        />
-        <div className="card p-6 bg-card/80 border-border/40 elevation-2">
+        <PagePanel className="p-6">
+          <HeroPanel
+            label="Compliance Hero"
+            title="Preventivas em destaque"
+            description={
+              complianceMetrics.total > 0
+                ? 'Monitoramento em tempo real do checklist em campo.'
+                : 'Ainda não há visitas agendadas. Agende uma nova visita para começar o acompanhamento.'
+            }
+            stats={[
+              {
+                label: 'Itens concluídos',
+                value: complianceMetrics.completed,
+                helper: `${complianceMetrics.completionRate}% de conclusão`,
+              },
+              {
+                label: 'Itens pendentes',
+                value: complianceMetrics.pending,
+                helper: `${complianceMetrics.notApplicable} não aplicáveis`,
+              },
+              {
+                label: 'Visitas agendadas',
+                value: storeData.length,
+                helper: `Última atualização: ${formatDistanceToNow(new Date(complianceMetrics.lastUpdated), { addSuffix: true, locale: ptBR })}`,
+              },
+            ]}
+          />
+        </PagePanel>
+        <PagePanel className="p-6 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-muted-foreground">Próximas inspeções</p>
             <Badge variant="secondary" className="text-[0.6rem] uppercase tracking-[0.2em]">
               {upcomingVisits.length} confirmadas
             </Badge>
           </div>
-          <div className="mt-4 space-y-3">
+          <div className="space-y-3">
             {upcomingVisits.length > 0 ? (
               upcomingVisits.map((visit) => (
-                  <div key={`${visit.storeId}-${visit.visitDate}`} className="rounded-2xl border border-border bg-card/80 p-3 shadow-sm">
+                <div
+                  key={`${visit.storeId}-${visit.visitDate}`}
+                  className="rounded-2xl border border-border/30 bg-card/70 p-3 shadow-sm"
+                >
                   <p className="text-sm font-semibold">{visit.storeName}</p>
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(visit.visitDate), 'dd/MM/yyyy')} · {formatDistanceToNow(new Date(visit.visitDate), { addSuffix: true, locale: ptBR })}
@@ -499,19 +505,14 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
               <p className="text-xs text-muted-foreground">Nenhuma visita futura encontrada.</p>
             )}
           </div>
-        </div>
+        </PagePanel>
       </section>
 
-      <Card className="card elevation-2 bg-card/80 border-border/40">
-        <CardContent className='p-4 sm:p-6'>
-           <ComplianceMap 
-         allStores={stores}
-             scheduledVisits={filteredStoreData}
-          />
-        </CardContent>
-      </Card>
+      <PagePanel className="p-0 overflow-hidden">
+        <ComplianceMap allStores={stores} scheduledVisits={filteredStoreData} />
+      </PagePanel>
 
-      <section className="space-y-8">
+      <PagePanel className="space-y-8">
         <div className="grid gap-8 lg:grid-cols-3">
           <div className="lg:col-span-1">
             <ComplianceSummary storeData={filteredStoreData} checklistItems={checklistItems} />
@@ -525,73 +526,73 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
           </div>
         </div>
 
-        <Card className="card elevation-2 border-border/40">
-          <CardContent className="p-4 sm:p-6 grid gap-6 md:grid-cols-3">
-            <div className="md:col-span-1">
-                 <div className="flex items-center justify-between mb-4">
-                    <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
-                        <ChevronLeft />
-                    </Button>
-                    <div className='flex items-center gap-2'>
-                        <Select value={String(getMonth(displayDate))} onValueChange={(v) => handleMonthChange(Number(v))}>
-                            <SelectTrigger className="w-[140px]">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <Select value={String(getYear(displayDate))} onValueChange={(v) => handleYearChange(Number(v))}>
-                            <SelectTrigger className="w-[100px]">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                     <Button variant="outline" size="icon" onClick={goToNextMonth}>
-                        <ChevronRight />
-                    </Button>
+        <PagePanel className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="md:col-span-1 space-y-4">
+              <div className="flex items-center justify-between">
+                <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
+                  <ChevronLeft />
+                </Button>
+                <div className="flex items-center gap-2">
+                  <Select value={String(getMonth(displayDate))} onValueChange={(v) => handleMonthChange(Number(v))}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={String(getYear(displayDate))} onValueChange={(v) => handleYearChange(Number(v))}>
+                    <SelectTrigger className="w-[100px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
-                 <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    month={displayDate}
-                    onMonthChange={setDisplayDate}
-                    locale={ptBR}
-                    className="rounded-md border"
-                    modifiers={{ 
-                      scheduled: scheduledDates,
-                      completed: completedDates,
-                      pending: pendingDates,
-                      future: futureDates,
-                    }}
-                    modifiersClassNames={{
-                      completed: 'bg-green-100 dark:bg-green-900',
-                      pending: 'bg-orange-100 dark:bg-orange-900',
-                      future: 'bg-blue-100 dark:bg-blue-900',
-                    }}
-                    modifiersStyles={{ 
-                      scheduled: { color: 'hsl(var(--primary))', fontWeight: 'bold' }
-                    }}
-                 />
-                 <Button className='w-full mt-4' variant="secondary" onClick={() => setSelectedDate(undefined)}>Limpar seleção</Button>
+                <Button variant="outline" size="icon" onClick={goToNextMonth}>
+                  <ChevronRight />
+                </Button>
+              </div>
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                month={displayDate}
+                onMonthChange={setDisplayDate}
+                locale={ptBR}
+                className="rounded-xl border border-border/40 shadow-sm"
+                modifiers={{ 
+                  scheduled: scheduledDates,
+                  completed: completedDates,
+                  pending: pendingDates,
+                  future: futureDates,
+                }}
+                modifiersClassNames={{
+                  completed: 'bg-green-100 dark:bg-green-900',
+                  pending: 'bg-orange-100 dark:bg-orange-900',
+                  future: 'bg-blue-100 dark:bg-blue-900',
+                }}
+                modifiersStyles={{ 
+                  scheduled: { color: 'hsl(var(--primary))', fontWeight: 'bold' }
+                }}
+              />
+              <Button className='w-full' variant="secondary" onClick={() => setSelectedDate(undefined)}>Limpar seleção</Button>
             </div>
-           <div className="md:col-span-2">
-                <ComplianceChecklist
-                   checklistItems={checklistItems}
-                   storeData={filteredStoreData}
-                    onStatusChange={handleStatusChange}
-                    onDeleteVisit={handleDeleteVisit}
-                    currentDate={selectedDate || displayDate}
-                   isDateView={!!selectedDate}
-               />
-           </div>
-        </CardContent>
-       </Card>
-      </section>
+            <div className="md:col-span-2">
+              <ComplianceChecklist
+                checklistItems={checklistItems}
+                storeData={filteredStoreData}
+                onStatusChange={handleStatusChange}
+                onDeleteVisit={handleDeleteVisit}
+                currentDate={selectedDate || displayDate}
+                isDateView={!!selectedDate}
+              />
+            </div>
+          </div>
+        </PagePanel>
+      </PagePanel>
     </div>
   );
 }

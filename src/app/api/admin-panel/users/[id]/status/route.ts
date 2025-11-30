@@ -1,27 +1,19 @@
 import { NextRequest } from 'next/server';
-import { adminUsers, recordAudit, upsertUser } from '../../../_data';
-import { isModuleActive, json } from '../../../_utils';
-import { getRequestIp } from '../../../_utils';
+import { json, getRequestIp } from '../../../_utils';
+import { getModuleByKey } from '@/server/adapters/modules-adapter';
+import { getUserById, updateUser } from '@/server/adapters/users-adapter';
+import { logAudit } from '@/server/adapters/audit-adapter';
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
-  if (!isModuleActive('admin-users')) return json({ message: 'Módulo de usuários inativo.' }, 403);
+export async function POST(request: NextRequest, context: { params: any }) {
+  const { id } = await context.params as { id: string };
+  const mod = await getModuleByKey('admin-users');
+  if (mod && !mod.is_active) return json({ message: 'Módulo de usuários inativo.' }, 403);
   const body = await request.json();
-  const user = adminUsers.find((u) => u.id === params.id);
+  const user = await getUserById(id);
   if (!user) return json({ message: 'Usuário não encontrado.' }, 404);
-  const updated = { ...user, status: body.status };
-  upsertUser(updated);
-
-  recordAudit({
-    userId: body.actorId || 'u-admin',
-    userName: body.actorName || 'Sistema',
-    entity: 'user',
-    entityId: params.id,
-    action: `user.${body.status}`,
-    before: user,
-    after: updated,
-    ip: getRequestIp(request),
-    userAgent: request.headers.get('user-agent') || undefined,
-  });
-
+  const updated = await updateUser(id, { status: body.status } as any);
+  try {
+    await logAudit({ user_id: body.actorId || 'u-admin', entity: 'user', entity_id: id, action: `user.${body.status}`, before_data: user, after_data: updated, ip: getRequestIp(request), user_agent: request.headers.get('user-agent') ?? undefined });
+  } catch (e) {}
   return json(updated);
 }

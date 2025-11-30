@@ -1,30 +1,28 @@
 import { NextRequest } from 'next/server';
-import { pageviewEvents } from '../../_data';
-import { isModuleActive, json } from '../../_utils';
+import { json } from '../../_utils';
+import { getModuleByKey } from '@/server/adapters/modules-adapter';
+import * as metricsAdapter from '@/server/adapters/metrics-adapter';
 
 export async function GET(request: NextRequest) {
-  if (!isModuleActive('admin-analytics')) return json({ message: 'Módulo de analytics inativo.' }, 403);
+  const mod = await getModuleByKey('admin-analytics');
+  if (mod && !mod.is_active) return json({ message: 'Módulo de analytics inativo.' }, 403);
   const { searchParams } = new URL(request.url);
   const routeFilter = searchParams.get('route');
   const from = searchParams.get('from');
   const to = searchParams.get('to');
 
-  let items = pageviewEvents;
-  if (routeFilter) items = items.filter((e) => e.route === routeFilter);
-  if (from) items = items.filter((e) => new Date(e.createdAt).getTime() >= new Date(from).getTime());
-  if (to) items = items.filter((e) => new Date(e.createdAt).getTime() <= new Date(to).getTime());
-
-  const buckets = new Map<string, number>();
-  items.forEach((e) => {
-    const date = new Date(e.createdAt);
-    date.setMinutes(0, 0, 0);
-    const key = date.toISOString();
-    buckets.set(key, (buckets.get(key) || 0) + 1);
-  });
-
-  const series = Array.from(buckets.entries())
-    .map(([timestamp, value]) => ({ timestamp, value }))
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-  return json(series);
+  try {
+    const rows = await metricsAdapter.getTimeseries('pageviews', 24);
+    if (!rows || !rows.length) return json([]);
+    const first = rows[0];
+    const value = first.metric_value || first.value || first.metricValue;
+    if (!Array.isArray(value)) return json([]);
+    let series = value.map((p: any) => ({ timestamp: p.timestamp, value: p.value }));
+    if (from) series = series.filter((p: any) => new Date(p.timestamp).getTime() >= new Date(from).getTime());
+    if (to) series = series.filter((p: any) => new Date(p.timestamp).getTime() <= new Date(to).getTime());
+    if (routeFilter) series = series.filter((s: any) => !routeFilter || String(s.route || '') === routeFilter);
+    return json(series);
+  } catch (e) {
+    return json([]);
+  }
 }

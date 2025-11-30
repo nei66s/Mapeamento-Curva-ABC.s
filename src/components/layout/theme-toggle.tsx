@@ -15,13 +15,13 @@ const readThemePreference = () => {
   if (typeof window === 'undefined') {
     return {
       theme: 'light' as const,
-      themeColor: 'blue',
+      themeColor: 'orange',
       tone: 'soft' as ThemeTone,
     };
   }
 
   const storedTheme = (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
-  let storedColorRaw = localStorage.getItem('themeColor') || 'blue';
+  let storedColorRaw = localStorage.getItem('themeColor') || 'orange';
   let storedTone: ThemeTone = (localStorage.getItem('themeTone') as ThemeTone) || 'soft';
   if (storedColorRaw.endsWith('-vivid')) {
     storedTone = 'vivid';
@@ -36,20 +36,20 @@ const readThemePreference = () => {
 };
 
 export function ThemeToggle() {
-  // Use stable defaults for SSR so server-rendered HTML matches initial client render.
-  // Read from localStorage only after mount to avoid hydration mismatches.
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [themeColor, setThemeColor] = useState<string>('blue');
+  const [themeColor, setThemeColor] = useState<string>('orange');
   const [tone, setTone] = useState<ThemeTone>('soft');
+  const { user } = useCurrentUser();
 
   useEffect(() => {
-    // On mount, read persisted preferences and apply them.
-    const pref = readThemePreference();
-    setTheme(pref.theme);
-    setThemeColor(pref.themeColor);
-    setTone(pref.tone);
+    const id = requestAnimationFrame(() => {
+      const pref = readThemePreference();
+      setTheme(pref.theme);
+      setThemeColor(pref.themeColor);
+      setTone(pref.tone);
+    });
+    return () => cancelAnimationFrame(id);
   }, []);
-  const { user } = useCurrentUser();
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');

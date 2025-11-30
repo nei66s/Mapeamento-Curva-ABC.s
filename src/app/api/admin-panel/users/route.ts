@@ -1,13 +1,15 @@
 import { NextRequest } from 'next/server';
-import { recordAudit } from '../_data';
-import { isModuleActive, json, parsePagination, getRequestIp } from '../_utils';
+import { json, parsePagination, getRequestIp } from '../_utils';
+import { getModuleByKey } from '@/server/adapters/modules-adapter';
+import { logAudit } from '@/server/adapters/audit-adapter';
 import { listUsers, createUser } from '@/server/adapters/users-adapter';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import pool from '@/lib/db';
 
 export async function GET(request: NextRequest) {
-  if (!isModuleActive('admin-users')) return json({ message: 'Módulo de usuários inativo.' }, 403);
+  const mod = await getModuleByKey('admin-users');
+  if (mod && !mod.is_active) return json({ message: 'Módulo de usuários inativo.' }, 403);
   const { searchParams } = new URL(request.url);
   const email = searchParams.get('email')?.toLowerCase();
   const status = searchParams.get('status');
@@ -44,7 +46,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isModuleActive('admin-users')) return json({ message: 'Módulo de usuários inativo.' }, 403);
+  const mod2 = await getModuleByKey('admin-users');
+  if (mod2 && !mod2.is_active) return json({ message: 'Módulo de usuários inativo.' }, 403);
   const body = await request.json();
   try {
     let provisionalPassword: string | undefined;
@@ -58,17 +61,9 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await createUser({ name: body.name, email: body.email, password_hash: passwordHash, role: body.role });
-    recordAudit({
-      userId: body.actorId || 'u-admin',
-      userName: body.actorName || 'Sistema',
-      entity: 'user',
-      entityId: user.id,
-      action: 'user.create',
-      before: null,
-      after: user,
-      ip: getRequestIp(request),
-      userAgent: request.headers.get('user-agent') || undefined,
-    });
+    try {
+      await logAudit({ user_id: body.actorId || 'u-admin', entity: 'user', entity_id: user.id, action: 'user.create', before_data: null, after_data: user, ip: getRequestIp(request), user_agent: request.headers.get('user-agent') ?? undefined });
+    } catch (e) {}
     // Do NOT include provisional password in API response; keep server-side logs only
     return json(user, 201);
   } catch (err: any) {

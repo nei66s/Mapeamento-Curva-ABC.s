@@ -144,6 +144,40 @@ export let adminUsers: AdminUser[] = [
     permissions: rolesSeed[3].permissions.map((p) => p.id),
     avatarUrl: 'https://i.pravatar.cc/150?img=41',
   },
+  // Demo accounts added to mirror DB-seeded demo users
+  {
+    id: 'demo-a',
+    name: 'Demo A',
+    email: 'demo.a@demo.local',
+    role: 'usuario' as UserRole,
+    status: 'active',
+    lastAccessAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date().toISOString(),
+    permissions: rolesSeed[3].permissions.map((p) => p.id),
+    avatarUrl: 'https://i.pravatar.cc/150?img=21',
+  },
+  {
+    id: 'demo-b',
+    name: 'Demo B (Bloqueado)',
+    email: 'demo.b@demo.local',
+    role: 'usuario' as UserRole,
+    status: 'blocked',
+    lastAccessAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date().toISOString(),
+    permissions: rolesSeed[3].permissions.map((p) => p.id),
+    avatarUrl: 'https://i.pravatar.cc/150?img=22',
+  },
+  {
+    id: 'demo-gestor',
+    name: 'Demo Gestor',
+    email: 'demo.gestor@demo.local',
+    role: 'gestor' as UserRole,
+    status: 'active',
+    lastAccessAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    permissions: rolesSeed[1].permissions.map((p) => p.id),
+    avatarUrl: 'https://i.pravatar.cc/150?img=23',
+  },
 ];
 
 export let featureModules: FeatureModule[] = [...modulesSeed];
@@ -195,22 +229,103 @@ export let auditLogs: AuditLog[] = [
   },
 ];
 
+// Prepend a couple of very recent audit entries so the "Últimas ações administrativas" widget shows activity
+(() => {
+  const recent = [
+    {
+      id: 'audit-recent-1',
+      userId: 'u-admin',
+      userName: 'Helena Ramos',
+      entity: 'user',
+      entityId: 'demo-a',
+      action: 'user.login',
+      before: {},
+      after: { status: 'active' },
+      ip: '187.66.10.1',
+      timestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+      userAgent: 'Chrome 124',
+      location: 'Fortaleza, BR',
+    },
+    {
+      id: 'audit-recent-2',
+      userId: 'u-gov',
+      userName: 'Marcos Silva',
+      entity: 'module',
+      entityId: 'admin-analytics',
+      action: 'config.update',
+      before: { tracking: true },
+      after: { tracking: false },
+      ip: '177.23.10.2',
+      timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+      userAgent: 'Chrome 124',
+      location: 'Recife, BR',
+    },
+  ];
+  auditLogs = [...recent, ...auditLogs].slice(0, 300);
+})();
+
+
+
 const sampleRoutes = ['/indicators', '/analytics', '/audit', '/modules', '/config', '/health'];
 
-export let pageviewEvents: PageviewEvent[] = Array.from({ length: 25 }).map((_, idx) => {
-  const ts = new Date(Date.now() - idx * 15 * 60 * 1000).toISOString();
-  return {
-    id: `pv-${idx}`,
-    userId: adminUsers[idx % adminUsers.length]?.id,
-    route: sampleRoutes[idx % sampleRoutes.length],
-    device: ['iOS', 'Android', 'Web'][idx % 3],
-    browser: ['Chrome', 'Safari', 'Firefox'][idx % 3],
-    country: 'BR',
-    city: idx % 2 === 0 ? 'Fortaleza' : 'Recife',
-    createdAt: ts,
-    sessionId: `s-${Math.floor(idx / 3)}`,
-  };
-});
+// Generate a richer set of pageview events spanning the last 30 days so dashboard widgets show meaningful data.
+export let pageviewEvents: PageviewEvent[] = (() => {
+  const days = 30;
+  const events: PageviewEvent[] = [];
+  const base = Date.now();
+  // deterministic pseudo-random to keep values stable between restarts
+  let seed = 12345;
+  function rnd() { seed = (seed * 48271) % 2147483647; return seed / 2147483647; }
+
+  for (let d = 0; d < days; d++) {
+    // one timestamp per day at midnight UTC-3 (approx local)
+    const dayTs = new Date(base - d * 24 * 60 * 60 * 1000);
+    dayTs.setHours(0, 0, 0, 0);
+    // generate between 50 and 250 pageviews per day
+    const count = Math.round(50 + rnd() * 200);
+    for (let i = 0; i < count; i++) {
+      const minuteOffset = Math.floor(rnd() * 24 * 60);
+      const ts = new Date(dayTs.getTime() + minuteOffset * 60 * 1000).toISOString();
+      const idx = events.length;
+      events.push({
+        id: `pv-${idx}`,
+        userId: adminUsers[idx % adminUsers.length]?.id,
+        route: sampleRoutes[idx % sampleRoutes.length],
+        device: ['iOS', 'Android', 'Web'][idx % 3],
+        browser: ['Chrome', 'Safari', 'Firefox'][idx % 3],
+        country: 'BR',
+        city: idx % 2 === 0 ? 'Fortaleza' : 'Recife',
+        createdAt: ts,
+        sessionId: `s-${Math.floor(idx / 20)}`,
+      });
+    }
+  }
+  // keep newest first as other code expects
+  return events.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+})();
+
+// Add a small burst of very recent activity so realtime widgets show non-zero values (activeUsers5m, rpm, deviceSplit)
+(() => {
+  const now = Date.now();
+  const recent: PageviewEvent[] = [];
+  const routes = sampleRoutes;
+  const devs = ['Web', 'iOS', 'Android'];
+  for (let i = 0; i < 24; i++) {
+    const ts = new Date(now - Math.floor(Math.random() * 4 * 60 * 1000)).toISOString(); // within last 4 minutes
+    recent.push({
+      id: nextId('pv'),
+      userId: adminUsers[i % adminUsers.length]?.id,
+      route: routes[i % routes.length],
+      device: devs[i % devs.length],
+      browser: ['Chrome', 'Safari', 'Firefox'][i % 3],
+      country: 'BR',
+      city: i % 2 === 0 ? 'Fortaleza' : 'Recife',
+      createdAt: ts,
+      sessionId: `s-recent-${i}`,
+    });
+  }
+  pageviewEvents = [...recent, ...pageviewEvents].slice(0, 2000);
+})();
 
 export let systemConfig: SystemConfig = {
   name: 'Painel ABC',
@@ -239,7 +354,7 @@ export let healthSnapshot: HealthSnapshot = {
   uptimeSeconds: 86400 * 12,
   version: '2.3.1',
   dependencies: [
-    { name: 'postgres', status: 'healthy', lastChecked: new Date().toISOString(), latencyMs: 18 },
+    { name: 'mapeamento', status: 'healthy', lastChecked: new Date().toISOString(), latencyMs: 18 },
     { name: 'redis', status: 'healthy', lastChecked: new Date().toISOString(), latencyMs: 6 },
     { name: 'search-api', status: 'degraded', lastChecked: new Date().toISOString(), latencyMs: 220, details: 'Latência acima do normal' },
   ],
@@ -250,6 +365,13 @@ export let healthSnapshot: HealthSnapshot = {
       timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
       service: 'search-api',
       statusCode: 504,
+    },
+    {
+      id: 'err-recent-1',
+      message: 'Erro 500 em /api/indicators',
+      timestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+      service: 'app-server',
+      statusCode: 500,
     },
   ],
 };

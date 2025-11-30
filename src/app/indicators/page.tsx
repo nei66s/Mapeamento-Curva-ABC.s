@@ -480,9 +480,9 @@ export default function IndicatorsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <section className="relative overflow-hidden rounded-lg bg-card/90 p-8 shadow-sm border border-border/40">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.2),_transparent_60%)] opacity-80" />
-        <div className="relative z-10 grid gap-8">
+      <section className="page-shell relative overflow-hidden bg-white/90">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(248,113,113,0.15),_transparent_65%)] opacity-80" />
+        <div className="relative z-10 grid gap-6">
           <PageHeader
             title={<span className="text-foreground">Painel de Indicadores</span>}
             description="Análise consolidada dos principais indicadores da manutenção."
@@ -507,16 +507,18 @@ export default function IndicatorsPage() {
             {quickHighlights.map((highlight) => (
               <div
                 key={highlight.label}
-                className="rounded-2xl border border-border bg-muted/80 p-5 shadow-sm"
+                className="rounded-2xl border border-border/60 bg-muted/80 p-5 shadow-sm"
               >
-                <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{highlight.label}</p>
-                <p className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
+                <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
+                  {highlight.label}
+                </p>
+                <p className="mt-3 text-2xl font-semibold tracking-tight text-foreground flex items-center">
+                  <span className="inline-flex h-1.5 w-6 rounded-full bg-orange-500/90 mr-2" />
                   {highlight.value}
                 </p>
               </div>
             ))}
           </div>
-          {/* Botões de sincronização/manuais removidos — dados vêm do banco de dados */}
           <p className="text-sm text-muted-foreground">
             Integre dados em lote, controle inventário e acompanhe SLA em um só lugar.
           </p>
@@ -524,84 +526,89 @@ export default function IndicatorsPage() {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
-        <HeroPanel
-          label="Mês selecionado"
-          title={selectedMonthLabel}
-          description={
-            selectedData
-              ? 'Monitorando os KPIs e a qualidade do inventário ativo neste mês.'
-              : 'Selecione um mês com dados ou sincronize para atualizar os indicadores.'
-          }
-          stats={heroStats}
-        />
-        <HeroPanel
-          label="Inventário em foco"
-          title="Últimos dados da matriz de itens"
-          description={inventoryDescription}
-          stats={inventoryHeroStats}
-        >
-          <SummaryCards items={inventoryItems} hideOverallStats />
-        </HeroPanel>
+        <div className="page-shell">
+          <HeroPanel
+            label="Mês selecionado"
+            title={selectedMonthLabel}
+            description={
+              selectedData
+                ? 'Monitorando os KPIs e a qualidade do inventário ativo neste mês.'
+                : 'Selecione um mês com dados ou sincronize para atualizar os indicadores.'
+            }
+            stats={heroStats}
+          />
+        </div>
+        <div className="page-shell">
+          <HeroPanel
+            label="Inventário em foco"
+            title="Últimos dados da matriz de itens"
+            description={inventoryDescription}
+            stats={inventoryHeroStats}
+          >
+            <SummaryCards items={inventoryItems} hideOverallStats />
+          </HeroPanel>
+        </div>
       </section>
 
-      <section className="space-y-6 rounded-lg bg-card/80 p-6 shadow-sm border border-border/40">
+      <section className="page-shell space-y-6">
         <div className="flex items-center gap-3 text-2xl font-semibold text-foreground">
-          <BarChart3 className="h-6 w-6 text-primary" />
+          <BarChart3 className="h-6 w-6 text-orange-600" />
           Indicadores Gerais
         </div>
         {Array.isArray(incidents) && incidents.length === 0 && (
-          <div className="mt-4">
-            <Alert>
-              <div className="flex items-center justify-between w-full">
-                <div>
-                  <AlertTitle>Nenhum incidente carregado</AlertTitle>
-                  <AlertDescription>
-                    Não foram encontrados incidentes. Isso pode indicar um problema na API ou no banco de dados.
-                  </AlertDescription>
-                </div>
-                <div className="ml-4">
-                  <Button size="sm" onClick={refetchIncidents}>Recarregar</Button>
-                </div>
+          <Alert className="rounded-2xl border border-border/70 bg-card/70">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <AlertTitle>Nenhum incidente carregado</AlertTitle>
+                <AlertDescription>
+                  Não foram encontrados incidentes. Isso pode indicar um problema na API ou no banco de dados.
+                </AlertDescription>
               </div>
-            </Alert>
-          </div>
+              <Button size="sm" onClick={refetchIncidents}>Recarregar</Button>
+            </div>
+          </Alert>
         )}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <ClassificationTable />
+            <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm">
+              <ClassificationTable />
+            </div>
           </div>
           <div className="lg:col-span-1">
-            {/* Curve chart removed per design request */}
+            <div className="rounded-2xl border border-dashed border-border/30 p-5 text-sm text-muted-foreground">
+              {/* Curve chart removed per design request */}
+              Gráficos adicionais serão exibidos aqui quando habilitados.
+            </div>
           </div>
         </div>
       </section>
 
-      <Separator />
+      <Separator className="my-0" />
 
       {!selectedData && (
-        <section>
-          <Card className="p-6">
+        <section className="page-shell">
+          <Card className="rounded-2xl border border-border/60 bg-card/80">
             <CardHeader>
               <CardTitle>Sem dados para este mês</CardTitle>
               <CardDescription>
                 Não foram encontrados indicadores para o mês selecionado ({selectedMonth}).
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              {/* Ação manual de sincronização removida — dados são provenientes do banco */}
+            <CardContent className="text-sm text-muted-foreground">
+              Os indicadores são gerados automaticamente a partir dos dados mais recentes. Sincronize as fontes para atualizar esse mês.
             </CardContent>
           </Card>
         </section>
       )}
 
       {selectedData && (
-        <section className="space-y-6">
+        <section className="page-shell space-y-6">
           <div className="flex items-center gap-3 text-2xl font-semibold text-foreground">
-            <LineChart className="h-6 w-6 text-primary" />
+            <LineChart className="h-6 w-6 text-orange-600" />
             Indicadores Operacionais do Mês
           </div>
 
-          <Card className="p-6">
+          <Card className="rounded-2xl border border-border/50 bg-card/80 shadow-sm">
             <CardHeader>
               <CardTitle>Causas recorrentes</CardTitle>
               <CardDescription>Itens mais citados nos incidentes deste mês.</CardDescription>
@@ -614,16 +621,16 @@ export default function IndicatorsPage() {
                     const relative = Math.round((entry.count / maxCount) * 100);
                     return (
                       <div key={entry.name} className="flex items-center gap-3">
-                        <div className="flex items-center">
-                          <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-semibold mr-3">{idx + 1}</div>
-                          <div className="min-w-0">
-                            <div className="flex items-center justify-between text-sm font-medium">
-                              <span className="truncate">{entry.name}</span>
-                              <span className="text-xs text-muted-foreground ml-3">{entry.count} ocorrências</span>
-                            </div>
-                            <div className="mt-1">
-                              <Progress value={relative} className="h-2 rounded-full" />
-                            </div>
+                        <div className="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-orange-500/10 text-orange-600 font-semibold">
+                          {idx + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between text-sm font-medium">
+                            <span className="truncate">{entry.name}</span>
+                            <span className="text-xs text-muted-foreground ml-3">{entry.count} ocorrências</span>
+                          </div>
+                          <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted/40">
+                            <div className="h-full rounded-full bg-gradient-to-r from-orange-400 to-orange-600" style={{ width: `${relative}%` }} />
                           </div>
                         </div>
                       </div>
@@ -636,35 +643,26 @@ export default function IndicatorsPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-lg border border-primary/40 bg-card elevation-2">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-primary">
-                  <BrainCircuit className="h-6 w-6" />
-                  Central de Análises com IA
-                  <span className="ml-2">
-                    {aiStatus.loading ? (
-                      <span className="inline-flex items-center rounded-full bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">Verificando IA</span>
-                    ) : aiStatus.available ? (
-                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">IA disponível</span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs text-rose-800">IA indisponível</span>
-                    )}
-                  </span>
-                </CardTitle>
-            <CardDescription>
-              Utilize inteligência artificial para obter insights sobre seus dados de manutenção.
-            </CardDescription>
-            <div
-              className={`mt-3 rounded-2xl border border-dashed p-3 text-sm ${theme.backgroundClass} ${theme.borderClass}`}
-            >
-              <p className="text-[0.65rem] uppercase tracking-wider text-slate-500">Estação atual</p>
-              <p className={`text-base font-semibold ${theme.textClass}`}>{seasonSnapshot.seasonLabel}</p>
+          <Card className="rounded-2xl border border-border/50 bg-gradient-to-br from-[#ffedd5] to-white shadow-lg">
+            <CardHeader className="space-y-2">
+              <div className="flex items-center flex-wrap gap-2 text-base font-semibold text-orange-700">
+                <BrainCircuit className="h-5 w-5" />
+                Central de Análises com IA
+                <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-700">
+                  {aiStatus.loading ? 'Verificando IA' : aiStatus.available ? 'IA disponível' : 'IA indisponível'}
+                </span>
+              </div>
+              <CardDescription>
+                Utilize inteligência artificial para obter insights sobre seus dados de manutenção.
+              </CardDescription>
+            </CardHeader>
+            <div className="rounded-2xl border border-dashed border-orange-200 bg-white/70 p-4 text-sm text-gray-600">
+              <p className="text-[0.65rem] uppercase tracking-wider text-orange-600">Estação atual</p>
+              <p className="text-base font-semibold text-foreground">{seasonSnapshot.seasonLabel}</p>
               <p className="text-xs text-muted-foreground">{seasonSnapshot.seasonNote}</p>
               {seasonSnapshot.activeEvent && (
-                <div
-                  className={`mt-3 rounded-xl border bg-white/80 p-3 text-[0.75rem] shadow-inner ${theme.borderClass}`}
-                >
-                  <p className="font-semibold text-[0.85rem] text-foreground">
+                <div className="mt-3 rounded-xl border bg-white/80 p-3 text-[0.75rem] shadow-inner border-orange-100">
+                  <p className="font-semibold text-xs text-foreground">
                     {theme.eventEmoji ?? theme.emoji} {seasonSnapshot.activeEvent.name}
                   </p>
                   <p className="text-xs text-foreground">{seasonSnapshot.activeEvent.description}</p>
@@ -674,20 +672,25 @@ export default function IndicatorsPage() {
                 </div>
               )}
             </div>
-            <AiStatusIndicator status={aiStatus} onRefresh={refreshAiStatus} />
-          </CardHeader>
             <CardContent className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <KpiAnalysis indicator={selectedData} />
               <ParetoAnalysis incidents={incidentsForMonth} />
             </CardContent>
+            <div className="border-t border-border/40 px-4 py-3">
+              <AiStatusIndicator status={aiStatus} onRefresh={refreshAiStatus} />
+            </div>
           </Card>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <CallsChart data={indicators} />
-            <SlaChart data={indicatorsWithGoal} />
+            <div className="page-shell">
+              <CallsChart data={indicators} />
+            </div>
+            <div className="page-shell">
+              <SlaChart data={indicatorsWithGoal} />
+            </div>
           </div>
 
-          <div className="mt-6">
+          <div className="page-shell">
             <AgingChart data={selectedData.aging} />
           </div>
         </section>

@@ -1,8 +1,5 @@
 -- lancamentos_ddl_fixed.sql
--- DDL seguro para criar a tabela `lancamentos_mensais` e objetos relacionados.
--- Execute este arquivo em uma database existente (ex: mydb).
--- Recomendo revisar antes de rodar em produção.
-
+-- Execute este arquivo em uma database existente (ex: mapeamento).
 -- 0. Extensões
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 

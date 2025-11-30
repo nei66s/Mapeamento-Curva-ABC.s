@@ -22,11 +22,13 @@ export default function SidebarShell({ children }: { children: ReactNode }) {
           sidebarVisible={sidebarVisible}
           onToggleSidebar={() => setSidebarVisible(prev => !prev)}
         />
-        <main className="flex-1 gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+        <main className="flex-1 px-4 py-8 sm:px-6 md:py-10">
           <div className="mx-auto w-full max-w-7xl">
-            <CurrentUserProvider>
-              <RequirePermission>{children}</RequirePermission>
-            </CurrentUserProvider>
+            <div className="page-shell p-6 sm:p-8">
+              <CurrentUserProvider>
+                <RequirePermission>{children}</RequirePermission>
+              </CurrentUserProvider>
+            </div>
           </div>
         </main>
       </div>

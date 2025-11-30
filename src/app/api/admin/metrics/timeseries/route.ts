@@ -13,5 +13,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json([]);
   }
   const rows = await getTimeseries(key);
+  // Normalize rows: if the adapter stored a single row with a jsonb `metric_value` containing the series,
+  // return that inner array to match client expectation (TimeSeriesPoint[]).
+  if (Array.isArray(rows) && rows.length === 1 && rows[0] && rows[0].metric_value) {
+    try {
+      const mv = rows[0].metric_value;
+      // If metric_value is an object with a series array, prefer that; otherwise return as-is if array
+      if (Array.isArray(mv)) return NextResponse.json(mv);
+      // if it's json object with a `series` or similar, try to extract
+      if (mv && typeof mv === 'object') {
+        if (Array.isArray(mv.series)) return NextResponse.json(mv.series);
+      }
+    } catch (e) {
+      // fallthrough to returning rows
+    }
+  }
   return NextResponse.json(rows);
 }

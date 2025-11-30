@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import {
   Card,
@@ -19,32 +19,30 @@ import { useToast } from '@/hooks/use-toast';
 export default function ConfigPage() {
   const { query, update, updateMonitoring, updateSecurity } = useSystemConfig();
   const { toast } = useToast();
-  const [name, setName] = useState('');
-  const [logoUrl, setLogoUrl] = useState('');
-  const [timezone, setTimezone] = useState('');
-  const [locale, setLocale] = useState('');
-  const [trackingEnabled, setTrackingEnabled] = useState(false);
-  const [errorAlertThreshold, setErrorAlertThreshold] = useState(0);
-  const [rpmAlertThreshold, setRpmAlertThreshold] = useState(0);
-  const [sessionExpirationMinutes, setSessionExpirationMinutes] = useState(60);
-  const [minLength, setMinLength] = useState(10);
-  const [requireNumber, setRequireNumber] = useState(true);
-  const [requireSpecial, setRequireSpecial] = useState(true);
+  const [nameOverride, setNameOverride] = useState<string>();
+  const [logoUrlOverride, setLogoUrlOverride] = useState<string>();
+  const [timezoneOverride, setTimezoneOverride] = useState<string>();
+  const [localeOverride, setLocaleOverride] = useState<string>();
+  const [trackingEnabledOverride, setTrackingEnabledOverride] = useState<boolean>();
+  const [errorAlertThresholdOverride, setErrorAlertThresholdOverride] = useState<number>();
+  const [rpmAlertThresholdOverride, setRpmAlertThresholdOverride] = useState<number>();
+  const [sessionExpirationMinutesOverride, setSessionExpirationMinutesOverride] = useState<number>();
+  const [minLengthOverride, setMinLengthOverride] = useState<number>();
+  const [requireNumberOverride, setRequireNumberOverride] = useState<boolean>();
+  const [requireSpecialOverride, setRequireSpecialOverride] = useState<boolean>();
 
-  useEffect(() => {
-    if (!query.data) return;
-    setName(query.data.name);
-    setLogoUrl(query.data.logoUrl || '');
-    setTimezone(query.data.defaultTimezone);
-    setLocale(query.data.defaultLocale);
-    setTrackingEnabled(query.data.monitoring.trackingEnabled);
-    setErrorAlertThreshold(query.data.monitoring.errorAlertThreshold);
-    setRpmAlertThreshold(query.data.monitoring.rpmAlertThreshold);
-    setSessionExpirationMinutes(query.data.security.sessionExpirationMinutes);
-    setMinLength(query.data.security.passwordPolicy.minLength);
-    setRequireNumber(query.data.security.passwordPolicy.requireNumber);
-    setRequireSpecial(query.data.security.passwordPolicy.requireSpecial);
-  }, [query.data]);
+  const data = query.data;
+  const name = nameOverride ?? data?.name ?? '';
+  const logoUrl = logoUrlOverride ?? data?.logoUrl ?? '';
+  const timezone = timezoneOverride ?? data?.defaultTimezone ?? '';
+  const locale = localeOverride ?? data?.defaultLocale ?? '';
+  const trackingEnabled = trackingEnabledOverride ?? data?.monitoring?.trackingEnabled ?? false;
+  const errorAlertThreshold = errorAlertThresholdOverride ?? data?.monitoring?.errorAlertThreshold ?? 0;
+  const rpmAlertThreshold = rpmAlertThresholdOverride ?? data?.monitoring?.rpmAlertThreshold ?? 0;
+  const sessionExpirationMinutes = sessionExpirationMinutesOverride ?? data?.security?.sessionExpirationMinutes ?? 60;
+  const minLength = minLengthOverride ?? data?.security?.passwordPolicy.minLength ?? 10;
+  const requireNumber = requireNumberOverride ?? data?.security?.passwordPolicy.requireNumber ?? true;
+  const requireSpecial = requireSpecialOverride ?? data?.security?.passwordPolicy.requireSpecial ?? true;
 
   const saveGeneral = async () => {
     await update.mutateAsync({
@@ -92,19 +90,19 @@ export default function ConfigPage() {
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="grid gap-2">
             <Label>Nome do sistema</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
+            <Input value={name} onChange={(e) => setNameOverride(e.target.value)} />
           </div>
           <div className="grid gap-2">
             <Label>Logo (URL)</Label>
-            <Input value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} />
+            <Input value={logoUrl} onChange={(e) => setLogoUrlOverride(e.target.value)} />
           </div>
           <div className="grid gap-2">
             <Label>Timezone padrão</Label>
-            <Input value={timezone} onChange={(e) => setTimezone(e.target.value)} />
+            <Input value={timezone} onChange={(e) => setTimezoneOverride(e.target.value)} />
           </div>
           <div className="grid gap-2">
             <Label>Idioma padrão</Label>
-            <Input value={locale} onChange={(e) => setLocale(e.target.value)} />
+            <Input value={locale} onChange={(e) => setLocaleOverride(e.target.value)} />
           </div>
           <div className="md:col-span-2">
             <Button onClick={saveGeneral}>Salvar gerais</Button>
@@ -123,21 +121,21 @@ export default function ConfigPage() {
             <Input
               type="number"
               value={sessionExpirationMinutes}
-              onChange={(e) => setSessionExpirationMinutes(Number(e.target.value))}
+              onChange={(e) => setSessionExpirationMinutesOverride(Number(e.target.value))}
             />
           </div>
           <div className="grid gap-2">
             <Label>Mínimo de caracteres</Label>
-            <Input type="number" value={minLength} onChange={(e) => setMinLength(Number(e.target.value))} />
+            <Input type="number" value={minLength} onChange={(e) => setMinLengthOverride(Number(e.target.value))} />
           </div>
           <div className="grid gap-2">
             <Label>Requisitos</Label>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2">
-                <Switch checked={requireNumber} onCheckedChange={setRequireNumber} /> Número
+                <Switch checked={requireNumber} onCheckedChange={setRequireNumberOverride} /> Número
               </label>
               <label className="flex items-center gap-2">
-                <Switch checked={requireSpecial} onCheckedChange={setRequireSpecial} /> Especial
+                <Switch checked={requireSpecial} onCheckedChange={setRequireSpecialOverride} /> Especial
               </label>
             </div>
           </div>
@@ -155,14 +153,14 @@ export default function ConfigPage() {
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className="grid gap-2">
             <Label>Tracking de eventos</Label>
-            <Switch checked={trackingEnabled} onCheckedChange={setTrackingEnabled} />
+            <Switch checked={trackingEnabled} onCheckedChange={setTrackingEnabledOverride} />
           </div>
           <div className="grid gap-2">
             <Label>Threshold de erros/min</Label>
             <Input
               type="number"
               value={errorAlertThreshold}
-              onChange={(e) => setErrorAlertThreshold(Number(e.target.value))}
+              onChange={(e) => setErrorAlertThresholdOverride(Number(e.target.value))}
             />
           </div>
           <div className="grid gap-2">
@@ -170,7 +168,7 @@ export default function ConfigPage() {
             <Input
               type="number"
               value={rpmAlertThreshold}
-              onChange={(e) => setRpmAlertThreshold(Number(e.target.value))}
+              onChange={(e) => setRpmAlertThresholdOverride(Number(e.target.value))}
             />
           </div>
           <div className="md:col-span-3">

@@ -2,10 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -13,14 +10,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ReportForm } from '@/components/dashboard/reports/report-form';
 import type { TechnicalReport, Incident } from '@/lib/types';
@@ -31,6 +20,7 @@ import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { ReportPdfDocument } from '@/components/dashboard/reports/report-pdf-document';
+import { PagePanel } from '@/components/layout/page-panel';
 
 export default function ReportsPage() {
   const [reports, setReports] = useState<TechnicalReport[]>([]);
@@ -179,96 +169,112 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-8">
-      <PageHeader
-        title="Laudos Técnicos"
-        description="Centralize e gerencie os laudos técnicos gerados pela equipe."
-      >
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogTrigger asChild>
-                <Button onClick={() => { setSelectedReport(null); setIsFormOpen(true); }} className="flex gap-2">
-                <PlusCircle />
-                Criar Laudo Técnico
+    <div className="flex flex-col gap-6">
+      <PagePanel className="p-6 space-y-6">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold tracking-[0.3em] text-muted-foreground uppercase">
+                Laudos Técnicos
+              </p>
+              <p className="text-lg font-semibold text-foreground">
+                Centralize e gerencie os laudos técnicos gerados pela equipe.
+              </p>
+            </div>
+            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-semibold"
+                  onClick={() => { setSelectedReport(null); setIsFormOpen(true); }}
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Criar Laudo Técnico
                 </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-3xl">
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>{selectedReport ? 'Editar Laudo Técnico' : 'Criar Novo Laudo Técnico'}</DialogTitle>
+                  <DialogTitle>{selectedReport ? 'Editar Laudo Técnico' : 'Criar Novo Laudo Técnico'}</DialogTitle>
                 </DialogHeader>
                 <ReportForm
-                    report={selectedReport}
-                    incidents={incidents}
-                    technicians={technicians}
-                    onSubmit={handleFormSubmit}
-                    onCancel={() => setIsFormOpen(false)}
+                  report={selectedReport}
+                  incidents={incidents}
+                  technicians={technicians}
+                  onSubmit={handleFormSubmit}
+                  onCancel={() => setIsFormOpen(false)}
                 />
-            </DialogContent>
-          </Dialog>
-        </PageHeader>
-
-        {/* Nota explicativa sobre usos dos laudos */}
-        <Card className="mb-4">
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Nota: Os laudos técnicos podem ser gerados tanto para equipamentos inservíveis (por exemplo, para baixa/descarte) quanto para avaliar e laudar equipamentos em geral. Utilize o formulário para descrever o estado, as ações realizadas, recomendações e o destino sugerido do equipamento.
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Reports list */}
-        <Card>
-          <CardHeader>
-          <CardTitle>Lista de Laudos</CardTitle>
-          <CardDescription>{reports.length} laudos registrados no sistema.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {reports.map(report => {
-              const incident = report.incidentId ? incidentsMap.get(report.incidentId) : undefined;
-              return (
-                <Card key={report.id} className="flex flex-col">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg">{report.title}</CardTitle>
-                        <CardDescription className="flex items-center gap-2 pt-1">
-                          <User className="h-4 w-4" /> 
-                          {usersMap.get(report.technicianId) || 'Técnico desconhecido'}
-                        </CardDescription>
-                      </div>
-            {/* status removed */}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex-grow space-y-4">
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      <strong>Problema Encontrado:</strong> {report.details.problemFound}
-                    </p>
-                    {incident && (
-                      <Badge variant="secondary" className='gap-2'>
-                          <Workflow className="h-4 w-4" />
-                          Incidente: {incident.id} ({incident.itemName})
-                      </Badge>
-                    )}
-                  </CardContent>
-                  <CardFooter className='flex-wrap justify-between gap-y-2'>
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Clock className="mr-1 h-3 w-3" />
-                      <span>
-                        {format(new Date(report.createdAt), 'dd/MM/yyyy')} ({formatDistanceToNow(new Date(report.createdAt), { addSuffix: true, locale: ptBR })})
-                      </span>
-                    </div>
-                     <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(report)}><Edit /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownloadPdf(report)}><Download /></Button>
-                     </div>
-                  </CardFooter>
-                </Card>
-              )
-            })}
+              </DialogContent>
+            </Dialog>
           </div>
-        </CardContent>
-      </Card>
-      
+          <div className="flex flex-wrap gap-4 text-xs uppercase tracking-[0.3em] text-muted-foreground">
+            <div className="flex items-center gap-2 rounded-full border border-border/70 px-3 py-1">
+              <Workflow className="h-4 w-4 text-orange-500" />
+              {reports.length} laudos registrados
+            </div>
+            <div className="flex items-center gap-2 rounded-full border border-border/70 px-3 py-1">
+              <User className="h-4 w-4 text-orange-500" />
+              {technicians.length} técnicos conectados
+            </div>
+            <div className="flex items-center gap-2 rounded-full border border-border/70 px-3 py-1">
+              <Clock className="h-4 w-4 text-orange-500" />
+              Última sincronização há {(reports[0]?.createdAt && formatDistanceToNow(new Date(reports[0].createdAt), { locale: ptBR })) || '—'}
+            </div>
+          </div>
+        </div>
+      </PagePanel>
+
+      <PagePanel className="space-y-5 p-6">
+        <div className="grid gap-5 lg:grid-cols-2">
+          {reports.map(report => {
+            const incident = report.incidentId ? incidentsMap.get(report.incidentId) : undefined;
+            return (
+              <div
+                key={report.id}
+                className="flex flex-col justify-between overflow-hidden rounded-3xl border border-border/40 bg-card/80 p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-[0_25px_45px_rgba(15,23,42,0.15)]"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <Workflow className="h-5 w-5 text-orange-500" />
+                    <div>
+                      <p className="text-base font-semibold text-foreground">{report.title}</p>
+                      <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+                        {format(new Date(report.createdAt), 'dd/MM/yyyy')}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="text-[0.6rem] uppercase tracking-[0.25em]">
+                    {report.status}
+                  </Badge>
+                </div>
+                <p className="mt-4 text-sm text-muted-foreground min-h-[52px]">
+                  <strong>Problema Encontrado:</strong> {report.details.problemFound}
+                </p>
+                {incident && (
+                  <Badge variant="outline" className="mt-3 flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.3em]">
+                    <Workflow className="h-4 w-4" />
+                    Incidente: {incident.id} ({incident.itemName})
+                  </Badge>
+                )}
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border/40 pt-4 text-xs text-muted-foreground">
+                  <span>Técnico: {usersMap.get(report.technicianId) ?? '—'}</span>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => openEditDialog(report)}>
+                      <Edit className="h-4 w-4" />
+                      Editar
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDownloadPdf(report)}>
+                      <Download className="h-4 w-4" />
+                      PDF
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </PagePanel>
+
       {reportToPrint && (
         <div className="sr-only printable-offscreen">
           <ReportPdfDocument 

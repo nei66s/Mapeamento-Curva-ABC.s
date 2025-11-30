@@ -49,16 +49,16 @@ export default function ResetPasswordPage() {
       {email ? <p className="text-sm mb-2">Email: {email}</p> : null}
       <form onSubmit={submit} className="space-y-3">
         <div>
-          <label className="block text-sm">Token</label>
-          <input value={token} onChange={e => setToken(e.target.value)} className="w-full border p-2 rounded" />
+          <label htmlFor="rp-token" className="block text-sm">Token</label>
+          <input id="rp-token" name="token" value={token} onChange={e => setToken(e.target.value)} placeholder="Cole o token recebido" title="Token de redefinição" className="w-full border p-2 rounded" />
         </div>
         <div>
-          <label className="block text-sm">Nova senha</label>
-          <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full border p-2 rounded" />
+          <label htmlFor="rp-new" className="block text-sm">Nova senha</label>
+          <input id="rp-new" name="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Nova senha" title="Nova senha" className="w-full border p-2 rounded" />
         </div>
         <div>
-          <label className="block text-sm">Confirme a senha</label>
-          <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} className="w-full border p-2 rounded" />
+          <label htmlFor="rp-confirm" className="block text-sm">Confirme a senha</label>
+          <input id="rp-confirm" name="confirmPassword" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Digite novamente a senha" title="Confirme a senha" className="w-full border p-2 rounded" />
         </div>
         <div>
           <button type="submit" disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded">
