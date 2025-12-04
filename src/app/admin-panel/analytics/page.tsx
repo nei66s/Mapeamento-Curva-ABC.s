@@ -50,6 +50,7 @@ export default function AnalyticsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Métricas e Acessos"
+        moduleKey="admin-analytics"
         description="Eventos de pageview, top rotas e heatmap de horários."
       />
 
