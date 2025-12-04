@@ -204,6 +204,7 @@ export default function AdminPage() {
     return (
       <div className="flex flex-col gap-8">
         <PageHeader
+          moduleKey="admin-dashboard"
           title="Acesso Negado"
           description="Você não tem permissão para acessar esta página."
         />
@@ -221,6 +222,7 @@ export default function AdminPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
+        moduleKey="admin-dashboard"
         title="Administração"
         description="Gerencie usuários, perfis e permissões do sistema."
       />

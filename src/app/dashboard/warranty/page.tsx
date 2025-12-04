@@ -221,6 +221,7 @@ export default function WarrantyPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
+        moduleKey="warranty"
         title="Gestão de Garantias"
         description="Acompanhe os itens e equipamentos que estão no período de garantia."
       >

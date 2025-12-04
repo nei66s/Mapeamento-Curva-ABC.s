@@ -331,6 +331,7 @@ export default function AssetsPage() {
   return (
     <div className="flex w-full flex-col gap-8 pb-16">
       <PageHeader
+        moduleKey="tools"
         title="Controle de Ativos e Componentes"
         description="Cadastre ativos por loja, associe insumos e componentes, registre patrimônio e mantenha a hierarquia pronta para o futuro PM."
       >

@@ -78,6 +78,7 @@ export default function ConfigPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        moduleKey="admin-config"
         title="Configurações do Sistema"
         description="Defina nome, tema, timezone, política de senha e thresholds."
       />

@@ -169,6 +169,7 @@ export default function RncPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
+        moduleKey="rncs"
         title="Registros de Não Conformidade"
         description="Gerencie e acompanhe descumprimentos e problemas com fornecedores."
       >

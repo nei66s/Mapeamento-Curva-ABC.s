@@ -352,6 +352,7 @@ export default function IncidentsPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
+        moduleKey="incidents"
         title="Registro de Incidentes"
         description="Registre e acompanhe eventos específicos para análise futura."
       >

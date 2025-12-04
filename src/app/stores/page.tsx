@@ -103,7 +103,7 @@ export default function StoresPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title="Lojas" description="Gerir lojas e localizações" />
+      <PageHeader moduleKey="stores" title="Lojas" description="Gerir lojas e localizações" />
       <div className="flex items-center justify-between">
         <div />
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>

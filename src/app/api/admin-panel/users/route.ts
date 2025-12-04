@@ -15,17 +15,12 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get('status');
   const role = searchParams.get('role');
   const { page, pageSize } = parsePagination(searchParams);
-  // Use users-adapter.listUsers with pagination and derive total via count when possible
+  // Use users-adapter.listUsers with pagination and filters so DB returns filtered rows
   const offset = (page - 1) * pageSize;
-  const items = await listUsers(pageSize, offset);
-
-  // Apply lightweight filters in-memory for fields that may not exist in DB (status)
-  let filtered = items;
-  if (email) filtered = filtered.filter((u: any) => (u.email || '').toLowerCase().includes(email));
-  if (role) filtered = filtered.filter((u: any) => (String(u.role || '') === role));
+  const items = await listUsers(pageSize, offset, { email: email ?? undefined, role: role ?? undefined, status: status ?? undefined });
 
   // Try to compute total count using SQL when possible
-  let total = filtered.length;
+  let total = items.length;
   try {
     const where: string[] = [];
     const vals: any[] = [];
@@ -37,12 +32,12 @@ export async function GET(request: NextRequest) {
     if (status && cols.has('status')) { where.push(`status = $${idx++}`); vals.push(status); }
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const countRes = await pool.query(`SELECT count(*)::int as c FROM users ${whereClause}`, vals);
-    total = (countRes.rows[0] && countRes.rows[0].c) || filtered.length;
+    total = (countRes.rows[0] && countRes.rows[0].c) || items.length;
   } catch (e) {
     // fallback to filtered length already set
   }
 
-  return json({ items: filtered, total, page, pageSize });
+  return json({ items, total, page, pageSize });
 }
 
 export async function POST(request: NextRequest) {

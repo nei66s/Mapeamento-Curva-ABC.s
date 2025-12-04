@@ -14,6 +14,6 @@ describe('Feature flags service', () => {
     const client = apiClient as unknown as { post: ReturnType<typeof vi.fn> };
     client.post.mockResolvedValue({ key: 'tracking.enabled', enabled: false });
     await ModulesService.updateFlag('tracking.enabled', false);
-    expect(client.post).toHaveBeenCalledWith('/flags/tracking.enabled', { enabled: false });
+    expect(client.post).toHaveBeenCalledWith('/admin/flags/tracking.enabled', { enabled: false });
   });
 });

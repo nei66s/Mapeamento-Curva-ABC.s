@@ -16,6 +16,6 @@ describe('ModulesService', () => {
     const client = apiClient as unknown as { post: ReturnType<typeof vi.fn> };
     client.post.mockResolvedValue({ id: 'admin-modules', active: true });
     await ModulesService.setActive('admin-modules', true);
-    expect(client.post).toHaveBeenCalledWith('/modules/admin-modules/status', { active: true });
+    expect(client.post).toHaveBeenCalledWith('/admin/modules/admin-modules/status', { active: true });
   });
 });

@@ -1,3 +1,46 @@
+Seed admin modules & feature flags
+
+This folder contains `seed-admin-modules-and-flags.js`, a small idempotent Node script
+that ensures the admin-related tables and default rows exist in your Postgres database.
+
+What it does
+- Applies `sql/create-admin-tables.sql` (CREATE TABLE IF NOT EXISTS ...).
+- Runs `sql/seed-admin-modules-and-flags.sql` (INSERT ... ON CONFLICT DO UPDATE) to populate
+  modules and feature flags used by the admin UI.
+
+Usage
+- Using environment variables (recommended for local dev):
+```
+$env:PGPASSWORD = 'your_db_password'
+node .\scripts\seed-admin-modules-and-flags.js
+```
+
+- Passing password via CLI:
+```
+node .\scripts\seed-admin-modules-and-flags.js --password your_db_password
+```
+
+- Using a full connection URL (e.g. to target the main DB):
+```
+node .\scripts\seed-admin-modules-and-flags.js --database-url "postgres://user:pass@host:5432/dbname"
+```
+
+- Or use the `--use-main-db` flag together with `MAIN_DATABASE_URL` env var:
+```
+$env:MAIN_DATABASE_URL = 'postgres://user:pass@host:5432/dbname'
+node .\scripts\seed-admin-modules-and-flags.js --use-main-db
+```
+
+Notes & safety
+- The SQL files are idempotent: running the script multiple times will not create duplicate rows.
+- The script splits SQL by `;\n` to execute statements sequentially — it's simple and intended for
+  migration/seed-style files (not complex function bodies).
+- In production, prefer running migrations through your usual deployment/migration tooling.
+
+Troubleshooting
+- If you see connection errors, verify `PGHOST`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` or use
+  `--database-url`.
+- If a statement fails, the script prints the failing statement and exits with code 1.
 # Scripts: safe table cleanup
 
 Usage:

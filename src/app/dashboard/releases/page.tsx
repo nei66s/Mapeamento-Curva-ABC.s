@@ -165,6 +165,7 @@ export default function ReleasesPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
+        moduleKey="releases"
         title="Lançamentos Mensais"
         description="Gerencie os dados e metas dos indicadores de manutenção para cada mês."
       >

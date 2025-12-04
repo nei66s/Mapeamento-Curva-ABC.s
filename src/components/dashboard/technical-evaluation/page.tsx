@@ -66,6 +66,7 @@ export default function TechnicalEvaluationPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
+        moduleKey="tools"
         title="Laudo de Avaliação Técnica"
         description="Preencha o laudo diretamente ou acesse a versão digital externa."
       >

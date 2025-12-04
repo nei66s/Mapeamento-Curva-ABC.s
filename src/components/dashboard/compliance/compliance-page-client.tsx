@@ -426,6 +426,7 @@ export default function CompliancePageClient({ searchParams = {} }: { searchPara
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
+        moduleKey="compliance"
         title="Cronograma de Preventivas"
         description="Acompanhe a conclusão dos itens de manutenção essenciais em todas as lojas."
       >

@@ -81,6 +81,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        moduleKey="admin-dashboard"
         title="Painel de Governança"
         description="Indicadores em tempo quase real, acessos e ações sensíveis do aplicativo."
       >

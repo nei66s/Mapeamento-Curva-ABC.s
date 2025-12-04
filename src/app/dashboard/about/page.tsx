@@ -76,6 +76,7 @@ export default function AboutPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
+        moduleKey="admin-dashboard"
         title="Sobre a Plataforma"
         description="Uma visão geral dos recursos e capacidades do sistema Fixly."
       />

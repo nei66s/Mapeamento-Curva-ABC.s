@@ -40,6 +40,7 @@ export default function AuditPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        moduleKey="admin-audit"
         title="Auditoria"
         description="Tabela de logs com filtros avançados e trilha completa."
       />

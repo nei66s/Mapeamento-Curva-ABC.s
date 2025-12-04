@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm, Controller } from 'react-hook-form';
@@ -276,12 +275,12 @@ export function ItemForm({ item, categories, onSubmit, onCancel }: ItemFormProps
                               checked={field.value?.includes(factor.id)}
                               onCheckedChange={(checked) => {
                                 return checked
-                                  ? field.onChange([...field.value, factor.id])
+                                  ? field.onChange([...(field.value ?? []), factor.id])
                                   : field.onChange(
-                                      field.value?.filter(
+                                      (field.value ?? []).filter(
                                         (value) => value !== factor.id
                                       )
-                                    )
+                                    );
                               }}
                             />
                           </FormControl>
