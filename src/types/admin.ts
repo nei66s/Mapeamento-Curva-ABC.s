@@ -203,5 +203,20 @@ export type AdminSession = {
   user: { id: string; email: string; role: string };
   permissions: Record<string, boolean>;
   activeModules: Record<string, boolean>;
+  modules?: Record<
+    string,
+    {
+      id: string;
+      key: string;
+      name: string;
+      description?: string;
+      is_active: boolean;
+      active: boolean;
+      is_visible: boolean;
+      visibleInMenu: boolean;
+      beta?: boolean;
+      dependencies?: string[];
+    }
+  >;
   featureFlags: Record<string, boolean>;
 };
