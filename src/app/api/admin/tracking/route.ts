@@ -1,10 +1,12 @@
 import { NextRequest } from 'next/server';
-import { isModuleActive, json, getRequestIp } from '../../admin-panel/_utils';
+import { json, getRequestIp } from '../../admin-panel/_utils';
+import { getModuleByKey } from '@/server/adapters/modules-adapter';
 import { insertTrackingEvent } from '@/server/adapters/tracking-adapter';
 import { logAudit } from '@/server/adapters/audit-adapter';
 
 export async function POST(request: NextRequest) {
-  if (!(await isModuleActive('admin-analytics'))) return json({ message: 'Módulo de analytics inativo.' }, 403);
+  const mod = await getModuleByKey('admin-analytics');
+  if (mod && !mod.is_active) return json({ message: 'Módulo de analytics inativo.' }, 403);
   const body = await request.json();
   if (body.type === 'pageview') {
     try {
