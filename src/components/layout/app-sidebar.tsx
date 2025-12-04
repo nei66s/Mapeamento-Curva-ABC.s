@@ -168,11 +168,24 @@ export default function AppSidebar({ visible, onRequestClose }: AppSidebarProps)
 
   const visibleGroups = linkGroups.map(group => ({
     ...group,
-    links: group.links.filter(link => canAccess(link.moduleId)),
+    links: group.links.filter(link => {
+      if (!canAccess(link.moduleId)) return false;
+      // If session includes modules metadata, respect explicit `visibleInMenu` flag
+      if (link.moduleId && session?.modules && typeof session.modules[link.moduleId] !== 'undefined') {
+        return Boolean(session.modules[link.moduleId].visibleInMenu);
+      }
+      return true;
+    }),
   }));
   const adminGroup = {
     title: 'Administração',
-    links: adminLinks.filter(link => canAccess(link.moduleId)),
+    links: adminLinks.filter(link => {
+      if (!canAccess(link.moduleId)) return false;
+      if (link.moduleId && session?.modules && typeof session.modules[link.moduleId] !== 'undefined') {
+        return Boolean(session.modules[link.moduleId].visibleInMenu);
+      }
+      return true;
+    }),
   };
   const renderedGroups = [...visibleGroups, ...(adminGroup.links.length ? [adminGroup] : [])].filter(group => group.links.length > 0);
   const totalVisibleLinks = renderedGroups.reduce((total, group) => total + group.links.length, 0);
