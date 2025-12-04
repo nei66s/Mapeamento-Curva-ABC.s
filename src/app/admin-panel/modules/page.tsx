@@ -27,6 +27,7 @@ export default function ModulesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Módulos e Feature Flags"
+        moduleKey="admin-modules"
         description="Habilite/desabilite módulos, controle visibilidade e flags de experimento."
       />
 
