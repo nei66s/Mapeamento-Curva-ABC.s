@@ -38,14 +38,27 @@ export async function buildAdminSession(userId: string) {
     for (const key of permList) permissions[key] = true;
   }
 
-  // Active modules → map
   // Active modules → map (tolerant to missing modules table)
   let activeModules: Record<string, boolean> = {};
+  // Modules metadata map (includes visibility/beta flags)
+  let modulesMap: Record<string, any> | undefined = undefined;
   try {
     const moduleRows = await getActiveModules();
     activeModules = {};
     for (const m of moduleRows) {
       if (m && m.key) activeModules[m.key] = true;
+    }
+    // Try to also fetch full modules list if available (to expose visibleInMenu and beta)
+    try {
+      // lazy import listModules to avoid cycles
+      const { listModules } = await import('./modules-adapter');
+      const all = await listModules();
+      modulesMap = {};
+      for (const mm of all || []) {
+        if (mm && mm.key) modulesMap[mm.key] = mm;
+      }
+    } catch (e) {
+      modulesMap = undefined;
     }
   } catch (e) {
     // ignore and fallback to empty modules
@@ -94,6 +107,7 @@ export async function buildAdminSession(userId: string) {
     },
     permissions,
     activeModules,
+    modules: modulesMap,
     featureFlags,
     dashboardSettings,
   };
