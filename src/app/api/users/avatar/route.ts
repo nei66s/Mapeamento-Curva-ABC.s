@@ -75,7 +75,13 @@ export async function GET(request: NextRequest) {
         const mime: string | null = row.avatar_mime ?? null;
 
         if (data && mime) {
-          return new NextResponse(data, { status: 200, headers: { 'Content-Type': mime } });
+          return new NextResponse(data.toString('base64'), {
+            status: 200,
+            headers: {
+              'Content-Type': mime,
+              'Content-Transfer-Encoding': 'base64',
+            },
+          });
         }
 
         // fallback to filesystem URL if present

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { PageHeader } from '@/components/shared/page-header';
 import {
@@ -23,7 +23,7 @@ export default function HealthPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Healthcheck e Observabilidade" description="Status de dependências e últimos erros." />
+      <PageHeader moduleKey="admin-health" title="Healthcheck e Observabilidade" description="Status de dependências e últimos erros." />
 
       <Card>
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -47,7 +47,7 @@ export default function HealthPage() {
                 <Badge variant={dep.status === 'healthy' ? 'secondary' : 'destructive'}>{dep.status}</Badge>
               </div>
               <div className="text-xs text-muted-foreground">
-                Última checagem: {new Date(dep.lastChecked).toLocaleString('pt-BR')} · Latência {dep.latencyMs ?? '—'}ms
+                Última checagem: {dep.lastChecked ? new Date(dep.lastChecked).toLocaleString('pt-BR') : '—'} · Latência {dep.latencyMs ?? '—'}ms
               </div>
               {dep.details && <div className="text-xs text-amber-600 dark:text-amber-400">{dep.details}</div>}
             </div>
@@ -71,7 +71,7 @@ export default function HealthPage() {
                 <Badge variant="outline">{err.service}</Badge>
               </div>
               <div className="text-xs text-muted-foreground">
-                {new Date(err.timestamp).toLocaleString('pt-BR')} · status {err.statusCode ?? '—'}
+                {err.timestamp ? new Date(err.timestamp).toLocaleString('pt-BR') : '—'} · status {err.statusCode ?? '—'}
               </div>
               {err.stack && (
                 <pre className="mt-2 whitespace-pre-wrap break-all rounded bg-muted/50 p-2 text-xs">{err.stack}</pre>

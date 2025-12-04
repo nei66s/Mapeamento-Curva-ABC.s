@@ -1,0 +1,75 @@
+{
+  "meta": {
+    "connectionString": "postgresql://postgres:admin@localhost:5432/postgres"
+  },
+  "results": {
+    "tables": [
+      {
+        "users_table": "users",
+        "roles_table": "roles",
+        "user_roles_table": "user_roles",
+        "user_profile_table": "user_profile"
+      }
+    ],
+    "count": [
+      {
+        "user_count": "1"
+      }
+    ],
+    "sample": [
+      {
+        "id": "a583b5c0-f71a-470f-a8cd-39d74a4077a2",
+        "name": "User Test",
+        "email": "test@example.com",
+        "role": "user",
+        "created_at": "2025-12-04T11:45:13.610Z",
+        "status": "active"
+      }
+    ],
+    "admin_search": [],
+    "roles": [
+      {
+        "id": "0096b692-d88a-46fc-a132-7e67e3c37a78",
+        "name": "user"
+      }
+    ],
+    "mapping": [],
+    "user_profile_reg": [
+      {
+        "user_profile_reg": "user_profile"
+      }
+    ],
+    "user_profile_sample": [
+      {
+        "user_id": "a583b5c0-f71a-470f-a8cd-39d74a4077a2",
+        "extra": {
+          "bio": "x"
+        }
+      }
+    ]
+  },
+  "api": {
+    "status": 200,
+    "body": [
+      {
+        "id": "a583b5c0-f71a-470f-a8cd-39d74a4077a2",
+        "name": "User Test",
+        "email": "test@example.com",
+        "role": "user",
+        "created_at": "2025-12-04T11:45:13.610Z",
+        "status": "active",
+        "profile": {
+          "bio": "x"
+        },
+        "roles": [
+          "user"
+        ]
+      }
+    ]
+  },
+  "upsert": {
+    "id": "18cd7607-56d8-405f-9171-239f182d40b4",
+    "email": "admin@gmail.com",
+    "role": "admin"
+  }
+}

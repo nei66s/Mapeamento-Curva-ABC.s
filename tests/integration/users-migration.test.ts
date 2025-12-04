@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import pool from '@/lib/db';
+import pool from '../../src/lib/db';
+import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 
 // This integration test runs the users migration and backfill against a real DB.
 // It is intentionally gated: set RUN_USERS_MIGRATION_TEST=true in your environment
@@ -11,7 +12,7 @@ const BACKFILL_SQL = path.join(process.cwd(), 'sql', 'backfill-user-profile.sql'
 
 const shouldRun = process.env.RUN_USERS_MIGRATION_TEST === 'true';
 
-describe.skipUnless(shouldRun, 'users migration integration', () => {
+(shouldRun ? describe : describe.skip)('users migration integration', () => {
   beforeAll(async () => {
     // nothing
   });

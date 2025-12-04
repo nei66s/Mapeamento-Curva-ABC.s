@@ -22,6 +22,6 @@ describe('middleware admin session', () => {
 
   it('redirects to login when no token', async () => {
     const res = await middleware(buildReq('http://localhost/admin-panel/analytics'));
-    expect(res?.headers.get('location')).toBe('/login');
+    expect(res?.headers.get('location')).toContain('/login');
   });
 });

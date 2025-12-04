@@ -347,6 +347,7 @@ export function VacationPageComponent({ initialVacations, allUsers }: VacationPa
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
+        moduleKey="vacations"
         title="Cronograma de Férias Anual"
         description="Painel de visualização para o planejamento de férias da equipe."
       >

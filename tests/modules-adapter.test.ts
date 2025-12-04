@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/lib/db', () => ({
-  query: vi.fn(),
+  default: {
+    query: vi.fn(),
+  },
 }));
 
 import pool from '@/lib/db';

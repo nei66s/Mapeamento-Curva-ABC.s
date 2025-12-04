@@ -10,7 +10,10 @@ export async function GET(request: NextRequest) {
   const page = Number(q.get('page') || '1');
   const pageSize = Number(q.get('pageSize') || '50');
   const offset = (page - 1) * pageSize;
-  const rows = await listUsers(pageSize, offset);
+  const email = q.get('email')?.toLowerCase() ?? undefined;
+  const role = q.get('role') ?? undefined;
+  const status = q.get('status') ?? undefined;
+  const rows = await listUsers(pageSize, offset, { email, role, status });
   return NextResponse.json({ ok: true, result: rows });
 }
 

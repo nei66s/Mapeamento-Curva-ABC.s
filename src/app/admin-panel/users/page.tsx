@@ -139,6 +139,7 @@ export default function UsersAdminPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Usuários e Permissões"
+        moduleKey="admin-users"
         description="Cadastre usuários, bloqueie acessos e configure papéis RBAC."
       >
         <Dialog>
@@ -202,6 +203,7 @@ export default function UsersAdminPage() {
             <Input
               placeholder="Filtrar por e-mail"
               className="w-48"
+              value={filters.email ?? ''}
               onChange={(e) => setFilters((prev) => ({ ...prev, email: e.target.value }))}
             />
             <Select onValueChange={(value) => setFilters((prev) => ({ ...prev, status: value as UserStatus }))}>
@@ -214,7 +216,7 @@ export default function UsersAdminPage() {
                 <SelectItem value="blocked">Bloqueado</SelectItem>
               </SelectContent>
             </Select>
-            <Select onValueChange={(value) => setFilters((prev) => ({ ...prev, role: value as UserRole }))}>
+            <Select value={filters.role} onValueChange={(value) => setFilters((prev) => ({ ...prev, role: value as UserRole }))}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Papel" />
               </SelectTrigger>
@@ -226,6 +228,10 @@ export default function UsersAdminPage() {
                 <SelectItem value="usuario">usuario</SelectItem>
               </SelectContent>
             </Select>
+            <Button variant="ghost" onClick={() => setFilters({})}>
+              Limpar filtros
+            </Button>
+
             <Dialog>
               <DialogTrigger asChild>
                 <Button>Novo usuário</Button>

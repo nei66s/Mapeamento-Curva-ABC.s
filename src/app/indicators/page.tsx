@@ -484,6 +484,7 @@ export default function IndicatorsPage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(248,113,113,0.15),_transparent_65%)] opacity-80" />
         <div className="relative z-10 grid gap-6">
           <PageHeader
+            moduleKey="indicators"
             title={<span className="text-foreground">Painel de Indicadores</span>}
             description="Análise consolidada dos principais indicadores da manutenção."
             className="items-center gap-6"

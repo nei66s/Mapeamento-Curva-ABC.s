@@ -21,6 +21,7 @@ export async function GET() {
       const { password, password_hash, ...rest } = r || {};
       return rest;
     });
+    // response is normalized and returned to clients
     return NextResponse.json(safe);
   } catch (error) {
     console.error('Erro ao buscar usuários:', error);

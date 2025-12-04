@@ -106,7 +106,7 @@ export default function UnsalvageablePage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title="Itens Inservíveis" description="Registre e gerencie itens para descarte." >
+      <PageHeader moduleKey="unsalvageable" title="Itens Inservíveis" description="Registre e gerencie itens para descarte." >
         <div className="flex items-center gap-2">
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>

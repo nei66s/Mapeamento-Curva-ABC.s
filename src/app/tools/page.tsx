@@ -200,6 +200,7 @@ export default function ToolsPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
+        moduleKey="tools"
         title="Almoxarifado de Ferramentas"
         description="Gerencie o inventário e a alocação de ferramentas para os técnicos."
       >

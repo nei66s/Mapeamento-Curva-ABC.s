@@ -31,7 +31,7 @@ export default function AuditDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Detalhe do log" description="Diff entre payloads antes e depois." />
+      <PageHeader moduleKey="admin-audit" title="Detalhe do log" description="Diff entre payloads antes e depois." />
       <Card>
         <CardHeader>
           <CardTitle>Ação {log.data?.action}</CardTitle>

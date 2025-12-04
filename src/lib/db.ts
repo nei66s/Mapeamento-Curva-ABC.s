@@ -7,6 +7,8 @@
  */
 
 import { Pool } from 'pg';
+// initialize server-side error logger (registers process handlers)
+import '@/server/error-logger';
 
 // Basic Pool with optional instrumentation. When DB_LOG_QUERIES is set to 'true',
 // we log query durations (ms) to help identify slow queries.
