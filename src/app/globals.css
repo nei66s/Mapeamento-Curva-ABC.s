@@ -4,185 +4,258 @@
 
 @layer base {
   :root {
-    --background: 223 16% 96%;
-    --foreground: 214 20% 20%;
+    --background: 210 25% 97%;
+    --foreground: 214 16% 18%;
     --card: 0 0% 100%;
-    --card-foreground: 214 20% 20%;
+    --card-foreground: 214 16% 18%;
     --popover: 0 0% 100%;
-    --popover-foreground: 214 20% 20%;
-    --primary: 215 16% 30%;
+    --popover-foreground: 214 16% 18%;
+    --primary: 222 62% 58%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 12% 80%;
-    --secondary-foreground: 214 20% 45%;
-    --muted: 210 12% 88%;
-    --muted-foreground: 214 20% 48%;
-    --accent: 0 0% 20%;
-    --accent-foreground: 0 0% 100%;
+    --secondary: 205 20% 55%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 18% 88%;
+    --muted-foreground: 214 18% 38%;
+    --accent: 212 80% 60%;
+    --accent-foreground: 214 18% 18%;
     --warning: 35 95% 60%;
     --warning-foreground: 0 0% 100%;
-    --destructive: 0 80% 45%;
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 210 10% 85%;
-    --input: 210 12% 95%;
-    --ring: 216 76% 63%;
-    --radius: 0.5rem;
-    --chart-1: 210 20% 40%;
-    --chart-2: 210 15% 55%;
-    --chart-3: 210 10% 65%;
-    --chart-4: 220 12% 30%;
-    --chart-5: 0 0% 85%;
-    --curve-a: 0 78% 60%;
-    --curve-a-foreground: 0 0% 100%;
-    --curve-b: 50 5% 80%;
-    --curve-b-foreground: 0 0% 15%;
-    --curve-c: 200 10% 65%;
-    --curve-c-foreground: 0 0% 100%;
-    --hero-foreground: 214 20% 20%;
-  }
-
-  .dark {
-    --background: 210 12% 14%;
-    --foreground: 0 0% 94%;
-    --card: 210 14% 18%;
-    --card-foreground: 0 0% 94%;
-    --popover: 210 14% 18%;
-    --popover-foreground: 0 0% 94%;
-    --primary: 210 10% 85%;
-    --primary-foreground: 210 10% 18%;
-    --secondary: 210 10% 60%;
-    --secondary-foreground: 0 0% 94%;
-    --muted: 210 10% 22%;
-    --muted-foreground: 0 0% 94%;
-    --accent: 0 0% 55%;
-    --accent-foreground: 0 0% 94%;
-    --warning: 35 95% 60%;
-    --warning-foreground: 0 0% 94%;
-    --destructive: 0 70% 55%;
-    --destructive-foreground: 0 0% 94%;
-    --border: 210 11% 28%;
-    --input: 210 11% 25%;
-    --ring: 216 56% 64%;
-    --hero-foreground: 0 0% 94%;
-  }
-
-  .dark {
+    --border: 210 12% 86%;
+    --input: 210 10% 96%;
+    --ring: 210 45% 90%;
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 0.75rem;
+    --space-lg: 1rem;
+    --space-xl: 1.5rem;
+    --space-xxl: 2rem;
     --curve-a: 210 20% 65%;
-    --curve-a-foreground: 0 0% 94%;
-    --curve-b: 210 15% 70%;
-    --curve-b-foreground: 0 0% 94%;
-    --curve-c: 210 10% 30%;
-    --curve-c-foreground: 0 0% 94%;
+    --curve-a-foreground: 0 0% 96%;
+    --curve-b: 42 68% 65%;
+    --curve-b-foreground: 0 0% 15%;
+    --curve-c: 140 30% 45%;
+    --curve-c-foreground: 0 0% 96%;
+    --color-background: hsl(var(--background));
+    --color-foreground: hsl(var(--foreground));
+    --surface-background: hsl(var(--card));
+    --surface-foreground: hsl(var(--card-foreground));
+    --surface-border: hsl(var(--border));
+    --transition-gentle: 0.2s ease;
+    --transition-smooth: 0.3s ease;
   }
-}
 
-/* Hero gradient variables (used by `HeroPanel` via the .hero-gradient class).
-   These default to subtle, theme-aware stops and are overridden per color theme. */
-:root {
-  --hero-from: 207 30% 95%;
-  --hero-via: 207 25% 88%;
-  --hero-to: 207 25% 82%;
-}
-.dark {
-  --hero-from: 210 12% 18%;
-  --hero-via: 210 10% 24%;
-  --hero-to: 210 10% 18%;
-}
+  .dark {
+    --background: 218 18% 9%;
+    --foreground: 214 16% 96%;
+    --card: 220 18% 16%;
+    --card-foreground: 214 16% 96%;
+    --popover: 220 18% 16%;
+    --popover-foreground: 214 16% 96%;
+    --primary: 221 60% 62%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 15% 68%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 214 16% 30%;
+    --muted-foreground: 214 16% 92%;
+    --accent: 212 70% 62%;
+    --accent-foreground: 214 16% 96%;
+    --warning: 35 95% 60%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 218 25% 22%;
+    --input: 220 18% 20%;
+    --ring: 216 56% 64%;
+    --color-background: hsl(var(--background));
+    --color-foreground: hsl(var(--foreground));
+    --surface-background: hsl(var(--card));
+    --surface-foreground: hsl(var(--card-foreground));
+    --surface-border: hsl(var(--border));
+    --transition-gentle: 0.2s ease;
+    --transition-smooth: 0.3s ease;
+    --curve-a: 210 20% 60%;
+    --curve-a-foreground: 0 0% 96%;
+    --curve-b: 39 60% 58%;
+    --curve-b-foreground: 0 0% 15%;
+    --curve-c: 146 36% 42%;
+    --curve-c-foreground: 0 0% 96%;
+  }
 
-:root[data-theme="seasonal"] {
-  --hero-from: 210 20% 95%;
-  --hero-via: 210 16% 90%;
-  --hero-to: 210 12% 86%;
-}
-.dark[data-theme="seasonal"] {
-  --hero-from: 210 10% 20%;
-  --hero-via: 210 10% 26%;
-  --hero-to: 210 10% 22%;
-}
-
-[data-theme="orange"] {
-  --hero-from: 210 20% 96%;
-  --hero-via: 210 16% 90%;
-  --hero-to: 210 12% 86%;
-}
-.dark[data-theme="orange"] {
-  --hero-from: 210 12% 20%;
-  --hero-via: 210 10% 26%;
-  --hero-to: 210 10% 22%;
-}
-
-[data-theme="orange-vivid"] {
-  --hero-from: 210 20% 96%;
-  --hero-via: 210 16% 90%;
-  --hero-to: 210 12% 86%;
-}
-.dark[data-theme="orange-vivid"] {
-  --hero-from: 210 12% 20%;
-  --hero-via: 210 10% 26%;
-  --hero-to: 210 10% 22%;
-}
-
-.swatch-orange { background: hsl(18 90% 47%); }
-.swatch-orange-soft { background: hsl(18 90% 47%); }
-.swatch-orange-vivid { background: hsl(18 96% 56%); }
-.swatch-seasonal-soft,
-.swatch-seasonal-vivid {
-  background: linear-gradient(135deg, hsl(330 80% 80%) 0%, hsl(40 90% 85%) 50%, hsl(150 60% 90%) 100%);
-}
-/* Utility classes to apply Curve A/B/C as panel backgrounds with readable foregrounds */
-.curve-a {
-  background-color: hsl(var(--curve-a) / 0.85);
-  color: hsl(var(--curve-a-foreground));
-}
-.curve-b {
-  background-color: hsl(var(--curve-b) / 0.85);
-  color: hsl(var(--curve-b-foreground));
-}
-.curve-c {
-  background-color: hsl(var(--curve-c) / 0.85);
-  color: hsl(var(--curve-c-foreground));
-}
-
-.curve-a > *,
-.curve-b > *,
-.curve-c > * {
-  /* ensure child text/icons inherit the readable foreground */
-  color: inherit;
-}
-
-@layer base {
-  /* Removed global border on all elements — this caused heavy visual noise
-     across the app. Borders should be applied to semantic components only. */
-body {
+  body {
     @apply bg-background text-foreground antialiased min-h-screen;
+    background-color: var(--color-background);
+    background-image: none;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Small utility helpers for consistent UI surfaces and elevation. Keep
-     noise to a minimum with light borders and softer shadows. */
-  .card {
-    @apply rounded-2xl border border-border bg-card p-5 shadow-none;
+  .card,
+  .surface-card {
+    border: 1px solid var(--surface-border);
+    background-color: var(--surface-background);
+    color: var(--surface-foreground);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
   }
 
-  .panel {
-    @apply rounded-2xl border border-border/60 p-5 bg-card shadow-sm;
+  .panel,
+  .surface-block {
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-md);
+    background-color: var(--surface-background);
+    color: var(--surface-foreground);
+    padding: var(--space-lg);
   }
 
-  .elevation-0 { box-shadow: none; }
-  .elevation-1 { @apply shadow-sm; }
-  .elevation-2 { @apply shadow-md; }
-  .elevation-3 { @apply shadow-lg; }
+  .surface-highlight {
+    border: 1px solid var(--surface-border);
+    background-color: var(--surface-background);
+    padding: var(--space-md);
+    border-radius: var(--radius-sm);
+    transition: background-color var(--transition-gentle), border-color var(--transition-gentle), transform var(--transition-gentle);
+  }
 
-  .hero-soft { opacity: 0.9; filter: saturate(0.9); }
+  .surface-control {
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-md);
+    background-color: var(--surface-background);
+    color: var(--surface-foreground);
+    padding: var(--space-sm) var(--space-md);
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: border-color var(--transition-gentle), background-color var(--transition-gentle);
+  }
+
+  .surface-block-muted {
+    border-style: dashed;
+    opacity: 0.85;
+  }
+
+  .surface-control:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  .surface-dropdown {
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-background);
+    transition: border-color var(--transition-gentle), background-color var(--transition-gentle);
+  }
+
+  .btn-variant-default {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+  }
+
+  .btn-variant-default:hover {
+    background-color: hsl(var(--primary) / 0.9);
+  }
+
+  .btn-variant-secondary {
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+  }
+
+  .btn-variant-secondary:hover {
+    background-color: hsl(var(--secondary) / 0.9);
+  }
+
+  .btn-variant-destructive {
+    background-color: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+  }
+
+  .btn-variant-destructive:hover {
+    background-color: hsl(var(--destructive) / 0.9);
+  }
+
+  .btn-variant-outline {
+    background-color: transparent;
+    color: var(--color-foreground);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-md);
+  }
+
+  .btn-variant-outline:hover {
+    border-color: var(--primary);
+    color: hsl(var(--primary-foreground));
+  }
+
+  .btn-variant-ghost {
+    background-color: transparent;
+    color: var(--color-foreground);
+    border-color: transparent;
+  }
+
+  .btn-variant-link {
+    background-color: transparent;
+    color: hsl(var(--primary));
+    border-color: transparent;
+    padding: 0;
+  }
+
+  .elevation-0,
+  .elevation-1,
+  .elevation-2,
+  .elevation-3 {
+    box-shadow: none;
+  }
+
+  .hero-soft {
+    opacity: 1;
+    filter: none;
+  }
+
+  .curve-a {
+    background-color: hsl(var(--curve-a) / 0.85);
+    color: hsl(var(--curve-a-foreground));
+  }
+  .curve-b {
+    background-color: hsl(var(--curve-b) / 0.85);
+    color: hsl(var(--curve-b-foreground));
+  }
+  .curve-c {
+    background-color: hsl(var(--curve-c) / 0.85);
+    color: hsl(var(--curve-c-foreground));
+  }
+
+  .curve-a > *,
+  .curve-b > *,
+  .curve-c > * {
+    color: inherit;
+  }
+
+  .flat-transition {
+    transition: background-color var(--transition-gentle), border-color var(--transition-gentle), color var(--transition-gentle);
+  }
 }
 
 @layer components {
   .page-shell {
-    @apply relative overflow-hidden rounded-[24px] border border-border/60 bg-card shadow-sm;
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    border-width: 1px;
+    border-style: solid;
+    border-color: var(--surface-border);
+    background-color: var(--surface-background);
+    padding: var(--space-xl);
   }
 
   .page-shell > * + * {
-    @apply mt-6;
+    margin-top: var(--space-lg);
   }
 }
 

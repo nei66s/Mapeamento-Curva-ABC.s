@@ -12,6 +12,7 @@
     "lint": "eslint \"middleware.ts\" \"src\" \"tests\" \"scripts\" --ext .ts,.tsx,.js,.jsx",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
+    "test:e2e": "playwright test",
     "test:normalize": "ts-node scripts/test-normalize-status.ts",
     "migrate:store-items": "ts-node src/lib/migrate-store-items.ts",
     "migrate:all": "npx ts-node src/lib/migrate-all-mocks.ts && npx ts-node src/lib/migrate-categories-items.ts && npx ts-node src/lib/migrate-items-schema.ts && npm run migrate:store-items",
@@ -26,6 +27,7 @@
     "db:fix-tools-id": "node scripts/apply_sql.js --file sql/fix-tools-id-to-text.sql",
     "db:fix-stores": "node scripts/apply_sql.js --file sql/fix-stores-add-lat-lng.sql",
     "prod": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-prod.ps1"
+    ,"migrate:account-requests": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/apply-account-requests-migration.ps1"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

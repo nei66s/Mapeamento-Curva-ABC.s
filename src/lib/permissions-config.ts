@@ -30,6 +30,7 @@ export const moduleDefinitions: ModuleDefinition[] = [
   { id: 'administration', label: 'Administração' },
   { id: 'admin-dashboard', label: 'Dashboard Global (Admin)' },
   { id: 'admin-users', label: 'Usuários e Papéis' },
+  { id: 'admin-integrations', label: 'Integrações e API' },
   { id: 'admin-modules', label: 'Módulos e Flags' },
   { id: 'admin-analytics', label: 'Métricas e Acessos' },
   { id: 'admin-audit', label: 'Auditoria' },
@@ -71,6 +72,7 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     'admin-config': true,
     'admin-health': true,
     'admin-roles': true,
+    'admin-integrations': true,
   },
   regional: {
     indicators: true,
@@ -100,6 +102,7 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     'admin-config': false,
     'admin-health': false,
     'admin-roles': false,
+    'admin-integrations': false,
   },
   visualizador: {
     indicators: true,
@@ -129,6 +132,7 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     'admin-config': false,
     'admin-health': false,
     'admin-roles': false,
+    'admin-integrations': false,
   },
   fornecedor: {
     indicators: false,
@@ -158,6 +162,7 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     'admin-config': false,
     'admin-health': false,
     'admin-roles': false,
+    'admin-integrations': false,
   },
   usuario: {
     indicators: true,
@@ -187,6 +192,7 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     'admin-config': false,
     'admin-health': false,
     'admin-roles': false,
+    'admin-integrations': false,
   },
 };
 

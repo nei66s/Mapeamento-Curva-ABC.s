@@ -199,6 +199,28 @@ export type Paginated<T> = {
   pageSize: number;
 };
 
+export type ApiKeyRecord = {
+  id: string;
+  userId?: string;
+  name: string;
+  keyPrefix: string;
+  createdAt: string;
+  lastUsedAt?: string;
+  expiresAt?: string;
+  ownerName?: string;
+  ownerEmail?: string;
+};
+
+export type ApiKeyCreatePayload = {
+  name: string;
+  expiresAt?: string | null;
+};
+
+export type ApiKeyCreationResult = {
+  item: ApiKeyRecord;
+  key: string;
+};
+
 export type AdminSession = {
   user: { id: string; email: string; role: string };
   permissions: Record<string, boolean>;

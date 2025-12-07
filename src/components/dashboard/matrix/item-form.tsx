@@ -144,7 +144,7 @@ export function ItemForm({ item, categories, onSubmit, onCancel }: ItemFormProps
           name="imageUrl"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Imagem do Item</FormLabel>
+              <FormLabel htmlFor="item-image">Imagem do Item</FormLabel>
               <FormControl>
                 <div>
                   <div className="flex items-center gap-3">
@@ -153,6 +153,8 @@ export function ItemForm({ item, categories, onSubmit, onCancel }: ItemFormProps
                         id="item-image"
                         type="file"
                         accept="image/*"
+                        aria-label="Imagem do Item"
+                        title="Imagem do Item"
                         onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
@@ -270,23 +272,31 @@ export function ItemForm({ item, categories, onSubmit, onCancel }: ItemFormProps
                           key={factor.id}
                           className="flex flex-row items-start space-x-3 space-y-0"
                         >
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(factor.id)}
-                              onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([...(field.value ?? []), factor.id])
-                                  : field.onChange(
-                                      (field.value ?? []).filter(
-                                        (value) => value !== factor.id
-                                      )
-                                    );
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            {factor.label}
-                          </FormLabel>
+                          {(() => {
+                            const checkboxId = `impact-${factor.id}`;
+                            return (
+                              <>
+                                <FormControl>
+                                  <Checkbox
+                                    id={checkboxId}
+                                    checked={field.value?.includes(factor.id)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...(field.value ?? []), factor.id])
+                                        : field.onChange(
+                                            (field.value ?? []).filter(
+                                              (value) => value !== factor.id
+                                            )
+                                          );
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel htmlFor={checkboxId} className="font-normal">
+                                  {factor.label}
+                                </FormLabel>
+                              </>
+                            );
+                          })()}
                         </FormItem>
                       )
                     }}

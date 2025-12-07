@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from 'next/dynamic';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { PageHeader } from '@/components/shared/page-header';
@@ -11,11 +12,6 @@ import { Button } from '@/components/ui/button';
 // dropdown removed from header per request
 import { useToast } from '@/hooks/use-toast';
 import { BarChart3, LineChart, BrainCircuit } from 'lucide-react';
-import { CallsChart } from '@/components/dashboard/indicators/calls-chart';
-import { SlaChart } from '@/components/dashboard/indicators/sla-chart';
-import { KpiAnalysis } from '@/components/dashboard/indicators/kpi-analysis';
-import { ParetoAnalysis } from '@/components/dashboard/indicators/pareto-analysis';
-import { AgingChart } from '@/components/dashboard/indicators/aging-chart';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SummaryCards } from '@/components/dashboard/summary-cards';
 import { ClassificationTable } from '@/components/dashboard/classification-table';
@@ -26,6 +22,28 @@ import { Progress } from '@/components/ui/progress';
 import { HeroPanel } from '@/components/shared/hero-panel';
 import { AiStatusIndicator, type AiStatusSummary } from '@/components/dashboard/ai-status';
 import { getSeasonSnapshot } from '@/lib/season';
+import { IndicatorsSkeleton } from '@/components/shared/indicators-skeleton';
+
+const CallsChart = dynamic(
+  () => import('@/components/dashboard/indicators/calls-chart').then(mod => mod.CallsChart),
+  { ssr: false, loading: () => <IndicatorsSkeleton /> }
+);
+const SlaChart = dynamic(
+  () => import('@/components/dashboard/indicators/sla-chart').then(mod => mod.SlaChart),
+  { ssr: false, loading: () => <IndicatorsSkeleton /> }
+);
+const AgingChart = dynamic(
+  () => import('@/components/dashboard/indicators/aging-chart').then(mod => mod.AgingChart),
+  { ssr: false, loading: () => <IndicatorsSkeleton /> }
+);
+const KpiAnalysis = dynamic(
+  () => import('@/components/dashboard/indicators/kpi-analysis').then(mod => mod.KpiAnalysis),
+  { ssr: false, loading: () => <IndicatorsSkeleton /> }
+);
+const ParetoAnalysis = dynamic(
+  () => import('@/components/dashboard/indicators/pareto-analysis').then(mod => mod.ParetoAnalysis),
+  { ssr: false, loading: () => <IndicatorsSkeleton /> }
+);
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, options);
@@ -480,9 +498,8 @@ export default function IndicatorsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <section className="page-shell relative overflow-hidden bg-white/90">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(248,113,113,0.15),_transparent_65%)] opacity-80" />
-        <div className="relative z-10 grid gap-6">
+      <section className="page-shell space-y-6">
+        <div className="grid gap-6">
           <PageHeader
             moduleKey="indicators"
             title={<span className="text-foreground">Painel de Indicadores</span>}
@@ -491,7 +508,7 @@ export default function IndicatorsPage() {
           >
             <div className="flex items-center gap-2">
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[200px] border border-border bg-card">
+                <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Selecione o mês" />
                 </SelectTrigger>
                 <SelectContent>
@@ -506,10 +523,7 @@ export default function IndicatorsPage() {
           </PageHeader>
           <div className="grid gap-4 md:grid-cols-3">
             {quickHighlights.map((highlight) => (
-              <div
-                key={highlight.label}
-                className="rounded-2xl border border-border/60 bg-muted/80 p-5 shadow-sm"
-              >
+              <div key={highlight.label} className="surface-highlight">
                 <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
                   {highlight.label}
                 </p>
@@ -557,7 +571,7 @@ export default function IndicatorsPage() {
           Indicadores Gerais
         </div>
         {Array.isArray(incidents) && incidents.length === 0 && (
-          <Alert className="rounded-2xl border border-border/70 bg-card/70">
+        <Alert className="surface-block">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <AlertTitle>Nenhum incidente carregado</AlertTitle>
@@ -571,12 +585,12 @@ export default function IndicatorsPage() {
         )}
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <div className="rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm">
+            <div className="surface-block">
               <ClassificationTable />
             </div>
           </div>
           <div className="lg:col-span-1">
-            <div className="rounded-2xl border border-dashed border-border/30 p-5 text-sm text-muted-foreground">
+            <div className="surface-block surface-block-muted text-sm text-muted-foreground">
               {/* Curve chart removed per design request */}
               Gráficos adicionais serão exibidos aqui quando habilitados.
             </div>
@@ -588,7 +602,7 @@ export default function IndicatorsPage() {
 
       {!selectedData && (
         <section className="page-shell">
-          <Card className="rounded-2xl border border-border/60 bg-card/80">
+          <Card>
             <CardHeader>
               <CardTitle>Sem dados para este mês</CardTitle>
               <CardDescription>
@@ -609,7 +623,7 @@ export default function IndicatorsPage() {
             Indicadores Operacionais do Mês
           </div>
 
-          <Card className="rounded-2xl border border-border/50 bg-card/80 shadow-sm">
+          <Card>
             <CardHeader>
               <CardTitle>Causas recorrentes</CardTitle>
               <CardDescription>Itens mais citados nos incidentes deste mês.</CardDescription>
@@ -630,8 +644,12 @@ export default function IndicatorsPage() {
                             <span className="truncate">{entry.name}</span>
                             <span className="text-xs text-muted-foreground ml-3">{entry.count} ocorrências</span>
                           </div>
-                          <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted/40">
-                            <div className="h-full rounded-full bg-gradient-to-r from-orange-400 to-orange-600" style={{ width: `${relative}%` }} />
+                          <div className="mt-2">
+                            <progress
+                              className="w-full h-2 rounded-full overflow-hidden bg-muted/40"
+                              value={entry.count}
+                              max={maxCount}
+                            />
                           </div>
                         </div>
                       </div>
@@ -644,7 +662,7 @@ export default function IndicatorsPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border border-border/50 bg-gradient-to-br from-[#ffedd5] to-white shadow-lg">
+          <Card>
             <CardHeader className="space-y-2">
               <div className="flex items-center flex-wrap gap-2 text-base font-semibold text-orange-700">
                 <BrainCircuit className="h-5 w-5" />
@@ -657,12 +675,12 @@ export default function IndicatorsPage() {
                 Utilize inteligência artificial para obter insights sobre seus dados de manutenção.
               </CardDescription>
             </CardHeader>
-            <div className="rounded-2xl border border-dashed border-orange-200 bg-white/70 p-4 text-sm text-gray-600">
+            <div className="surface-block surface-block-muted text-sm text-muted-foreground">
               <p className="text-[0.65rem] uppercase tracking-wider text-orange-600">Estação atual</p>
               <p className="text-base font-semibold text-foreground">{seasonSnapshot.seasonLabel}</p>
               <p className="text-xs text-muted-foreground">{seasonSnapshot.seasonNote}</p>
               {seasonSnapshot.activeEvent && (
-                <div className="mt-3 rounded-xl border bg-white/80 p-3 text-[0.75rem] shadow-inner border-orange-100">
+                <div className="mt-3 surface-block surface-block-muted text-[0.75rem]">
                   <p className="font-semibold text-xs text-foreground">
                     {theme.eventEmoji ?? theme.emoji} {seasonSnapshot.activeEvent.name}
                   </p>

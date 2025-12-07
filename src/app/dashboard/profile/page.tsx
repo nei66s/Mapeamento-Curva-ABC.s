@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/comp
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 // permissions management moved to the central Admin page
 
 const profileSchema = z.object({
@@ -143,8 +144,15 @@ export default function ProfilePage() {
     if (loading || fetchedUser) return;
     // if logout is in progress, skip redirect here to avoid double navigation
     if (typeof window !== 'undefined' && (window as any).__pm_logging_out) return;
+    // don't perform an automatic redirect here; instead show a login prompt
+    // so the user can choose to sign in and return to this page.
     try {
-      router.replace('/login');
+      // set a query param so the login page can redirect back after success
+      // we use client-side replace to avoid adding history entries
+      // but avoid immediate navigation (user may want to inspect page)
+      // keep current behavior minimal: navigate to /login only when user clicks
+      // We'll set a flag via router.replace to a hash to indicate unauthenticated state (no-op)
+      // noop to keep behavior predictable
     } catch (e) {
       // ignore
     }
@@ -153,7 +161,29 @@ export default function ProfilePage() {
   // While hydrating (client-only data), render nothing to keep server and client HTML identical.
   if (loading) return null;
 
-  if (!fetchedUser) return null;
+  if (!fetchedUser) {
+    return (
+      <div className="flex items-center justify-center min-h-[240px]">
+        <div className="max-w-md w-full">
+          <Card>
+            <CardHeader>
+              <CardTitle>Área restrita</CardTitle>
+              <CardDescription>Você precisa entrar para visualizar e editar seu perfil.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <p className="text-sm text-muted-foreground">Para atualizar seu nome ou avatar, faça login.</p>
+              <div className="flex gap-2">
+                <Link href={`/login?returnTo=/profile`} className="inline-flex">
+                  <Button>Entrar</Button>
+                </Link>
+                <Button variant="ghost" onClick={() => window.location.reload()}>Recarregar</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">
