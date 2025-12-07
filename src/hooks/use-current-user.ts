@@ -43,7 +43,22 @@ function useCurrentUserInternal(): CurrentUserContextType {
       }
     };
     window.addEventListener('pm_user_changed', handler as EventListener);
+    const handleStorage = (ev: StorageEvent) => {
+      try {
+        if (ev.key !== 'pm_user') return;
+        if (ev.newValue) {
+          setUserState(JSON.parse(ev.newValue));
+        } else {
+          setUserState(null);
+        }
+      } catch (e) {}
+    };
+    window.addEventListener('storage', handleStorage as any);
     return () => window.removeEventListener('pm_user_changed', handler as EventListener);
+    // cleanup storage listener too
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    /* istanbul ignore next */
+    ;
   }, []);
 
   const persist = useCallback((value: User | null) => {
@@ -81,6 +96,6 @@ export function CurrentUserProvider({ children }: { children: React.ReactNode })
 
 export function useCurrentUser() {
   const ctx = useContext(CurrentUserContext);
-  const internal = useCurrentUserInternal();
-  return ctx ?? internal;
+  if (ctx) return ctx;
+  return useCurrentUserInternal();
 }

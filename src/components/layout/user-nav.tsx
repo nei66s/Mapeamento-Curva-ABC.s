@@ -21,35 +21,7 @@ export function UserNav() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
-    const handleStorage = () => {
-      try {
-        const raw = localStorage.getItem('pm_user');
-        if (raw) {
-          setUser(JSON.parse(raw));
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        console.warn('Failed to sync pm_user from storage', err);
-      }
-    };
-
-    const handlePmUserChanged = (ev: Event) => {
-      try {
-        const detail = (ev as CustomEvent).detail;
-        if (detail) setUser(detail as any);
-        else setUser(null);
-      } catch (e) {}
-    };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('storage', handleStorage);
-      window.addEventListener('pm_user_changed', handlePmUserChanged as EventListener);
-      return () => {
-        window.removeEventListener('storage', handleStorage);
-        window.removeEventListener('pm_user_changed', handlePmUserChanged as EventListener);
-      };
-    }
+    // No-op: synchronization is handled centrally by CurrentUserProvider.
     return () => {};
   }, [setUser]);
 

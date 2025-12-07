@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useEffect, useState } from 'react';
 import {
   PanelLeft,
   Settings,
@@ -34,9 +35,11 @@ import { usePathname } from 'next/navigation';
 interface AppHeaderProps {
   onToggleSidebar?: () => void;
   sidebarVisible?: boolean;
+  sidebarMode?: 'pinned' | 'auto' | 'hidden';
+  onSetSidebarMode?: (mode: 'pinned' | 'auto' | 'hidden') => void;
 }
 
-export default function AppHeader({ onToggleSidebar, sidebarVisible }: AppHeaderProps) {
+export default function AppHeader({ onToggleSidebar, sidebarVisible, sidebarMode, onSetSidebarMode }: AppHeaderProps) {
   const pathname = usePathname();
   // Minimal header on auth pages: only show theme toggle to allow dark mode switching
   if (pathname && pathname.startsWith('/login')) {
@@ -48,7 +51,10 @@ export default function AppHeader({ onToggleSidebar, sidebarVisible }: AppHeader
       </header>
     );
   }
-  const toggleIcon = sidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />;
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => setHasMounted(true), []);
+
+  const toggleIcon = hasMounted ? (sidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />) : <span className="inline-block h-4 w-4" />;
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border/60 bg-background/80 px-4 backdrop-blur-sm transition-colors sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <div className="flex items-center gap-2">
@@ -204,15 +210,24 @@ export default function AppHeader({ onToggleSidebar, sidebarVisible }: AppHeader
           </SheetContent>
         </Sheet>
         {onToggleSidebar && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hidden rounded-xl border border-border/40 text-muted-foreground hover:text-foreground sm:inline-flex"
-            onClick={onToggleSidebar}
-          >
-            {toggleIcon}
-            <span className="sr-only">Alternar painel lateral</span>
-          </Button>
+          <div className="hidden items-center gap-2 sm:inline-flex">
+            <Button
+              variant={sidebarMode === 'pinned' ? 'default' : 'ghost'}
+              size="icon"
+              className="rounded-xl border border-border/40 text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                if (onSetSidebarMode) {
+                  onSetSidebarMode(sidebarMode === 'pinned' ? 'auto' : 'pinned');
+                } else {
+                  onToggleSidebar();
+                }
+              }}
+              aria-label={sidebarMode === 'pinned' ? 'Desfixar painel' : 'Fixar painel'}
+            >
+              {toggleIcon}
+              <span className="sr-only">{sidebarMode === 'pinned' ? 'Desfixar painel' : 'Fixar painel'}</span>
+            </Button>
+          </div>
         )}
       </div>
       <div className="hidden md:flex text-xs uppercase tracking-[0.4em] text-muted-foreground">

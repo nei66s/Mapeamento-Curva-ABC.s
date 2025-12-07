@@ -7,9 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig = {
   /* config options here */
-  // Prevent Next from inferring the workspace root from unrelated lockfiles
-  // (see Next.js docs: outputFileTracingRoot). Set to this project's directory.
-  outputFileTracingRoot: __dirname,
+  // Note: `outputFileTracingRoot` removed — Next.js no longer accepts this key
+  // to avoid the 'Unrecognized key' warning. If you need custom tracing root,
+  // manage it via Next.js server configuration or environment settings.
   typescript: {
     ignoreBuildErrors: false,
   },

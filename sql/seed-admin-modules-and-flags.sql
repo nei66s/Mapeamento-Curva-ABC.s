@@ -6,6 +6,7 @@ INSERT INTO modules (key, name, description, is_active, is_visible, beta)
 VALUES
   ('admin-dashboard', 'Dashboard Global', 'Indicadores e visão geral.', true, true, false),
   ('admin-users', 'Usuários', 'Gestão de contas e status.', true, true, false),
+  ('admin-integrations', 'Integrações', 'Chaves de API e integrações externas.', true, true, false),
   ('admin-roles', 'Papéis e Permissões', 'RBAC e escopo de acesso.', true, true, false),
   ('admin-modules', 'Módulos e Flags', 'Habilitação de módulos e experimentos.', true, true, false),
   ('admin-analytics', 'Métricas e Acessos', 'Pageviews e tendências.', true, true, true),

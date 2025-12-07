@@ -30,11 +30,12 @@ export default function RequirePermission({ children }: { children: React.ReactN
     if (path.startsWith('/dashboard/tools') || path.startsWith('/tools')) return 'tools';
     if (path.startsWith('/dashboard/vacations') || path.startsWith('/vacations')) return 'vacations';
     if (path.startsWith('/dashboard/settlement') || path.startsWith('/settlement')) return 'settlement';
-    if (path.startsWith('/dashboard/profile') || path.startsWith('/profile')) return 'profile';
+    if (path.startsWith('/dashboard/profile')) return 'profile';
     if (path.startsWith('/dashboard/settings') || path.startsWith('/settings')) return 'settings';
     if (path.startsWith('/admin-panel/audit')) return 'admin-audit';
     if (path.startsWith('/admin-panel/analytics')) return 'admin-analytics';
     if (path.startsWith('/admin-panel/modules')) return 'admin-modules';
+    if (path.startsWith('/admin-panel/integrations')) return 'admin-integrations';
     if (path.startsWith('/admin-panel/users')) return 'admin-users';
     if (path.startsWith('/admin-panel/config')) return 'admin-config';
     if (path.startsWith('/admin-panel/health')) return 'admin-health';

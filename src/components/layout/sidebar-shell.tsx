@@ -15,23 +15,29 @@ export function SidebarShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isAuthRoute = pathname?.startsWith('/login') ?? false;
   const STORAGE_KEY = 'app.sidebarVisible';
-  const [sidebarVisible, setSidebarVisible] = useState(() => {
-    if (typeof window === 'undefined') return true;
+  // Default to closed on both server and initial client render to avoid hydration mismatch.
+  const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
+
+  // After mount, read persisted preference from localStorage and apply it.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw !== null) {
-        return raw === 'true';
+        setSidebarVisible(raw === 'true');
       }
     } catch {
       // ignore
     }
-    return true;
-  });
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia('(max-width: 767px)').matches;
-  });
-  const hasMounted = typeof window !== 'undefined';
+  }, []);
+  const [isMobile, setIsMobile] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+    if (typeof window === 'undefined') return;
+    setIsMobile(window.matchMedia('(max-width: 767px)').matches);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

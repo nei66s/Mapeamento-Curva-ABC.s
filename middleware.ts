@@ -35,6 +35,7 @@ function getModuleId(path: string) {
   if (path.startsWith('/admin-panel/audit')) return 'admin-audit';
   if (path.startsWith('/admin-panel/analytics')) return 'admin-analytics';
   if (path.startsWith('/admin-panel/modules')) return 'admin-modules';
+  if (path.startsWith('/admin-panel/integrations')) return 'admin-integrations';
   if (path.startsWith('/admin-panel/users')) return 'admin-users';
   if (path.startsWith('/admin-panel/config')) return 'admin-config';
   if (path.startsWith('/admin-panel/health')) return 'admin-health';
