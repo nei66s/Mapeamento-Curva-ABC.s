@@ -1,0 +1,12 @@
+node-v20.9.0/
+docs/
+docker/
+docker-compose.yml
+node_modules/
+.vscode/
+.git/
+logs/
+tmp/
+public/uploads/
+screenshots/
+reports/
