@@ -14,53 +14,42 @@ import '@/server/error-logger';
 // we log query durations (ms) to help identify slow queries.
 
 const isProd = process.env.NODE_ENV === 'production';
-const resolvePassword = () => {
+
+// Prefer a single `DATABASE_URL` env var. This removes reliance on scattered
+// PGHOST/PGUSER/PGPASSWORD/PGPORT variables and is compatible with serverless
+// environments (Vercel). In production `DATABASE_URL` must be set.
+// In development you can set `DEV_ALLOW_DEFAULT_PG_PASSWORD=true` to allow a
+// simple local fallback connection string for convenience.
+const poolConfig = (() => {
+  if (process.env.DATABASE_URL) {
+    // Ensure SSL for managed DBs (Supabase) when a URL is provided.
+    return { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } };
+  }
+
+  // No DATABASE_URL provided
   if (isProd) {
-    if (!process.env.PGPASSWORD) {
-      throw new Error('PGPASSWORD environment variable is not set. Set PGPASSWORD to connect to the DB (production).');
-    }
-    return process.env.PGPASSWORD as string;
+    throw new Error('DATABASE_URL not set. Set DATABASE_URL in production to connect to the DB.');
   }
 
-  if (!process.env.PGPASSWORD) {
-    const allowDefault = String(process.env.DEV_ALLOW_DEFAULT_PG_PASSWORD || '').toLowerCase() === 'true';
-    if (allowDefault) {
-      // eslint-disable-next-line no-console
-      console.warn("DEV_ALLOW_DEFAULT_PG_PASSWORD=true — using 'admin' fallback for development only. Do not use in production.");
-      return 'admin';
-    }
-    throw new Error('PGPASSWORD not set. In development you can run scripts/dev-setup.ps1 or set DEV_ALLOW_DEFAULT_PG_PASSWORD=true to allow a local fallback.');
+  // Development fallback when explicitly allowed.
+  const allowDefault = String(process.env.DEV_ALLOW_DEFAULT_PG_PASSWORD || '').toLowerCase() === 'true';
+  if (allowDefault) {
+    // Local dev fallback: do not read PG* env vars; use a simple default URL.
+    // NOTE: this is for convenience only. Prefer setting DATABASE_URL locally.
+    // eslint-disable-next-line no-console
+    console.warn("DEV_ALLOW_DEFAULT_PG_PASSWORD=true — using local fallback DATABASE_URL for development only.");
+    return { connectionString: 'postgres://mapeamento_user:admin@localhost:5432/mapeamento' };
   }
-  return process.env.PGPASSWORD as string;
-};
 
-// Build pool config but DO NOT validate/throw for missing password at module load time.
-// This avoids Next.js build-time errors when files import `src/lib/db.ts`.
-const poolConfig = process.env.DATABASE_URL
-  ? { connectionString: process.env.DATABASE_URL }
-  : {
-      host: process.env.PGHOST || 'localhost',
-      port: Number(process.env.PGPORT || 5432),
-      user: process.env.PGUSER || 'mapeamento_user',
-      // keep password undefined at load time; validate lazily on first connect/query
-      password: process.env.PGPASSWORD || undefined,
-      database: process.env.PGDATABASE || 'mapeamento',
-    };
+  // If we're here, the developer forgot to set DATABASE_URL in non-production.
+  throw new Error('DATABASE_URL not set. Set DATABASE_URL in your environment (or set DEV_ALLOW_DEFAULT_PG_PASSWORD=true for local dev).');
+})();
 
 const pool = new Pool(poolConfig);
 
-// Ensure production password is validated when the pool is actually used at runtime.
-const ensurePasswordValidated = () => {
-  if (isProd) {
-    // resolvePassword will throw in production when password missing
-    resolvePassword();
-  }
-};
-
-// Wrap connect and query to validate lazily (prevents build-time throws).
+// No lazy password validation required: production will error early if DATABASE_URL is absent.
 const originalConnect = pool.connect.bind(pool);
 pool.connect = async (...args: any[]) => {
-  ensurePasswordValidated();
   // @ts-ignore
   return originalConnect(...args);
 };
@@ -69,7 +58,6 @@ if ((pool as any).query) {
   const originalQuery = pool.query.bind(pool);
   // @ts-ignore
   pool.query = async (...args: any[]) => {
-    ensurePasswordValidated();
     return originalQuery(...args);
   };
 }
