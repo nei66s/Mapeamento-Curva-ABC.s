@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { getUserByEmail } from '@/server/adapters/users-adapter';
 import { issueAccessToken, issueRefreshToken } from '@/lib/auth/jwt';

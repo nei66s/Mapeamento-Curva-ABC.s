@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { runGenerateAssetMetadata } from '@/ai/flows/generate-asset-metadata.server';
 

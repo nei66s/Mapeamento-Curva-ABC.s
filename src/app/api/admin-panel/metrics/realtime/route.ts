@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { isModuleActive, json } from '../../_utils';
 import * as metricsAdapter from '@/server/adapters/metrics-adapter';
 import pool from '@/lib/db';

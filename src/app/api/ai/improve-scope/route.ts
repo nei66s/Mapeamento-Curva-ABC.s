@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { runScopeTextImprovement } from '@/ai/flows/improve-scope-flow.server';
 

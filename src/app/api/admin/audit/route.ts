@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { listAudit } from '@/server/adapters/audit-adapter';
 import { verifyAccessToken } from '@/lib/auth/jwt';

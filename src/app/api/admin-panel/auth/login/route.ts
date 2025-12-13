@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { json, getRequestIp } from '../../_utils';
 import { logErrorToFile } from '@/server/error-logger';

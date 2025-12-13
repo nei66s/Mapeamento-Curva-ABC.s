@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextRequest } from 'next/server';
 import { json, getRequestIp } from '../../_utils';
 import { getFlagByKey, setFlag } from '@/server/adapters/feature-flags-adapter';

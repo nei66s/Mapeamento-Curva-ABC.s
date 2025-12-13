@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { listStores, createStore, updateStore, deleteStore } from '@/lib/stores.server';
 

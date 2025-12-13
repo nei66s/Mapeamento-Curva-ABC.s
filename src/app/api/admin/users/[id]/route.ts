@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserById, updateUser, deleteUser } from '@/server/adapters/users-adapter';
 import { verifyAccessToken } from '@/lib/auth/jwt';

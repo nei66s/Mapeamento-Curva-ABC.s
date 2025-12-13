@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getModuleByKey, updateModuleByKey } from '@/server/adapters/modules-adapter';
 import { verifyAccessToken } from '@/lib/auth/jwt';

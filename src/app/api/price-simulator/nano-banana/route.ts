@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server'
 import { callWithRetries } from '@/ai/callWithRetries'
 import { getAi } from '@/ai/genkit'

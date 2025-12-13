@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextRequest } from 'next/server';
 import { isModuleActive, json, getRequestIp } from '../../admin-panel/_utils';
 import pool from '@/lib/db';

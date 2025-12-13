@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 export type SimulatorInput = {
   type?: string
   description?: string

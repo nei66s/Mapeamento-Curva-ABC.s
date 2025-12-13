@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { runScopeItemDescription } from '@/ai/flows/generate-scope-item-description.server';
 

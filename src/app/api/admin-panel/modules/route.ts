@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { json } from '../_utils';
 import { listModules } from '@/server/adapters/modules-adapter';
 

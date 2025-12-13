@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { listFlags } from '@/server/adapters/feature-flags-adapter';
 

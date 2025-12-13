@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { json, getRequestIp } from '../../_utils';
 import { NextRequest } from 'next/server';
 import { getModuleByKey } from '@/server/adapters/modules-adapter';
