@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getFlagByKey, setFlag } from '@/server/adapters/feature-flags-adapter';
 import { verifyAccessToken } from '@/lib/auth/jwt';

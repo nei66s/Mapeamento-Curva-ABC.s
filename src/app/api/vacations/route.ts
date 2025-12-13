@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { createVacationRequest, deleteVacationRequest, listVacationRequests } from '@/lib/vacation-requests.server';
 import pool from '@/lib/db';

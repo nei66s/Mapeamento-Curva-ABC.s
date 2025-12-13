@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { listRncs, createRnc, createRncsBulk, updateRnc, deleteRnc } from '@/lib/rncs.server';
 

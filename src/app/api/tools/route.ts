@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { createTool, createToolsBulk, deleteTool, listTools, updateTool } from '@/lib/tools.server';
 

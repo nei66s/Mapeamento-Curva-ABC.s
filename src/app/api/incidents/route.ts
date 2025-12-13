@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { createIncident, deleteIncident, getIncidents, updateIncident } from '@/lib/incidents.server';
 

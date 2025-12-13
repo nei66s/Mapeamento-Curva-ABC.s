@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextRequest } from 'next/server';
 import { json, getRequestIp } from '../../_utils';
 import pool from '@/lib/db';

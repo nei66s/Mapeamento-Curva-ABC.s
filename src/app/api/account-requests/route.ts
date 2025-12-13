@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { createAccountRequest, listAccountRequests } from '@/lib/account-requests.server';

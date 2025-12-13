@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { issueAccessToken } from '@/lib/auth/jwt';

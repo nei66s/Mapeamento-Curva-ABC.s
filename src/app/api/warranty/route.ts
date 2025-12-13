@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { listWarranties, createWarranty, updateWarranty, deleteWarranty } from '../../../lib/warranty.server';
 

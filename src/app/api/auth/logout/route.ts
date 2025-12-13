@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { invalidateRefreshToken } from '@/server/adapters/refresh-tokens-adapter';
 

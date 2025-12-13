@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getRoleById, getRolePermissions } from '@/server/adapters/roles-adapter';
 import { verifyAccessToken } from '@/lib/auth/jwt';

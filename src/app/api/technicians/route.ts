@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { createTechnician, deleteTechnician, listTechnicians } from '@/lib/technicians.server';
 

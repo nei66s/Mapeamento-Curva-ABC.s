@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { listItems, createItem, createItemsBulk, updateItem, deleteItem } from '@/lib/items.server';
 // Dev-only mocks when DB schema is incomplete

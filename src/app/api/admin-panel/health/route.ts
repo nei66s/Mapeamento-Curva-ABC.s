@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { json } from '../_utils';
 import { getModuleByKey } from '@/server/adapters/modules-adapter';
 import pool from '@/lib/db';

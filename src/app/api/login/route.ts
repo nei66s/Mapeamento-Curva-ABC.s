@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 // This route proxies to the canonical `/api/auth/login` route used by the
 // application. Keep the frontend calling `/api/login` safe while centralizing
 // auth logic under `/api/auth/*`.

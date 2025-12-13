@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import { getModuleByKey } from '@/server/adapters/modules-adapter';
 
