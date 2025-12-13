@@ -163,10 +163,10 @@ export default function AdminIntegrationsPage() {
             <div className="flex items-end">
               <Button
                 onClick={handleCreate}
-                disabled={apiKeys.create.isMutating || !name.trim()}
+                disabled={apiKeys.create.status === 'pending' || !name.trim()}
                 className="w-full"
               >
-                {apiKeys.create.isMutating ? 'Gerando...' : 'Gerar chave'}
+                {apiKeys.create.status === 'pending' ? 'Gerando...' : 'Gerar chave'}
               </Button>
             </div>
           </div>
@@ -270,7 +270,7 @@ export default function AdminIntegrationsPage() {
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => void handleRevoke(item.id, item.name)}
-                                disabled={apiKeys.revoke.isMutating}
+                                disabled={apiKeys.revoke.status === 'pending'}
                               >
                                 Revogar
                               </AlertDialogAction>

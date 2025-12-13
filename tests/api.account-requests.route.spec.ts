@@ -16,14 +16,15 @@ vi.mock('@/lib/account-requests.server', () => ({
   listAccountRequests: vi.fn(),
 }));
 
-import { POST, resetAccountRequestsRateLimit } from '../src/app/api/account-requests/route';
+import { POST } from '../src/app/api/account-requests/route';
+import { resetAccountRequestsRateLimit } from '../src/lib/account-requests-rate-limit';
 import pool from '@/lib/db';
 import { getUserByEmail } from '@/lib/users.server';
 import { createAccountRequest } from '@/lib/account-requests.server';
 
-const mockedPool = pool as { query: vi.Mock };
-const mockedGetUserByEmail = getUserByEmail as unknown as vi.Mock;
-const mockedCreateAccountRequest = createAccountRequest as unknown as vi.Mock;
+const mockedPool = pool as { query: any };
+const mockedGetUserByEmail = getUserByEmail as unknown as any;
+const mockedCreateAccountRequest = createAccountRequest as unknown as any;
 
 describe('POST /api/account-requests', () => {
   const headers = { 'Content-Type': 'application/json', 'x-forwarded-for': '1.2.3.4' };

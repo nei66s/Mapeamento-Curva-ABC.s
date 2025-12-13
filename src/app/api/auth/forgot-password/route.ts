@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     const body = await req.json()
     const v = validateEmail(body?.email)
     if (!v.ok) return NextResponse.json({ ok: false, error: 'email inválido' }, { status: 400 })
-    const email = v.value
+    const email = String(v.value)
 
     const tokens = await readTokens()
     const token = crypto.randomBytes(20).toString('hex')

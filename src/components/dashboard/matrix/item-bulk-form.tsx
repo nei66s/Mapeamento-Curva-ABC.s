@@ -138,26 +138,26 @@ export function ItemBulkForm({ categories, onSubmit, onCancel }: ItemBulkFormPro
                             )}
                         />
                         <FormField
-                            control={form.control}
-                            name={`items.${index}.category`}
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Categoria</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                    <SelectValue placeholder="Selecione uma categoria" />
-                                    </SelectTrigger>
-                                </FormControl>
+                          control={form.control}
+                          name={`items.${index}.category`}
+                          render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Categoria</FormLabel>
+                            <FormControl>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione uma categoria" />
+                                </SelectTrigger>
                                 <SelectContent>
-                                    {categories.map(cat => (
+                                  {categories.map(cat => (
                                     <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
-                                    ))}
+                                  ))}
                                 </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                            )}
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                          )}
                         />
                     </div>
                     
@@ -180,7 +180,7 @@ export function ItemBulkForm({ categories, onSubmit, onCancel }: ItemBulkFormPro
                                             checked={controllerField.value?.includes(factor.id)}
                                             onCheckedChange={(checked) => {
                                             return checked
-                                                ? controllerField.onChange([...controllerField.value, factor.id])
+                                              ? controllerField.onChange([...(controllerField.value ?? []), factor.id])
                                                 : controllerField.onChange(
                                                     controllerField.value?.filter(
                                                         (value) => value !== factor.id

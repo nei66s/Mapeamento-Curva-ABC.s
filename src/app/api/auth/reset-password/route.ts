@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     const token = (body?.token || '').toString()
     const pwdCheck = validatePassword(body?.password)
     if (!token || !pwdCheck.ok) return NextResponse.json({ ok: false, error: 'token ou senha ausente/invalida' }, { status: 400 })
-    const password = pwdCheck.value
+    const password = pwdCheck.value as string
 
     const tokens = await readTokens()
     // find email by token
