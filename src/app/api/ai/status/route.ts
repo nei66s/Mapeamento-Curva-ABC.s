@@ -1,6 +1,4 @@
 export const runtime = 'nodejs';
-
-"use server";
 import fs from 'fs';
 import path from 'path';
 import type { NextRequest } from 'next/server';

@@ -6,6 +6,7 @@
  * Use .server.ts files for database operations
  */
 
+import { execFileSync } from 'child_process';
 import { Pool } from 'pg';
 // initialize server-side error logger (registers process handlers)
 import '@/server/error-logger';
@@ -13,15 +14,83 @@ import '@/server/error-logger';
 // Basic Pool with optional instrumentation. When DB_LOG_QUERIES is set to 'true',
 // we log query durations (ms) to help identify slow queries.
 
+type DnsLookupResult = {
+  address: string;
+  family: number;
+};
+
+const resolveHostname = (hostname: string): DnsLookupResult => {
+  const script = `
+    const dns = require('dns');
+    const args = process.argv.slice(1);
+    const host = args.find(arg => !!arg && arg !== '--');
+    if (!host) {
+      console.error(JSON.stringify({ error: 'hostname argument missing' }));
+      process.exit(1);
+    }
+    dns.lookup(host, { family: 0 }, (err, address, family) => {
+      if (err) {
+        console.error(JSON.stringify({ error: err.message || err.toString(), stack: err.stack || null }));
+        process.exit(2);
+      }
+      console.log(JSON.stringify({ address, family }));
+    });
+  `;
+
+  try {
+    const raw = execFileSync(process.execPath, ['-e', script, hostname], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      throw new Error('dns.lookup did not produce any output');
+    }
+    const parsed = JSON.parse(trimmed) as Partial<DnsLookupResult>;
+    if (!parsed.address) {
+      throw new Error('dns.lookup result missing address');
+    }
+    return { address: parsed.address, family: parsed.family ?? 0 };
+  } catch (err: any) {
+    const stderr = err?.stderr ? String(err.stderr).trim() : '';
+    const message = stderr ? `${stderr}` : err?.message || String(err);
+    throw new Error(`Failed to resolve hostname "${hostname}" via dns.lookup: ${message}`);
+  }
+};
+
 const poolConfig = (() => {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
-    throw new Error('DATABASE_URL not set. Configure DATABASE_URL for your environment to connect to the database.');
+    throw new Error(
+      'DATABASE_URL not set. Configure DATABASE_URL for your environment to connect to the database.'
+    );
   }
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(databaseUrl);
+  } catch (err: any) {
+    const message = err?.message || String(err);
+    throw new Error(`DATABASE_URL is invalid: ${message}`);
+  }
+
+  const hostname = parsedUrl.hostname;
+  if (!hostname) {
+    throw new Error('DATABASE_URL is missing a hostname portion.');
+  }
+
+  const resolved = resolveHostname(hostname);
+  console.info('[db] DATABASE_URL host resolved', {
+    hostname,
+    resolvedAddress: resolved.address,
+    resolvedFamily: resolved.family,
+  });
+
   return {
     connectionString: databaseUrl,
-    // Always allow the client to connect to managed databases that require SSL.
     ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 10000,
   };
 })();
 
