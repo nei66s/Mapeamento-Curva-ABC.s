@@ -79,93 +79,93 @@ export default function SidebarShell({ children }: { children: ReactNode }) {
   if (isAuthRoute) {
     // Render children without sidebar, header or left-edge strip to avoid shifting layout
     return (
-      <div className="min-h-screen w-full bg-background">
-        <main className="flex-1 px-4 py-6 sm:px-6 md:py-8">
-          <div className="mx-auto w-full max-w-7xl">
-            <div className="page-shell p-4 sm:p-6">
-              <CurrentUserProvider>
+      <CurrentUserProvider>
+        <div className="min-h-screen w-full bg-background">
+          <main className="flex-1 px-4 py-6 sm:px-6 md:py-8">
+            <div className="mx-auto w-full max-w-7xl">
+              <div className="page-shell p-4 sm:p-6">
                 <RequirePermission>{children}</RequirePermission>
-              </CurrentUserProvider>
+              </div>
             </div>
-          </div>
-        </main>
-      </div>
+          </main>
+        </div>
+      </CurrentUserProvider>
     );
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
-      <AppSidebar
-        visible={sidebarVisible}
-        onRequestClose={() => { setSidebarMode('auto'); setHoverVisible(false); }}
-        onMouseEnter={() => {
-          if (sidebarMode === 'auto') {
-            isOverSidebar.current = true;
-            setHoverVisible(true);
-          }
-        }}
-        onMouseLeave={() => {
-          if (sidebarMode === 'auto') {
-            isOverSidebar.current = false;
-            if (!isOverSidebar.current && !isOverStrip.current) {
-              setHoverVisible(false);
-            }
-          }
-        }}
-      />
-      {/* hover strip: when in auto mode, show a small left edge area to reveal sidebar */}
-      {sidebarMode !== 'pinned' && (
-        <div
-          aria-hidden
+    <CurrentUserProvider>
+      <div className="flex min-h-screen w-full bg-background">
+        <AppSidebar
+          visible={sidebarVisible}
+          onRequestClose={() => { setSidebarMode('auto'); setHoverVisible(false); }}
           onMouseEnter={() => {
-            isOverStrip.current = true;
-            setHoverVisible(true);
+            if (sidebarMode === 'auto') {
+              isOverSidebar.current = true;
+              setHoverVisible(true);
+            }
           }}
           onMouseLeave={() => {
-            isOverStrip.current = false;
-            if (!isOverSidebar.current && !isOverStrip.current) {
-              setHoverVisible(false);
+            if (sidebarMode === 'auto') {
+              isOverSidebar.current = false;
+              if (!isOverSidebar.current && !isOverStrip.current) {
+                setHoverVisible(false);
+              }
             }
           }}
-          className={cn(
-            // reduced strip width to minimize accidental hover events
-            'fixed left-0 top-0 h-full w-6 bg-white/6',
-            // only capture pointer events when sidebar is not visible (so it doesn't block interactions)
-            sidebarVisible ? 'pointer-events-none z-30' : 'pointer-events-auto z-50'
-          )}
         />
-      )}
-      <div
-        className={cn(
-          'flex flex-1 flex-col gap-4 sm:gap-4 sm:py-4',
-          // Reduce the left padding when sidebar is visible to make the page gutters smaller
-          sidebarVisible ? 'sm:pl-[14rem]' : 'sm:pl-6'
+        {/* hover strip: when in auto mode, show a small left edge area to reveal sidebar */}
+        {sidebarMode !== 'pinned' && (
+          <div
+            aria-hidden
+            onMouseEnter={() => {
+              isOverStrip.current = true;
+              setHoverVisible(true);
+            }}
+            onMouseLeave={() => {
+              isOverStrip.current = false;
+              if (!isOverSidebar.current && !isOverStrip.current) {
+                setHoverVisible(false);
+              }
+            }}
+            className={cn(
+              // reduced strip width to minimize accidental hover events
+              'fixed left-0 top-0 h-full w-6 bg-white/6',
+              // only capture pointer events when sidebar is not visible (so it doesn't block interactions)
+              sidebarVisible ? 'pointer-events-none z-30' : 'pointer-events-auto z-50'
+            )}
+          />
         )}
-      >
-        <AppHeader
-          sidebarVisible={sidebarVisible}
-          onToggleSidebar={() => {
-            // toggle between pinned and auto
-            setSidebarMode(prev => (prev === 'pinned' ? 'auto' : 'pinned'));
-          }}
-          sidebarMode={sidebarMode}
-          onSetSidebarMode={mode => {
-            if (mode === 'pinned' || mode === 'auto') {
-              setSidebarMode(mode);
-              if (mode !== 'auto') setHoverVisible(false);
-            }
-          }}
-        />
-        <main className="flex-1 px-4 py-6 sm:px-6 md:py-8">
-          <div className="mx-auto w-full max-w-7xl">
-            <div className="page-shell p-4 sm:p-6">
-              <CurrentUserProvider>
+        <div
+          className={cn(
+            'flex flex-1 flex-col gap-4 sm:gap-4 sm:py-4',
+            // Reduce the left padding when sidebar is visible to make the page gutters smaller
+            sidebarVisible ? 'sm:pl-[14rem]' : 'sm:pl-6'
+          )}
+        >
+          <AppHeader
+            sidebarVisible={sidebarVisible}
+            onToggleSidebar={() => {
+              // toggle between pinned and auto
+              setSidebarMode(prev => (prev === 'pinned' ? 'auto' : 'pinned'));
+            }}
+            sidebarMode={sidebarMode}
+            onSetSidebarMode={mode => {
+              if (mode === 'pinned' || mode === 'auto') {
+                setSidebarMode(mode);
+                if (mode !== 'auto') setHoverVisible(false);
+              }
+            }}
+          />
+          <main className="flex-1 px-4 py-6 sm:px-6 md:py-8">
+            <div className="mx-auto w-full max-w-7xl">
+              <div className="page-shell p-4 sm:p-6">
                 <RequirePermission>{children}</RequirePermission>
-              </CurrentUserProvider>
+              </div>
             </div>
-          </div>
-        </main>
+          </main>
+        </div>
       </div>
-    </div>
+    </CurrentUserProvider>
   );
 }
