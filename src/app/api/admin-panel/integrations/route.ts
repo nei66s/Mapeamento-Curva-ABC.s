@@ -21,8 +21,8 @@ function requireAuthenticatedUser(request: NextRequest) {
 }
 
 async function ensureModuleActive() {
-  const module = await getModuleByKey('admin-integrations');
-  if (module && !module.active) {
+  const integrationModule = await getModuleByKey('admin-integrations');
+  if (integrationModule && !integrationModule.active) {
     return json({ message: 'Módulo de integrações inativo.' }, 403);
   }
   return null;

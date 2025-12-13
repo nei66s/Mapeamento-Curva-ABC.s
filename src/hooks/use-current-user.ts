@@ -42,7 +42,6 @@ function useCurrentUserInternal(): CurrentUserContextType {
         // ignore
       }
     };
-    window.addEventListener('pm_user_changed', handler as EventListener);
     const handleStorage = (ev: StorageEvent) => {
       try {
         if (ev.key !== 'pm_user') return;
@@ -51,14 +50,16 @@ function useCurrentUserInternal(): CurrentUserContextType {
         } else {
           setUserState(null);
         }
-      } catch (e) {}
+      } catch (e) {
+        // ignore
+      }
     };
+    window.addEventListener('pm_user_changed', handler as EventListener);
     window.addEventListener('storage', handleStorage as any);
-    return () => window.removeEventListener('pm_user_changed', handler as EventListener);
-    // cleanup storage listener too
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    /* istanbul ignore next */
-    ;
+    return () => {
+      window.removeEventListener('pm_user_changed', handler as EventListener);
+      window.removeEventListener('storage', handleStorage as any);
+    };
   }, []);
 
   const persist = useCallback((value: User | null) => {
@@ -96,6 +97,8 @@ export function CurrentUserProvider({ children }: { children: React.ReactNode })
 
 export function useCurrentUser() {
   const ctx = useContext(CurrentUserContext);
-  if (ctx) return ctx;
-  return useCurrentUserInternal();
+  if (!ctx) {
+    throw new Error('useCurrentUser must be used within <CurrentUserProvider>');
+  }
+  return ctx;
 }
