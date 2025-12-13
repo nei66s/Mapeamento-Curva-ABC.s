@@ -22,8 +22,8 @@ import { createUser } from '@/lib/users.server';
 import { cookies } from 'next/headers';
 
 const mockedCookies = cookies as unknown as ReturnType<typeof vi.fn>;
-const mockedSetAccountRequestStatus = setAccountRequestStatus as unknown as vi.Mock;
-const mockedCreateUser = createUser as unknown as vi.Mock;
+const mockedSetAccountRequestStatus = setAccountRequestStatus as unknown as any;
+const mockedCreateUser = createUser as unknown as any;
 
 describe('POST /api/admin-panel/account-requests', () => {
   beforeEach(() => {

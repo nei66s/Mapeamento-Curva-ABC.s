@@ -2,16 +2,7 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { createAccountRequest, listAccountRequests } from '@/lib/account-requests.server';
 import { getUserByEmail } from '@/lib/users.server';
-
-const RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const RATE_LIMIT_MAX = 5;
-const rateLimitStore = new Map<
-  string,
-  {
-    count: number;
-    expiresAt: number;
-  }
->();
+import { ensureRateLimit } from '@/lib/account-requests-rate-limit';
 
 function getClientKey(req: Request) {
   const forwarded = req.headers.get('x-forwarded-for');
@@ -19,22 +10,6 @@ function getClientKey(req: Request) {
     return forwarded.split(',')[0].trim();
   }
   return req.headers.get('x-real-ip') || 'unknown';
-}
-
-function ensureRateLimit(clientKey: string) {
-  const now = Date.now();
-  const existing = rateLimitStore.get(clientKey);
-  if (!existing || existing.expiresAt <= now) {
-    rateLimitStore.set(clientKey, { count: 1, expiresAt: now + RATE_LIMIT_WINDOW_MS });
-    return true;
-  }
-  if (existing.count >= RATE_LIMIT_MAX) return false;
-  existing.count += 1;
-  return true;
-}
-
-export function resetAccountRequestsRateLimit() {
-  rateLimitStore.clear();
 }
 
 function validateEmail(email: string) {

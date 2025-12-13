@@ -3,3 +3,5 @@
 // Keeping this file intentionally blank so the app page can serve
 // `/signup` without collisions.
 
+export {};
+

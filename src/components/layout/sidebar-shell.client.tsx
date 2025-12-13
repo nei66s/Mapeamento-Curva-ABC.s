@@ -153,8 +153,10 @@ export default function SidebarShell({ children }: { children: ReactNode }) {
           }}
           sidebarMode={sidebarMode}
           onSetSidebarMode={mode => {
-            setSidebarMode(mode);
-            if (mode !== 'auto') setHoverVisible(false);
+            if (mode === 'pinned' || mode === 'auto') {
+              setSidebarMode(mode);
+              if (mode !== 'auto') setHoverVisible(false);
+            }
           }}
         />
         <main className="flex-1 px-4 py-6 sm:px-6 md:py-8">
