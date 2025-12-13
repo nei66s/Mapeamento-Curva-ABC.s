@@ -41,8 +41,11 @@ interface AppHeaderProps {
 
 export default function AppHeader({ onToggleSidebar, sidebarVisible, sidebarMode, onSetSidebarMode }: AppHeaderProps) {
   const pathname = usePathname();
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => setHasMounted(true), []);
+  const isAuthPage = Boolean(pathname && pathname.startsWith('/login'));
   // Minimal header on auth pages: only show theme toggle to allow dark mode switching
-  if (pathname && pathname.startsWith('/login')) {
+  if (isAuthPage) {
     return (
       <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border/60 bg-background/80 px-4 backdrop-blur-sm sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
         <div className="ml-auto flex items-center gap-2">
@@ -51,8 +54,6 @@ export default function AppHeader({ onToggleSidebar, sidebarVisible, sidebarMode
       </header>
     );
   }
-  const [hasMounted, setHasMounted] = useState(false);
-  useEffect(() => setHasMounted(true), []);
 
   const toggleIcon = hasMounted ? (sidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />) : <span className="inline-block h-4 w-4" />;
   return (

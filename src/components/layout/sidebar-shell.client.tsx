@@ -10,29 +10,10 @@ import { cn } from '@/lib/utils';
 
 export default function SidebarShell({ children }: { children: ReactNode }) {
   const pathname = usePathname?.() ?? '';
-  // Simple opt-out for authentication pages where we don't want the app shell
   const authRoutes = ['/login', '/request-account', '/forgot-password', '/signup', '/reset-password'];
   const isAuthRoute = !!pathname && authRoutes.some((p) => pathname.startsWith(p));
-
-  if (isAuthRoute) {
-    // Render children without sidebar, header or left-edge strip to avoid shifting layout
-    return (
-      <div className="min-h-screen w-full bg-background">
-        <main className="flex-1 px-4 py-6 sm:px-6 md:py-8">
-          <div className="mx-auto w-full max-w-7xl">
-            <div className="page-shell p-4 sm:p-6">
-              <CurrentUserProvider>
-                <RequirePermission>{children}</RequirePermission>
-              </CurrentUserProvider>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
   // Default to 'auto' for consistent initial render, then read persisted value after mount
   const [sidebarMode, setSidebarMode] = useState<'pinned' | 'auto'>('auto');
-
   useEffect(() => {
     try {
       const raw = localStorage.getItem('sidebarMode');
@@ -44,7 +25,6 @@ export default function SidebarShell({ children }: { children: ReactNode }) {
   const [hoverVisible, setHoverVisible] = useState(false);
   const isOverSidebar = useRef(false);
   const isOverStrip = useRef(false);
-
   useEffect(() => {
     try { localStorage.setItem('sidebarMode', sidebarMode); } catch (e) {}
   }, [sidebarMode]);
@@ -95,6 +75,23 @@ export default function SidebarShell({ children }: { children: ReactNode }) {
       isOverStrip.current = false;
     }
   }, [sidebarVisible]);
+
+  if (isAuthRoute) {
+    // Render children without sidebar, header or left-edge strip to avoid shifting layout
+    return (
+      <div className="min-h-screen w-full bg-background">
+        <main className="flex-1 px-4 py-6 sm:px-6 md:py-8">
+          <div className="mx-auto w-full max-w-7xl">
+            <div className="page-shell p-4 sm:p-6">
+              <CurrentUserProvider>
+                <RequirePermission>{children}</RequirePermission>
+              </CurrentUserProvider>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full bg-background">
