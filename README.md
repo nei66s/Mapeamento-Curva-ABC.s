@@ -27,18 +27,14 @@ Como testar localmente
 
 ## Local development: Postgres credentials
 
-The app connects to Postgres using environment variables: `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`.
-
-To run the app locally during development you can use the helper script:
+The app now relies solely on `DATABASE_URL`. Provide a single Postgres connection string (e.g., `postgres://user:pass@db.example.com:5432/database`) and avoid exporting the legacy `PGHOST`/`PGUSER`/`PGPASSWORD`/`PGPORT` variables. An example helper:
 
 PowerShell (recommended on Windows):
 
-  .\\scripts\\dev-setup.ps1
+  $env:DATABASE_URL = 'postgres://mapeamento_user:admin@localhost:5432/mapeamento'
   npm run dev
 
-This sets `PGPASSWORD=admin` for the session and `DEV_ALLOW_DEFAULT_PG_PASSWORD=true` so the app permits a local default password for convenience.
-
-Important security note: Do NOT use the `admin` fallback in production. In production, always set a real `PGPASSWORD` via your secret management system. The app now requires `PGPASSWORD` in production and will refuse to start without it.
+This keeps the startup path consistent with serverless environments (Vercel, Supabase Edge Functions, etc.). The runtime will throw if `DATABASE_URL` is missing, so make sure it is defined in your `.env.local`, CI secrets, or deployment environment.
 
 1. Reinicie o servidor de desenvolvimento (caso esteja rodando):
 

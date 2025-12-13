@@ -3,22 +3,10 @@
 Este arquivo resume as variáveis de ambiente que o projeto usa e que você deve configurar no painel do Vercel (Project → Settings → Environment Variables) e/ou no GitHub Secrets para o workflow.
 
 Essenciais (produção):
-- `DATABASE_URL` (opcional): string de conexão Postgres. Se definido, sobrescreve `PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE`.
+- `DATABASE_URL`: string de conexão Postgres obrigatória. Ela é usada por todos os endpoints e elimina a necessidade dos valores individuais `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD` e `PGDATABASE`. Forneça o mesmo valor na dashboard do Vercel e no CI.
 	- Exemplo: `postgres://user:password@db.example.com:5432/mapeamento`
-- `PGHOST`: host do Postgres (ex.: `db.example.com`).
-	- Exemplo: `db.example.com`
-- `PGPORT`: porta do Postgres (padrão `5432`).
-	- Exemplo: `5432`
-- `PGUSER`: usuário do Postgres.
-	- Exemplo: `mapeamento_user`
-- `PGPASSWORD`: senha do Postgres (obrigatório em produção — `src/lib/db.ts` lança se não estiver definido em produção).
-	- Exemplo: `S3cur3P@ssw0rd` (use secrets)
-- `PGDATABASE`: nome do banco.
-	- Exemplo: `mapeamento`
 
 Opções/depuração:
-- `DEV_ALLOW_DEFAULT_PG_PASSWORD`: em dev permite fallback `admin` quando `PGPASSWORD` não estiver definido (setar `true` só localmente).
-	- Exemplo (somente local): `true`
 - `DB_LOG_QUERIES`: `true` para log de durações de queries (útil em debug/production troubleshooting).
 	- Exemplo: `true` ou `false`
 

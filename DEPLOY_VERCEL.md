@@ -6,7 +6,7 @@ Passos mínimos para publicar este projeto Next.js no Vercel:
    - No dashboard do Vercel, clique em "New Project" e importe o repositório.
 
 2. Configurar variáveis de ambiente (obrigatórias para DB/serviços)
-   - `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` (se usar Postgres).
+   - `DATABASE_URL`: string de conexão Postgres única. Todos os endpoints do Next.js (incluindo `/api/auth/login`) a usam para abrir conexões.
    - `NEXT_PUBLIC_*` para chaves públicas usadas no cliente.
    - Qualquer secret usado em `src/ai` ou integrações (ex.: `GOOGLE_API_KEY`).
 

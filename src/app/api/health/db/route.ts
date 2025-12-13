@@ -5,12 +5,8 @@ export async function GET() {
   try {
     const r = await pool.query('SELECT 1 AS ok');
     const ok = r.rows?.[0]?.ok === 1;
-    // Get some basic context for debugging
     const env = {
-      host: process.env.PGHOST || 'localhost',
-      database: process.env.PGDATABASE || 'mapeamento',
-      user: process.env.PGUSER || 'mapeamento_user',
-      port: Number(process.env.PGPORT || 5432),
+      databaseUrl: Boolean(process.env.DATABASE_URL),
     };
     return NextResponse.json({ status: ok ? 'ok' : 'error', ok, env });
   } catch (err: any) {
@@ -18,4 +14,3 @@ export async function GET() {
     return NextResponse.json({ status: 'error', error: String(err?.message || err) }, { status: 500 });
   }
 }
-

@@ -13,36 +13,16 @@ import '@/server/error-logger';
 // Basic Pool with optional instrumentation. When DB_LOG_QUERIES is set to 'true',
 // we log query durations (ms) to help identify slow queries.
 
-const isProd = process.env.NODE_ENV === 'production';
-
-// Prefer a single `DATABASE_URL` env var. This removes reliance on scattered
-// PGHOST/PGUSER/PGPASSWORD/PGPORT variables and is compatible with serverless
-// environments (Vercel). In production `DATABASE_URL` must be set.
-// In development you can set `DEV_ALLOW_DEFAULT_PG_PASSWORD=true` to allow a
-// simple local fallback connection string for convenience.
 const poolConfig = (() => {
-  if (process.env.DATABASE_URL) {
-    // Ensure SSL for managed DBs (Supabase) when a URL is provided.
-    return { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } };
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL not set. Configure DATABASE_URL for your environment to connect to the database.');
   }
-
-  // No DATABASE_URL provided
-  if (isProd) {
-    throw new Error('DATABASE_URL not set. Set DATABASE_URL in production to connect to the DB.');
-  }
-
-  // Development fallback when explicitly allowed.
-  const allowDefault = String(process.env.DEV_ALLOW_DEFAULT_PG_PASSWORD || '').toLowerCase() === 'true';
-  if (allowDefault) {
-    // Local dev fallback: do not read PG* env vars; use a simple default URL.
-    // NOTE: this is for convenience only. Prefer setting DATABASE_URL locally.
-    // eslint-disable-next-line no-console
-    console.warn("DEV_ALLOW_DEFAULT_PG_PASSWORD=true — using local fallback DATABASE_URL for development only.");
-    return { connectionString: 'postgres://mapeamento_user:admin@localhost:5432/mapeamento' };
-  }
-
-  // If we're here, the developer forgot to set DATABASE_URL in non-production.
-  throw new Error('DATABASE_URL not set. Set DATABASE_URL in your environment (or set DEV_ALLOW_DEFAULT_PG_PASSWORD=true for local dev).');
+  return {
+    connectionString: databaseUrl,
+    // Always allow the client to connect to managed databases that require SSL.
+    ssl: { rejectUnauthorized: false },
+  };
 })();
 
 const pool = new Pool(poolConfig);

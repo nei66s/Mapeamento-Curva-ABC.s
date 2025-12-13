@@ -37,16 +37,12 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    // Diagnostic: log which DB the running process thinks it's using.
+    // Diagnostic: confirm which database URL is used by this worker.
     try {
       const poolOpts = (pool as any).options || {};
       console.debug('DELETE /api/vacations DB env:', {
-        PGDATABASE: process.env.PGDATABASE,
         DATABASE_URL: process.env.DATABASE_URL,
-        PGHOST: process.env.PGHOST,
-        PGUSER: process.env.PGUSER,
-        poolDatabase: poolOpts.database || poolOpts.connectionString || undefined,
-        poolHost: poolOpts.host,
+        poolConnectionString: poolOpts.connectionString,
       });
     } catch (e) {
       console.debug('DELETE /api/vacations DB diagnostic failed', e);

@@ -1,15 +1,10 @@
 import { Pool } from 'pg';
 
-// Use DATABASE_URL where possible; avoid referencing PGHOST/PGUSER/PGPASSWORD/PGPORT
-// directly. This helper is for local debugging only and will refuse to run in
-// production without DATABASE_URL.
-if (!process.env.DATABASE_URL && process.env.NODE_ENV === 'production') {
-  throw new Error('DATABASE_URL not set. debug-build-admin-session-pg requires DATABASE_URL in production.');
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL not set. debug-build-admin-session-pg requires DATABASE_URL to run.');
 }
-
-const pool = process.env.DATABASE_URL
-  ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
-  : new Pool({ connectionString: 'postgres://mapeamento_user:admin@localhost:5432/mapeamento' });
+const pool = new Pool({ connectionString: databaseUrl, ssl: { rejectUnauthorized: false } });
 
 async function run() {
   try {
