@@ -1,33 +1,15 @@
 import { Pool } from 'pg';
 
-function resolvePassword() {
-  const isProd = process.env.NODE_ENV === 'production';
-  if (isProd) {
-    if (!process.env.PGPASSWORD) throw new Error('PGPASSWORD not set');
-    return process.env.PGPASSWORD;
-  }
-  if (!process.env.PGPASSWORD) {
-    const allowDefault = String(process.env.DEV_ALLOW_DEFAULT_PG_PASSWORD || '').toLowerCase() === 'true';
-    if (allowDefault) {
-      console.warn("DEV_ALLOW_DEFAULT_PG_PASSWORD=true — using 'admin' fallback for development only.");
-      return 'admin';
-    }
-    throw new Error('PGPASSWORD not set.');
-  }
-  return process.env.PGPASSWORD as string;
+// Use DATABASE_URL where possible; avoid referencing PGHOST/PGUSER/PGPASSWORD/PGPORT
+// directly. This helper is for local debugging only and will refuse to run in
+// production without DATABASE_URL.
+if (!process.env.DATABASE_URL && process.env.NODE_ENV === 'production') {
+  throw new Error('DATABASE_URL not set. debug-build-admin-session-pg requires DATABASE_URL in production.');
 }
 
-const pool = new Pool(
-  process.env.DATABASE_URL
-    ? { connectionString: process.env.DATABASE_URL }
-    : {
-        host: process.env.PGHOST || 'localhost',
-        port: Number(process.env.PGPORT || 5432),
-        user: process.env.PGUSER || 'mapeamento_user',
-        password: resolvePassword(),
-        database: process.env.PGDATABASE || 'mapeamento',
-      }
-);
+const pool = process.env.DATABASE_URL
+  ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
+  : new Pool({ connectionString: 'postgres://mapeamento_user:admin@localhost:5432/mapeamento' });
 
 async function run() {
   try {
