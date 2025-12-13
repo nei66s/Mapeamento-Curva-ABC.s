@@ -2,12 +2,7 @@
 
 This project requires the following environment variables to run in production. Keep secrets out of source control and use your cloud provider's secret management.
 
-- `DATABASE_URL` (optional): Full Postgres connection string. If present, it takes precedence over individual PG_* vars.
-- `PGHOST`: Postgres host (when `DATABASE_URL` is not used).
-- `PGPORT`: Postgres port (default: `5432`).
-- `PGUSER`: Postgres user.
-- `PGPASSWORD`: Postgres password. REQUIRED in production.
-- `PGDATABASE`: Postgres database name.
+- `DATABASE_URL`: Full Postgres connection string. This is the only database credential the app reads and is required in every environment.
 - `NODE_ENV`: Set to `production` in prod deployments.
 
 Other useful vars
@@ -23,4 +18,4 @@ Security notes
 
 Developer convenience
 
-- For local development, the repo supports a fallback password when `DEV_ALLOW_DEFAULT_PG_PASSWORD=true`. This is unsafe for production and should not be set in production environments.
+- Set `DATABASE_URL` in your local `.env.local` (or via `source .env.local`) to point at a local Postgres instance. The runtime now throws early if the value is missing, which makes it easier to catch deployment misconfigurations.
