@@ -83,4 +83,8 @@ async function run() {
   }
 }
 
-run();
+// Only execute this helper script when explicitly enabled to avoid accidental
+// execution during Next.js builds or when the module is imported by other code.
+if (process.env.DEBUG_BUILD_ADMIN_SESSION === 'true' && process.env.NODE_ENV !== 'production') {
+  run();
+}

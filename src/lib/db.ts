@@ -34,17 +34,45 @@ const resolvePassword = () => {
   return process.env.PGPASSWORD as string;
 };
 
+// Build pool config but DO NOT validate/throw for missing password at module load time.
+// This avoids Next.js build-time errors when files import `src/lib/db.ts`.
 const poolConfig = process.env.DATABASE_URL
   ? { connectionString: process.env.DATABASE_URL }
   : {
       host: process.env.PGHOST || 'localhost',
       port: Number(process.env.PGPORT || 5432),
       user: process.env.PGUSER || 'mapeamento_user',
-      password: resolvePassword(),
+      // keep password undefined at load time; validate lazily on first connect/query
+      password: process.env.PGPASSWORD || undefined,
       database: process.env.PGDATABASE || 'mapeamento',
     };
 
 const pool = new Pool(poolConfig);
+
+// Ensure production password is validated when the pool is actually used at runtime.
+const ensurePasswordValidated = () => {
+  if (isProd) {
+    // resolvePassword will throw in production when password missing
+    resolvePassword();
+  }
+};
+
+// Wrap connect and query to validate lazily (prevents build-time throws).
+const originalConnect = pool.connect.bind(pool);
+pool.connect = async (...args: any[]) => {
+  ensurePasswordValidated();
+  // @ts-ignore
+  return originalConnect(...args);
+};
+
+if ((pool as any).query) {
+  const originalQuery = pool.query.bind(pool);
+  // @ts-ignore
+  pool.query = async (...args: any[]) => {
+    ensurePasswordValidated();
+    return originalQuery(...args);
+  };
+}
 
 // Wrap query to measure duration when requested
 if (process.env.DB_LOG_QUERIES === 'true') {
