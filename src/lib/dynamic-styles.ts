@@ -33,4 +33,5 @@ export function clearRules() {
   if (el) el.textContent = '';
 }
 
-export default { upsertRule, removeRule, clearRules };
+const dynamicStyles = { upsertRule, removeRule, clearRules };
+export default dynamicStyles;

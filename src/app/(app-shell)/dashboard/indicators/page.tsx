@@ -43,7 +43,7 @@ export default function IndicatorsPage() {
       }
     };
     load();
-  }, []);
+  }, [toast]);
   const lastIndicator = indicators && indicators.length > 0 ? indicators[indicators.length - 1] : undefined;
   const now = new Date();
   const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

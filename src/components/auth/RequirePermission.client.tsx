@@ -86,7 +86,7 @@ export default function RequirePermission({ children }: { children: React.ReactN
     if (!pathname) return;
     if (pathname === '/' || pathname.startsWith('/indicators') || pathname.startsWith('/dashboard/indicators')) return;
     router.replace('/indicators');
-  }, [loading, moduleId, canRender, isModuleDisabled, isAdminModule, sessionLoading, pathname, router]);
+  }, [loading, moduleId, canRender, isModuleDisabled, isAdminModule, sessionLoading, sessionError, pathname, router, user]);
 
   // Now that hooks and effects are registered consistently, apply the same
   // early-return logic that previously existed.

@@ -257,8 +257,10 @@ export async function buildIndicators() {
   }
 }
 
-export default {
+const lancamentosServer = {
   ensureIndicadoresTableExists,
   syncLancamentos,
   getIndicadores,
 };
+
+export default lancamentosServer;

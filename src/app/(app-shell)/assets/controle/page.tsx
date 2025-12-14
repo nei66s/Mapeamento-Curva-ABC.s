@@ -14,20 +14,20 @@ export default function AssetControlPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchAssets();
-  }, []);
+    const fetchAssets = async () => {
+      try {
+        const res = await fetch('/api/assets');
+        if (!res.ok) throw new Error('Não foi possível carregar os ativos');
+        const data: AssetRecord[] = await res.json();
+        setAssets(data);
+      } catch (error) {
+        console.error(error);
+        toast({ title: 'Erro', description: 'Não foi possível carregar os ativos.' });
+      }
+    };
 
-  const fetchAssets = async () => {
-    try {
-      const res = await fetch('/api/assets');
-      if (!res.ok) throw new Error('Não foi possível carregar os ativos');
-      const data: AssetRecord[] = await res.json();
-      setAssets(data);
-    } catch (error) {
-      console.error(error);
-      toast({ title: 'Erro', description: 'Não foi possível carregar os ativos.' });
-    }
-  };
+    fetchAssets();
+  }, [toast]);
 
   const aggregate = useMemo(() => {
     const byStore = new Map<string, AssetRecord[]>();

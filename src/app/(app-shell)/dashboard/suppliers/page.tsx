@@ -73,7 +73,7 @@ export default function SuppliersPage() {
       }
     };
     load();
-  }, [page]);
+  }, [page, toast]);
 
   const handleFormSubmit = (values: Omit<Supplier, 'id'>) => {
     (async () => {

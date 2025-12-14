@@ -63,7 +63,7 @@ export default function ReportsPage() {
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [toast]);
 
   const handleFormSubmit = async (values: Omit<TechnicalReport, 'id' | 'createdAt' | 'status'>) => {
     try {

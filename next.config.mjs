@@ -68,6 +68,11 @@ const nextConfig = {
     ];
   },
   webpack: (config, { isServer }) => {
+    config.ignoreWarnings = config.ignoreWarnings || [];
+    config.ignoreWarnings.push({
+      module: /@opentelemetry/,
+    });
+
     if (!isServer) {
       // Don't bundle pg and Node.js built-ins on the client side
       config.resolve.alias = {
@@ -90,13 +95,9 @@ const nextConfig = {
       };
       // Suppress warnings from packages that use dynamic require() which are only
       // relevant during server-side runtime (opentelemetry / require-in-the-middle).
-      config.ignoreWarnings = config.ignoreWarnings || [];
       config.ignoreWarnings.push({
         module: /require-in-the-middle/,
         message: /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
-      });
-      config.ignoreWarnings.push({
-        module: /@opentelemetry/,
       });
     }
     // Externalize pg for server-side

@@ -78,7 +78,9 @@ if (!(globalThis as any).__error_logger_installed) {
   }
 }
 
-export default {
+const errorLogger = {
   logErrorToFile,
   readRecentErrors,
 };
+
+export default errorLogger;

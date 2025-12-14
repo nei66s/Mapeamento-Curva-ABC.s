@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -129,12 +129,7 @@ export default function AssetsPage() {
     return Array.from(groups).sort();
   }, [assets]);
 
-  useEffect(() => {
-    refreshAssets();
-    refreshStores();
-  }, []);
-
-  const refreshStores = async () => {
+  const refreshStores = useCallback(async () => {
     try {
       const res = await fetch('/api/stores');
       if (!res.ok) throw new Error('Não foi possível carregar as lojas');
@@ -143,9 +138,9 @@ export default function AssetsPage() {
     } catch (err) {
       console.error(err);
     }
-  };
+  }, []);
 
-  async function refreshAssets() {
+  const refreshAssets = useCallback(async () => {
     try {
       const res = await fetch('/api/assets');
       if (!res.ok) throw new Error('Não foi possível carregar os ativos');
@@ -155,7 +150,12 @@ export default function AssetsPage() {
       console.error(err);
       toast({ title: 'Erro', description: 'Não foi possível carregar os ativos.' });
     }
-  }
+  }, [toast]);
+
+  useEffect(() => {
+    refreshAssets();
+    refreshStores();
+  }, [refreshAssets, refreshStores]);
 
   const handleFormChange = (field: keyof AssetFormState, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
