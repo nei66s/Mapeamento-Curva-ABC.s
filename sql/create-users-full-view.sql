@@ -12,7 +12,12 @@ SELECT
   u.created_at,
   -- optional columns
   CASE WHEN to_regclass('public.user_profile') IS NOT NULL THEN (
-    (SELECT up.extra FROM user_profile up WHERE up.user_id = u.id LIMIT 1)
+    (SELECT
+      CASE
+        WHEN up.phone IS NULL AND up.extra IS NULL THEN NULL
+        ELSE COALESCE(up.extra, '{}'::jsonb) || CASE WHEN up.phone IS NOT NULL THEN jsonb_build_object('phone', up.phone) ELSE '{}'::jsonb END
+      END
+    FROM user_profile up WHERE up.user_id = u.id LIMIT 1)
   ) ELSE NULL END AS profile,
   CASE WHEN to_regclass('public.user_roles') IS NOT NULL THEN (
     (SELECT COALESCE(array_agg(r.name) FILTER (WHERE r.name IS NOT NULL), ARRAY[]::text[]) FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = u.id)

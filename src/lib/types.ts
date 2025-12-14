@@ -82,6 +82,7 @@ export type User = {
   password?: string;
   supplierId?: string; // Associated supplier if role is 'fornecedor'
   department?: string; // optional department name used by some UI fixtures
+  profile?: Record<string, any> | null;
 };
 
 export type VacationRequest = {

@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { cloneDefaultPermissions } from './src/lib/permissions-config';
+import { verifyAccessToken } from './src/lib/auth/jwt';
+
+function extractAccessToken(req: NextRequest) {
+  const cookieToken = req.cookies.get('pm_access_token')?.value;
+  const headerToken = req.headers.get('authorization')?.replace('Bearer ', '');
+  return cookieToken ?? headerToken ?? null;
+}
 async function fetchSession(req: NextRequest) {
   const base = req.nextUrl.origin;
   try {
@@ -49,7 +56,6 @@ export async function middleware(req: NextRequest) {
   // allow public/internal asset routes to pass through
   if (
     path.startsWith('/_next') ||
-    path.startsWith('/api') ||
     path.startsWith('/static') ||
     path.startsWith('/public') ||
     path === '/favicon.ico' ||
@@ -58,9 +64,57 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // allow explicit auth pages
-  if (path === '/login' || path.startsWith('/(auth)') || path.startsWith('/auth')) {
+  const isApiRoute = path.startsWith('/api');
+  const PUBLIC_API_EXACT = new Set([
+    '/api/auth/login',
+    '/api/auth/forgot-password',
+    '/api/auth/reset-password',
+    '/api/auth/refresh',
+    '/api/admin-panel/auth/login',
+    '/api/admin-panel/auth/refresh',
+    '/api/admin-panel/auth/logout',
+    '/api/dev/login-as-admin',
+    '/api/whoami',
+  ]);
+  const PUBLIC_API_PREFIXES = ['/api/health'];
+  const isPublicApiRoute = isApiRoute && (
+    PUBLIC_API_EXACT.has(path) ||
+    PUBLIC_API_PREFIXES.some(prefix => path === prefix || path.startsWith(`${prefix}/`))
+  );
+
+  if (isApiRoute) {
+    if (isPublicApiRoute) {
+      return NextResponse.next();
+    }
+    const accessToken = extractAccessToken(req);
+    const verified = verifyAccessToken(accessToken);
+    if (!verified.valid) {
+      return NextResponse.json({ message: 'unauthorized' }, { status: 401 });
+    }
     return NextResponse.next();
+  }
+
+  // allow explicit auth pages / auth helpers
+  const isPublicRoute = (
+    path === '/login' ||
+    path === '/request-account' ||
+    path === '/forgot-password' ||
+    path === '/signup' ||
+    path === '/reset-password' ||
+    path.startsWith('/(auth)') ||
+    path.startsWith('/auth')
+  );
+  if (isPublicRoute) {
+    return NextResponse.next();
+  }
+
+  const accessToken = extractAccessToken(req);
+  const tokenValid = accessToken ? verifyAccessToken(accessToken).valid : false;
+  if (!tokenValid) {
+    const url = nextUrl.clone();
+    url.pathname = '/login';
+    try { url.searchParams.set('returnTo', path); } catch (e) {}
+    return NextResponse.redirect(url);
   }
 
   const moduleId = getModuleId(path);

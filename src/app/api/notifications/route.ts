@@ -7,6 +7,7 @@ import {
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from '@/lib/notifications.server';
+import { sendWhatsAppNotificationIfEligible } from '@/lib/whatsapp.server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,14 +37,16 @@ export async function POST(request: NextRequest) {
     if (!body?.title) {
       return NextResponse.json({ error: 'title é obrigatório' }, { status: 400 });
     }
-    const record = await createNotification(userId, {
+    const payload = {
       module: body.module,
       title: String(body.title),
       message: body.message,
       severity: body.severity,
       relatedId: body.relatedId,
       meta: body.meta,
-    });
+    };
+    const record = await createNotification(userId, payload);
+    void sendWhatsAppNotificationIfEligible(userId, payload);
     return NextResponse.json(record);
   } catch (error) {
     console.error('POST /api/notifications', error);

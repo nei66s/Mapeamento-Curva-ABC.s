@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import SidebarShell from '@/components/layout/sidebar-shell.client';
 import LeftEdgeListener from '@/components/layout/left-edge-listener.client';
 import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
@@ -11,6 +10,10 @@ import { AppProviders } from '@/components/providers/app-providers';
 export const metadata: Metadata = {
   title: 'Manutenção',
   description: 'Plataforma de Gestão de Manutenção.',
+  icons: [
+    { rel: 'icon', url: '/favicon.ico' },
+    { rel: 'shortcut icon', url: '/favicon.ico' },
+  ],
 };
 
 export const dynamic = 'force-dynamic';
@@ -60,9 +63,7 @@ export default async function RootLayout({
       <body className="font-body antialiased">
         <AppProviders>
           <LeftEdgeListener threshold={48} />
-          <SidebarShell>
-            {children}
-          </SidebarShell>
+          {children}
           <Toaster />
         </AppProviders>
       </body>

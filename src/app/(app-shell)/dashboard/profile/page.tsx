@@ -13,16 +13,24 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormMessage, FormDescription } from '@/components/ui/form';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Switch } from '@/components/ui/switch';
 // permissions management moved to the central Admin page
 
 const profileSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
   email: z.string().email('Por favor, insira um e-mail válido.'),
   avatarUrl: z.string().optional(),
+  phone: z
+    .string()
+    .max(32, 'O telefone deve ter no máximo 32 caracteres.')
+    .optional()
+    .or(z.literal('')),
+  hasWhatsapp: z.boolean().default(false),
+  whatsappNotifications: z.boolean().default(false),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -45,15 +53,20 @@ export default function ProfilePage() {
       name: '',
       email: '',
       avatarUrl: '',
+      phone: '',
+      hasWhatsapp: false,
+      whatsappNotifications: false,
     },
   });
 
+  const hasWhatsapp = form.watch('hasWhatsapp');
+
   useEffect(() => {
-    if (!user) {
-      setFetchedUser(null);
-      form.reset({ name: '', email: '', avatarUrl: '' });
-      return;
-    }
+  if (!user) {
+    setFetchedUser(null);
+    form.reset({ name: '', email: '', avatarUrl: '', phone: '', hasWhatsapp: false, whatsappNotifications: false });
+    return;
+  }
     const load = async () => {
       try {
         const res = await fetch('/api/users');
@@ -65,6 +78,9 @@ export default function ProfilePage() {
           name: latest.name || '',
           email: latest.email || '',
           avatarUrl: latest.avatarUrl || '',
+          phone: latest.profile?.phone ?? '',
+          hasWhatsapp: Boolean(latest.profile?.has_whatsapp),
+          whatsappNotifications: Boolean(latest.profile?.whatsapp_notifications),
         });
       } catch (err) {
         console.error('Failed to refresh user', err);
@@ -73,6 +89,9 @@ export default function ProfilePage() {
           name: user.name || '',
           email: user.email || '',
           avatarUrl: user.avatarUrl || '',
+          phone: '',
+          hasWhatsapp: false,
+          whatsappNotifications: false,
         });
       }
     };
@@ -321,7 +340,7 @@ export default function ProfilePage() {
               </div>
               <input type="hidden" {...form.register('avatarUrl')} />
 
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-3 gap-6">
                    <FormField
                       control={form.control}
                       name="name"
@@ -348,6 +367,67 @@ export default function ProfilePage() {
                         </FormItem>
                       )}
                     />
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>Telefone</Label>
+                          <FormControl>
+                            <Input type="tel" placeholder="+55 (11) 99999-0000" {...field} />
+                          </FormControl>
+                          <FormDescription>Inclua DDD e código do país para receber mensagens.</FormDescription>
+                          <FormMessage />
+                </FormItem>
+              )}
+            />
+              </div>
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="hasWhatsapp"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <Label htmlFor="has-whatsapp-switch">Tenho WhatsApp</Label>
+                          <FormDescription>Marque se você usa WhatsApp e quer receber mensagens.</FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            id="has-whatsapp-switch"
+                            checked={field.value}
+                            onCheckedChange={(value) => field.onChange(value)}
+                          />
+                        </FormControl>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="whatsappNotifications"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <Label htmlFor="whatsapp-notifications-switch">Quero receber mensagens por WhatsApp</Label>
+                          <FormDescription>
+                            As mensagens só serão enviadas se você confirmar que tem WhatsApp habilitado.
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            id="whatsapp-notifications-switch"
+                            checked={field.value}
+                            onCheckedChange={(value) => field.onChange(value)}
+                            disabled={!hasWhatsapp}
+                          />
+                        </FormControl>
+                      </div>
+                    </FormItem>
+                  )}
+                />
               </div>
 
             </CardContent>

@@ -12,6 +12,84 @@ export type DbUser = {
   profile?: any;
 };
 
+export type UserProfilePreferences = {
+  phone?: string | null;
+  hasWhatsapp?: boolean;
+  whatsappNotifications?: boolean;
+};
+
+function parseProfileExtra(extra: unknown): Record<string, any> {
+  if (!extra) return {};
+  if (typeof extra === 'object' && !Array.isArray(extra)) return extra as Record<string, any>;
+  if (typeof extra === 'string') {
+    try {
+      return JSON.parse(extra);
+    } catch (err) {
+      return {};
+    }
+  }
+  return {};
+}
+
+function mergeProfileRow(row: { phone?: string | null; extra?: unknown } | null | undefined) {
+  if (!row) return null;
+  const base = parseProfileExtra(row.extra);
+  if (row.phone !== undefined && row.phone !== null) {
+    base.phone = row.phone;
+  }
+  if (!Object.keys(base).length) {
+    return row.phone ? { phone: row.phone } : null;
+  }
+  return base;
+}
+
+let cachedUserProfileTableExists: boolean | null = null;
+let cachedUserProfileHasPhoneColumn: boolean | null = null;
+
+async function ensureUserProfileMetadata(): Promise<{ exists: boolean; hasPhone: boolean }> {
+  if (cachedUserProfileTableExists !== null) {
+    return {
+      exists: cachedUserProfileTableExists,
+      hasPhone: Boolean(cachedUserProfileHasPhoneColumn),
+    };
+  }
+  try {
+    const res = await pool.query("select to_regclass('public.user_profile') as reg");
+    const exists = Boolean(res.rows[0] && res.rows[0].reg);
+    if (!exists) {
+      cachedUserProfileTableExists = false;
+      cachedUserProfileHasPhoneColumn = false;
+      return { exists: false, hasPhone: false };
+    }
+    const colRes = await pool.query(
+      "select column_name from information_schema.columns where table_name = 'user_profile' and column_name = 'phone'"
+    );
+    cachedUserProfileTableExists = true;
+    cachedUserProfileHasPhoneColumn = colRes.rowCount > 0;
+    return { exists: true, hasPhone: Boolean(cachedUserProfileHasPhoneColumn) };
+  } catch (e) {
+    cachedUserProfileTableExists = false;
+    cachedUserProfileHasPhoneColumn = false;
+    return { exists: false, hasPhone: false };
+  }
+}
+
+async function loadUserProfile(userId: string) {
+  const meta = await ensureUserProfileMetadata();
+  if (!meta.exists) return null;
+  const query = meta.hasPhone
+    ? 'SELECT phone, extra FROM user_profile WHERE user_id = $1 LIMIT 1'
+    : 'SELECT extra FROM user_profile WHERE user_id = $1 LIMIT 1';
+  try {
+    const res = await pool.query(query, [String(userId)]);
+    if (!res.rowCount) return null;
+    return mergeProfileRow(res.rows[0]);
+  } catch (e) {
+    // table might not exist or another issue occurred
+    return null;
+  }
+}
+
 export async function getUserByEmail(email: string): Promise<DbUser | null> {
   const colsRes = await pool.query(
     "select column_name from information_schema.columns where table_name = 'users' and column_name in ('password_hash','password','permissions')"
@@ -42,10 +120,7 @@ export async function getUserByEmail(email: string): Promise<DbUser | null> {
     const rolesRes = await pool.query(`SELECT r.name FROM user_roles ur JOIN roles r ON r.id::text = ur.role_id WHERE ur.user_id = $1`, [String(row.id)]);
     row.roles = rolesRes.rows.map((r: any) => String(r.name));
   } catch (e) { row.roles = []; }
-  try {
-    const prof = await pool.query(`SELECT extra FROM user_profile WHERE user_id = $1 LIMIT 1`, [String(row.id)]);
-    row.profile = prof.rowCount ? prof.rows[0].extra : null;
-  } catch (e) { row.profile = null; }
+  row.profile = await loadUserProfile(row.id);
 
   return row || null;
 }
@@ -78,10 +153,7 @@ export async function getUserById(id: string): Promise<DbUser | null> {
     const rolesRes = await pool.query(`SELECT r.name FROM user_roles ur JOIN roles r ON r.id::text = ur.role_id WHERE ur.user_id = $1`, [String(row.id)]);
     row.roles = rolesRes.rows.map((r: any) => String(r.name));
   } catch (e) { row.roles = []; }
-  try {
-    const prof = await pool.query(`SELECT extra FROM user_profile WHERE user_id = $1 LIMIT 1`, [String(row.id)]);
-    row.profile = prof.rowCount ? prof.rows[0].extra : null;
-  } catch (e) { row.profile = null; }
+  row.profile = await loadUserProfile(row.id);
 
   return row || null;
 }
@@ -159,7 +231,7 @@ export async function listUsers(limit = 50, offset = 0, filters?: { email?: stri
   const selectExtra = `${hasStatus ? ', u.status' : ''}${hasPerm ? ', u.permissions' : ''}`;
 
   const profileSelect = hasUserProfile
-    ? `(SELECT extra FROM user_profile up WHERE up.user_id = u.id::text LIMIT 1) as profile`
+    ? `(SELECT CASE WHEN up.phone IS NULL AND up.extra IS NULL THEN NULL ELSE COALESCE(up.extra, '{}'::jsonb) || CASE WHEN up.phone IS NOT NULL THEN jsonb_build_object('phone', up.phone) ELSE '{}'::jsonb END END FROM user_profile up WHERE up.user_id = u.id::text LIMIT 1) as profile`
     : `null as profile`;
 
   // Build WHERE using filters when possible, then aggregate roles
@@ -244,4 +316,62 @@ export async function updateUser(id: string, patch: Partial<{ name: string; emai
 export async function deleteUser(id: string) {
   await pool.query('delete from users where id = $1', [id]);
   return true;
+}
+
+export async function updateUserProfilePreferences(userId: string, updates: UserProfilePreferences) {
+  if (!updates || typeof updates !== 'object') return;
+  const meta = await ensureUserProfileMetadata();
+  if (!meta.exists) return;
+
+  const hasPhoneField = updates.phone !== undefined;
+  const normalizedPhone =
+    hasPhoneField && updates.phone !== null
+      ? String(updates.phone).trim()
+      : updates.phone === null
+        ? null
+        : undefined;
+  const phoneValue = normalizedPhone === '' ? null : normalizedPhone;
+
+  const patch: Record<string, any> = {};
+  if (updates.hasWhatsapp !== undefined) {
+    patch.has_whatsapp = updates.hasWhatsapp;
+  }
+  if (updates.whatsappNotifications !== undefined) {
+    patch.whatsapp_notifications = updates.whatsappNotifications;
+  }
+  if (hasPhoneField) {
+    patch.phone = phoneValue;
+  }
+
+  if (!Object.keys(patch).length && !(hasPhoneField && meta.hasPhone)) {
+    return;
+  }
+
+  await pool.query(
+    `INSERT INTO user_profile (user_id, extra)
+     VALUES ($1::text, '{}'::jsonb)
+     ON CONFLICT (user_id) DO NOTHING`,
+    [String(userId)]
+  );
+
+  const updateParts: string[] = [];
+  const values: any[] = [];
+  let idx = 1;
+
+  if (Object.keys(patch).length) {
+    updateParts.push(`extra = COALESCE(extra, '{}'::jsonb) || $${idx}::jsonb`);
+    values.push(JSON.stringify(patch));
+    idx++;
+  }
+  if (hasPhoneField && meta.hasPhone) {
+    updateParts.push(`phone = $${idx}`);
+    values.push(phoneValue === undefined ? null : phoneValue);
+    idx++;
+  }
+
+  if (!updateParts.length) return;
+
+  const query = `UPDATE user_profile SET ${updateParts.join(', ')}, updated_at = NOW() WHERE user_id = $${idx}`;
+  values.push(String(userId));
+  await pool.query(query, values);
 }
