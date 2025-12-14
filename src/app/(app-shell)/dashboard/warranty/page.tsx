@@ -87,7 +87,7 @@ export default function WarrantyPage() {
       }
     };
     loadAll();
-  }, []);
+  }, [toast]);
 
   const suppliersMap = useMemo(() => new Map(suppliers.map(s => [s.id, s.name])), [suppliers]);
 

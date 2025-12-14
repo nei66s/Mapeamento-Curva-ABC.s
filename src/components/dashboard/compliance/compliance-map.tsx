@@ -9,10 +9,9 @@ import type { Store, StoreComplianceData } from '@/lib/types';
 import { isBefore, startOfDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
-// Import marker icons
-import iconUrl from 'leaflet/dist/images/marker-icon.png';
-import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
-import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
+const iconUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png';
+const iconRetinaUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png';
+const shadowUrl = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png';
 
 interface ComplianceMapProps {
   allStores: Store[];
@@ -72,9 +71,9 @@ export default function ComplianceMap({ allStores, scheduledVisits }: Compliance
         // Fix for icon path issue with Next.js
         delete (L.Icon.Default.prototype as any)._getIconUrl;
         L.Icon.Default.mergeOptions({
-            iconRetinaUrl: iconRetinaUrl.src,
-            iconUrl: iconUrl.src,
-            shadowUrl: shadowUrl.src,
+            iconRetinaUrl,
+            iconUrl,
+            shadowUrl,
         });
         
   const map = L.map(mapContainerRef.current).setView([-22.8, -47.2], 9);

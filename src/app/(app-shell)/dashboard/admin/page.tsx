@@ -115,7 +115,7 @@ export default function AdminPage() {
       }
     };
     loadPermissions();
-  }, []);
+  }, [toast]);
 
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     setUsers(prev => prev.map(u => (u.id === userId ? { ...u, role: newRole, supplierId: newRole === 'fornecedor' ? u.supplierId : undefined } : u)));

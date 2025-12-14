@@ -44,8 +44,10 @@ export function findAllOverlaps(vacations: Vacation[]) {
   return out;
 }
 
-export default {
+const vacationsUtilities = {
   rangesOverlap,
   detectConflicts,
   findAllOverlaps,
 };
+
+export default vacationsUtilities;

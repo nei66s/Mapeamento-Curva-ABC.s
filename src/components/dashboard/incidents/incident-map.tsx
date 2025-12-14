@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import '@/lib/leaflet-init';
 import 'leaflet/dist/leaflet.css';
@@ -53,7 +53,7 @@ export default function IncidentMap({ incidents }: IncidentMapProps) {
   const [stores, setStores] = useState<Store[]>([]);
 
   // Center on user and create/update a distinct circle marker
-  const centerOnUser = () => {
+  const centerOnUser = useCallback(() => {
     const isMapAttached = (m?: L.Map | null) => {
       try {
         return !!m && typeof m.getContainer === 'function' && document.contains(m.getContainer());
@@ -116,7 +116,7 @@ export default function IncidentMap({ incidents }: IncidentMapProps) {
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  };
+  }, [userLocation]);
 
   useEffect(() => {
     const load = async () => {
@@ -373,7 +373,7 @@ export default function IncidentMap({ incidents }: IncidentMapProps) {
         }
       };
     }
-  }, [incidents, stores]);
+  }, [incidents, stores, centerOnUser]);
 
   // Update or create the user marker when userLocation changes without remounting the whole map
   useEffect(() => {
