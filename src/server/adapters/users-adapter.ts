@@ -16,6 +16,7 @@ export type UserProfilePreferences = {
   phone?: string | null;
   hasWhatsapp?: boolean;
   whatsappNotifications?: boolean;
+  avatarUrl?: string | null;
 };
 
 function parseProfileExtra(extra: unknown): Record<string, any> {
@@ -43,14 +44,113 @@ function mergeProfileRow(row: { phone?: string | null; extra?: unknown } | null 
   return base;
 }
 
+function extractAvatarFromProfile(profile: unknown): string | null {
+  if (!profile || typeof profile !== 'object') return null;
+  const candidates = [
+    (profile as any).avatarUrl,
+    (profile as any).avatar_url,
+    (profile as any).avatar,
+  ];
+  for (const value of candidates) {
+    if (typeof value === 'string' && value.trim()) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function applyAvatarFallbackFromProfile(target: any) {
+  if (!target) return;
+  const current = target.avatarUrl;
+  if (typeof current === 'string' && current.trim()) {
+    return;
+  }
+  const fallback = extractAvatarFromProfile(target.profile);
+  if (fallback) {
+    target.avatarUrl = fallback;
+  }
+}
+
 let cachedUserProfileTableExists: boolean | null = null;
 let cachedUserProfileHasPhoneColumn: boolean | null = null;
+let cachedUserProfileHasExtraColumn: boolean | null = null;
+let cachedUserProfileHasUpdatedAtColumn: boolean | null = null;
 
-async function ensureUserProfileMetadata(): Promise<{ exists: boolean; hasPhone: boolean }> {
-  if (cachedUserProfileTableExists !== null) {
+const userColumnAliasCandidates: Record<string, string[]> = {
+  avatar_url: ['avatar_url', 'avatarUrl', 'avatarurl'],
+  avatar_data: ['avatar_data', 'avatarData'],
+};
+
+const cachedUserColumnAlias: Record<string, string | null> = {};
+
+async function resolveUserColumnAlias(key: string, candidates: string[]): Promise<string | null> {
+  if (Object.prototype.hasOwnProperty.call(cachedUserColumnAlias, key)) {
+    return cachedUserColumnAlias[key];
+  }
+  try {
+    const res = await pool.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = ANY($1::text[])`,
+      [candidates]
+    );
+    const available = new Set(res.rows.map((r: any) => String(r.column_name)));
+    for (const candidate of candidates) {
+      if (available.has(candidate)) {
+        cachedUserColumnAlias[key] = candidate;
+        return candidate;
+      }
+    }
+  } catch (error) {
+    cachedUserColumnAlias[key] = null;
+    return null;
+  }
+  cachedUserColumnAlias[key] = null;
+  return null;
+}
+
+function quoteIdentifier(name: string) {
+  const escaped = name.replace(/"/g, '""');
+  return `"${escaped}"`;
+}
+
+function buildAvatarSelectForList(column: string | null) {
+  if (!column) {
+    return { select: '', group: '' };
+  }
+  const quoted = `u.${quoteIdentifier(column)}`;
+  return {
+    select: `, ${quoted} as avatarUrl`,
+    group: `, ${quoted}`,
+  };
+}
+
+function buildAvatarBinaryFlag(column: string | null) {
+  if (!column) {
+    return { select: '', group: '' };
+  }
+  const expression = `u.${quoteIdentifier(column)} IS NOT NULL`;
+  return {
+    select: `, ${expression} as hasAvatarBlob`,
+    group: `, ${expression}`,
+  };
+}
+
+async function ensureUserProfileMetadata(): Promise<{
+  exists: boolean;
+  hasPhone: boolean;
+  hasExtra: boolean;
+  hasUpdatedAt: boolean;
+}> {
+  if (
+    cachedUserProfileTableExists !== null &&
+    cachedUserProfileHasPhoneColumn !== null &&
+    cachedUserProfileHasExtraColumn !== null &&
+    cachedUserProfileHasUpdatedAtColumn !== null
+  ) {
     return {
       exists: cachedUserProfileTableExists,
       hasPhone: Boolean(cachedUserProfileHasPhoneColumn),
+      hasExtra: Boolean(cachedUserProfileHasExtraColumn),
+      hasUpdatedAt: Boolean(cachedUserProfileHasUpdatedAtColumn),
     };
   }
   try {
@@ -59,27 +159,44 @@ async function ensureUserProfileMetadata(): Promise<{ exists: boolean; hasPhone:
     if (!exists) {
       cachedUserProfileTableExists = false;
       cachedUserProfileHasPhoneColumn = false;
-      return { exists: false, hasPhone: false };
+      cachedUserProfileHasExtraColumn = false;
+      cachedUserProfileHasUpdatedAtColumn = false;
+      return { exists: false, hasPhone: false, hasExtra: false, hasUpdatedAt: false };
     }
     const colRes = await pool.query(
-      "select column_name from information_schema.columns where table_name = 'user_profile' and column_name = 'phone'"
+      "select column_name from information_schema.columns where table_name = 'user_profile' and column_name = ANY($1::text[])",
+      [['phone', 'extra', 'updated_at']]
     );
+    const columns = new Set(colRes.rows.map((r: any) => String(r.column_name)));
     cachedUserProfileTableExists = true;
-    cachedUserProfileHasPhoneColumn = colRes.rowCount > 0;
-    return { exists: true, hasPhone: Boolean(cachedUserProfileHasPhoneColumn) };
+    cachedUserProfileHasPhoneColumn = columns.has('phone');
+    cachedUserProfileHasExtraColumn = columns.has('extra');
+    cachedUserProfileHasUpdatedAtColumn = columns.has('updated_at');
+    return {
+      exists: true,
+      hasPhone: cachedUserProfileHasPhoneColumn,
+      hasExtra: cachedUserProfileHasExtraColumn,
+      hasUpdatedAt: cachedUserProfileHasUpdatedAtColumn,
+    };
   } catch (e) {
     cachedUserProfileTableExists = false;
     cachedUserProfileHasPhoneColumn = false;
-    return { exists: false, hasPhone: false };
+    cachedUserProfileHasExtraColumn = false;
+    cachedUserProfileHasUpdatedAtColumn = false;
+    return { exists: false, hasPhone: false, hasExtra: false, hasUpdatedAt: false };
   }
 }
 
 async function loadUserProfile(userId: string) {
   const meta = await ensureUserProfileMetadata();
   if (!meta.exists) return null;
-  const query = meta.hasPhone
-    ? 'SELECT phone, extra FROM user_profile WHERE user_id = $1 LIMIT 1'
-    : 'SELECT extra FROM user_profile WHERE user_id = $1 LIMIT 1';
+  if (!meta.hasPhone && !meta.hasExtra) {
+    return null;
+  }
+  const selectColumns: string[] = [];
+  if (meta.hasPhone) selectColumns.push('phone');
+  if (meta.hasExtra) selectColumns.push('extra');
+  const query = `SELECT ${selectColumns.join(', ')} FROM user_profile WHERE user_id = $1 LIMIT 1`;
   try {
     const res = await pool.query(query, [String(userId)]);
     if (!res.rowCount) return null;
@@ -99,6 +216,10 @@ export async function getUserByEmail(email: string): Promise<DbUser | null> {
   if (cols.has('password_hash')) selectCols.splice(3, 0, 'password_hash');
   else if (cols.has('password')) selectCols.splice(3, 0, 'password');
   if (cols.has('permissions')) selectCols.push('permissions');
+  const avatarColumn = await resolveUserColumnAlias('avatar_url', ['avatar_url', 'avatarUrl', 'avatarurl']);
+  if (avatarColumn) {
+    selectCols.push(`${quoteIdentifier(avatarColumn)} as avatarUrl`);
+  }
 
   const q = `select ${selectCols.join(', ')} from users where email = $1 limit 1`;
   const res = await pool.query(q, [email]);
@@ -121,6 +242,7 @@ export async function getUserByEmail(email: string): Promise<DbUser | null> {
     row.roles = rolesRes.rows.map((r: any) => String(r.name));
   } catch (e) { row.roles = []; }
   row.profile = await loadUserProfile(row.id);
+  applyAvatarFallbackFromProfile(row);
 
   return row || null;
 }
@@ -134,6 +256,10 @@ export async function getUserById(id: string): Promise<DbUser | null> {
   if (cols.has('password_hash')) selectCols.splice(3, 0, 'password_hash');
   else if (cols.has('password')) selectCols.splice(3, 0, 'password');
   if (cols.has('permissions')) selectCols.push('permissions');
+  const avatarColumn = await resolveUserColumnAlias('avatar_url', ['avatar_url', 'avatarUrl', 'avatarurl']);
+  if (avatarColumn) {
+    selectCols.push(`${quoteIdentifier(avatarColumn)} as avatarUrl`);
+  }
 
   const q = `select ${selectCols.join(', ')} from users where id = $1 limit 1`;
   const res = await pool.query(q, [id]);
@@ -154,6 +280,7 @@ export async function getUserById(id: string): Promise<DbUser | null> {
     row.roles = rolesRes.rows.map((r: any) => String(r.name));
   } catch (e) { row.roles = []; }
   row.profile = await loadUserProfile(row.id);
+  applyAvatarFallbackFromProfile(row);
 
   return row || null;
 }
@@ -171,23 +298,42 @@ async function derivePermissionsFromRoles(userId: string) {
 }
 
 export async function listUsers(limit = 50, offset = 0, filters?: { email?: string; role?: string; status?: string }) {
+  const colsRes = await pool.query(
+    "select column_name from information_schema.columns where table_name = 'users' and column_name = 'permissions'"
+  );
+  const hasPerm = colsRes.rowCount > 0;
+  const colsStatusRes = await pool.query(
+    "select column_name from information_schema.columns where table_name = 'users' and column_name = 'status'"
+  );
+  const hasStatus = colsStatusRes.rowCount > 0;
+  const avatarColumn = await resolveUserColumnAlias('avatar_url', ['avatar_url', 'avatarUrl', 'avatarurl']);
+  const avatarBlobColumn = await resolveUserColumnAlias('avatar_data', ['avatar_data', 'avatarData']);
   // Prefer a unified view `users_full` when it exists (provides roles array and profile JSONB)
   try {
     const viewCheck = await pool.query("select to_regclass('public.users_full') as reg");
     const hasUsersFull = Boolean(viewCheck.rows[0] && viewCheck.rows[0].reg);
     if (hasUsersFull) {
-      // build where clause from filters
-      const where: string[] = [];
-      const vals: any[] = [];
-      let idx = 1;
-      if (filters?.email) { where.push(`email ILIKE $${idx++}`); vals.push(`%${filters.email}%`); }
-      if (filters?.role) { where.push(`(role = $${idx} OR roles @> ARRAY[$${idx}]::text[])`); vals.push(filters.role); idx++; }
-      if (filters?.status) { where.push(`status = $${idx++}`); vals.push(filters.status); }
-      const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
-      const qv = `select id, name, email, role, created_at, status, permissions, roles as roles_arr, profile from users_full ${whereClause} order by created_at desc limit $${idx} offset $${idx + 1}`;
-      const rv = await pool.query(qv, [...vals, limit, offset]);
+      const viewWhereClauses: string[] = [];
+      const viewWhereVals: any[] = [];
+      let viewIdx = 1;
+      if (filters?.email) { viewWhereClauses.push(`uf.email ILIKE $${viewIdx++}`); viewWhereVals.push(`%${filters.email}%`); }
+      if (filters?.role) { viewWhereClauses.push(`(uf.role = $${viewIdx} OR uf.roles @> ARRAY[$${viewIdx}]::text[])`); viewWhereVals.push(filters.role); viewIdx++; }
+      if (filters?.status && hasStatus) { viewWhereClauses.push(`uf.status = $${viewIdx++}`); viewWhereVals.push(filters.status); }
+      const viewWhereClause = viewWhereClauses.length ? `WHERE ${viewWhereClauses.join(' AND ')}` : '';
+      const avatarSelect = avatarColumn ? `, u.${quoteIdentifier(avatarColumn)} as avatarUrl` : '';
+      const avatarBlobSelect = avatarBlobColumn ? `, u.${quoteIdentifier(avatarBlobColumn)} IS NOT NULL as hasAvatarBlob` : '';
+      const avatarJoin = avatarColumn || avatarBlobColumn ? ' LEFT JOIN users u ON u.id = uf.id' : '';
+      const qv = `
+        SELECT uf.id, uf.name, uf.email, uf.role, uf.created_at,
+          uf.status, uf.permissions, uf.roles as roles_arr, uf.profile${avatarSelect}${avatarBlobSelect}
+        FROM users_full uf
+        ${avatarJoin}
+        ${viewWhereClause}
+        ORDER BY uf.created_at DESC
+        LIMIT $${viewIdx} OFFSET $${viewIdx + 1}
+      `;
+      const rv = await pool.query(qv, [...viewWhereVals, limit, offset]);
       const rows = rv.rows.map((r: any) => {
-        // normalize names to match existing adapter shape
         const out: any = {
           id: r.id,
           name: r.name,
@@ -198,10 +344,14 @@ export async function listUsers(limit = 50, offset = 0, filters?: { email?: stri
           permissions: r.permissions ?? undefined,
           roles: Array.isArray(r.roles_arr) ? r.roles_arr : (r.roles || []),
           profile: r.profile ?? null,
+          avatarUrl: r.avatarUrl ?? undefined,
         };
+        if (!out.avatarUrl && r.hasAvatarBlob) {
+          out.avatarUrl = `/api/users/avatar?id=${r.id}`;
+        }
+        applyAvatarFallbackFromProfile(out);
         return out;
       });
-      // augment lastAccessAt as before
       await Promise.all(rows.map(async (r: any) => {
         try {
           const last = await pool.query("select created_at from audit_logs where user_id = $1 and action in ('user.login','login') order by created_at desc limit 1", [r.id]);
@@ -215,18 +365,17 @@ export async function listUsers(limit = 50, offset = 0, filters?: { email?: stri
   } catch (e) {
     // if view check fails, fall back to regular query below
   }
-  const colsRes = await pool.query(
-    "select column_name from information_schema.columns where table_name = 'users' and column_name = 'permissions'"
-  );
-  const hasPerm = colsRes.rowCount > 0;
-  const colsStatusRes = await pool.query(
-    "select column_name from information_schema.columns where table_name = 'users' and column_name = 'status'"
-  );
-  const hasStatus = colsStatusRes.rowCount > 0;
 
   // detect whether the user_profile table exists to avoid referencing it in SQL when absent
   const profileTableRes = await pool.query("select to_regclass('public.user_profile') as reg");
   const hasUserProfile = Boolean(profileTableRes.rows[0] && profileTableRes.rows[0].reg);
+
+  const avatarParts = buildAvatarSelectForList(avatarColumn);
+  const avatarSelect = avatarParts.select;
+  const avatarGroup = avatarParts.group;
+  const avatarBinaryParts = buildAvatarBinaryFlag(avatarBlobColumn);
+  const avatarBinarySelect = avatarBinaryParts.select;
+  const avatarBinaryGroup = avatarBinaryParts.group;
 
   const selectExtra = `${hasStatus ? ', u.status' : ''}${hasPerm ? ', u.permissions' : ''}`;
 
@@ -245,14 +394,14 @@ export async function listUsers(limit = 50, offset = 0, filters?: { email?: stri
   const whereClause = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
   const q = `
-    SELECT u.id, u.name, u.email, u.role, u.created_at${selectExtra},
+    SELECT u.id, u.name, u.email, u.role, u.created_at${selectExtra}${avatarSelect}${avatarBinarySelect},
       COALESCE(jsonb_agg(DISTINCT jsonb_build_object('name', r.name)) FILTER (WHERE r.name IS NOT NULL), '[]') as roles_agg,
       ${profileSelect}
     FROM users u
     LEFT JOIN user_roles ur ON ur.user_id = u.id::text
     LEFT JOIN roles r ON r.id::text = ur.role_id
     ${whereClause}
-    GROUP BY u.id, u.name, u.email, u.role, u.created_at${hasStatus ? ', u.status' : ''}${hasPerm ? ', u.permissions' : ''}
+    GROUP BY u.id, u.name, u.email, u.role, u.created_at${hasStatus ? ', u.status' : ''}${hasPerm ? ', u.permissions' : ''}${avatarGroup}${avatarBinaryGroup}
     ORDER BY u.created_at DESC
     LIMIT $${wIdx} OFFSET $${wIdx + 1}
   `;
@@ -270,6 +419,11 @@ export async function listUsers(limit = 50, offset = 0, filters?: { email?: stri
     } catch (e) { r.roles = []; }
     delete r.roles_agg;
     r.profile = r.profile ?? null;
+    if (!r.avatarUrl && r.hasAvatarBlob) {
+      r.avatarUrl = `/api/users/avatar?id=${r.id}`;
+    }
+    delete r.hasAvatarBlob;
+    applyAvatarFallbackFromProfile(r);
     return r;
   });
 
@@ -302,7 +456,16 @@ export async function updateUser(id: string, patch: Partial<{ name: string; emai
   const vals: any[] = [];
   let idx = 1;
   for (const [k, v] of Object.entries(patch)) {
-    sets.push(`${k} = $${idx}`);
+    let columnName = k;
+    const candidates = userColumnAliasCandidates[k];
+    if (candidates) {
+      const resolved = await resolveUserColumnAlias(k, candidates);
+      if (!resolved) {
+        continue;
+      }
+      columnName = resolved;
+    }
+    sets.push(`${columnName} = $${idx}`);
     vals.push(v);
     idx++;
   }
@@ -333,37 +496,50 @@ export async function updateUserProfilePreferences(userId: string, updates: User
   const phoneValue = normalizedPhone === '' ? null : normalizedPhone;
 
   const patch: Record<string, any> = {};
-  if (updates.hasWhatsapp !== undefined) {
-    patch.has_whatsapp = updates.hasWhatsapp;
+  if (meta.hasExtra) {
+    if (updates.hasWhatsapp !== undefined) {
+      patch.has_whatsapp = updates.hasWhatsapp;
+    }
+    if (updates.whatsappNotifications !== undefined) {
+      patch.whatsapp_notifications = updates.whatsappNotifications;
+    }
+    if (updates.avatarUrl !== undefined) {
+      patch.avatar_url = updates.avatarUrl;
+    }
   }
-  if (updates.whatsappNotifications !== undefined) {
-    patch.whatsapp_notifications = updates.whatsappNotifications;
-  }
-  if (hasPhoneField) {
-    patch.phone = phoneValue;
-  }
+  const hasPhoneUpdate = hasPhoneField && meta.hasPhone;
 
-  if (!Object.keys(patch).length && !(hasPhoneField && meta.hasPhone)) {
+  if (!Object.keys(patch).length && !hasPhoneUpdate) {
     return;
   }
 
+  const insertColumns = ['user_id'];
+  const insertPlaceholders = ['$1::text'];
+  const insertValues: any[] = [String(userId)];
+  if (meta.hasExtra) {
+    const nextIndex = insertValues.length + 1;
+    insertColumns.push('extra');
+    insertPlaceholders.push(`$${nextIndex}::jsonb`);
+    insertValues.push('{}');
+  }
+
   await pool.query(
-    `INSERT INTO user_profile (user_id, extra)
-     VALUES ($1::text, '{}'::jsonb)
+    `INSERT INTO user_profile (${insertColumns.join(', ')})
+     VALUES (${insertPlaceholders.join(', ')})
      ON CONFLICT (user_id) DO NOTHING`,
-    [String(userId)]
+    insertValues
   );
 
   const updateParts: string[] = [];
   const values: any[] = [];
   let idx = 1;
 
-  if (Object.keys(patch).length) {
+  if (meta.hasExtra && Object.keys(patch).length) {
     updateParts.push(`extra = COALESCE(extra, '{}'::jsonb) || $${idx}::jsonb`);
     values.push(JSON.stringify(patch));
     idx++;
   }
-  if (hasPhoneField && meta.hasPhone) {
+  if (hasPhoneUpdate) {
     updateParts.push(`phone = $${idx}`);
     values.push(phoneValue === undefined ? null : phoneValue);
     idx++;
@@ -371,7 +547,12 @@ export async function updateUserProfilePreferences(userId: string, updates: User
 
   if (!updateParts.length) return;
 
-  const query = `UPDATE user_profile SET ${updateParts.join(', ')}, updated_at = NOW() WHERE user_id = $${idx}`;
+  const updateClauseParts = [...updateParts];
+  if (meta.hasUpdatedAt) {
+    updateClauseParts.push('updated_at = NOW()');
+  }
+
+  const query = `UPDATE user_profile SET ${updateClauseParts.join(', ')} WHERE user_id = $${idx}`;
   values.push(String(userId));
   await pool.query(query, values);
 }

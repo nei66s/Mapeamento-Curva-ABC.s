@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import { stat, unlink, readFile } from 'fs/promises';
 import { getUserById, updateUser } from '@/lib/users.server';
+import { updateUserProfilePreferences } from '@/server/adapters/users-adapter';
 import pool from '@/lib/db';
 
 function isSafeUploadPath(urlPath: string): boolean {
@@ -50,7 +51,8 @@ export async function DELETE(request: NextRequest) {
       console.warn('Failed to clear avatar_data/avatar_mime for user', id, err);
     }
 
-  const updated = await updateUser(id, { avatarUrl: null } as any);
+    await updateUserProfilePreferences(id, { avatarUrl: null });
+    const updated = await updateUser(id, { avatarUrl: null } as any);
     if (!updated) return NextResponse.json({ error: 'Não foi possível atualizar o usuário' }, { status: 500 });
     const { password, ...safe } = updated as any;
     return NextResponse.json(safe);
@@ -77,11 +79,10 @@ export async function GET(request: NextRequest) {
         const mime: string | null = row.avatar_mime ?? null;
 
         if (data && mime) {
-          return new NextResponse(data.toString('base64'), {
+          return new NextResponse(data, {
             status: 200,
             headers: {
               'Content-Type': mime,
-              'Content-Transfer-Encoding': 'base64',
             },
           });
         }

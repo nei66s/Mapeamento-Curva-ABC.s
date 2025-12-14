@@ -35,6 +35,27 @@ const profileSchema = z.object({
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 
+function parseJsonSafely(raw: string | null) {
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    return null;
+  }
+}
+
+function getSaveErrorMessage(body: unknown, fallbackText: string | null, status: number) {
+  if (body && typeof body === 'object') {
+    const typed = body as Record<string, unknown>;
+    if (typeof typed.error === 'string' && typed.error.trim()) return typed.error;
+    if (typeof typed.message === 'string' && typed.message.trim()) return typed.message;
+  }
+  if (typeof fallbackText === 'string' && fallbackText.trim()) return fallbackText.trim();
+  return `Erro ao salvar usuário (${status})`;
+}
+
 export default function ProfilePage() {
   const { user, setUser, loading } = useCurrentUser();
   const router = useRouter();
@@ -61,19 +82,25 @@ export default function ProfilePage() {
 
   const hasWhatsapp = form.watch('hasWhatsapp');
 
+  const userId = user?.id ?? null;
+
   useEffect(() => {
-  if (!user) {
-    setFetchedUser(null);
-    form.reset({ name: '', email: '', avatarUrl: '', phone: '', hasWhatsapp: false, whatsappNotifications: false });
-    return;
-  }
+    if (!userId || !user) {
+      setFetchedUser(null);
+      form.reset({ name: '', email: '', avatarUrl: '', phone: '', hasWhatsapp: false, whatsappNotifications: false });
+      return;
+    }
+
+    let canceled = false;
     const load = async () => {
       try {
         const res = await fetch('/api/users');
         if (!res.ok) throw new Error('Failed to load users');
         const list = await res.json();
         const latest = list.find((u: any) => String(u.id) === String(user.id)) || user;
+        if (canceled) return;
         setFetchedUser(latest);
+        setUser(latest);
         form.reset({
           name: latest.name || '',
           email: latest.email || '',
@@ -84,7 +111,9 @@ export default function ProfilePage() {
         });
       } catch (err) {
         console.error('Failed to refresh user', err);
+        if (canceled) return;
         setFetchedUser(user);
+        setUser(user);
         form.reset({
           name: user.name || '',
           email: user.email || '',
@@ -96,8 +125,11 @@ export default function ProfilePage() {
       }
     };
     load();
+    return () => {
+      canceled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [userId]);
 
   // Permissions are managed centrally in the Admin page; no client-side loading here.
 
@@ -122,13 +154,21 @@ export default function ProfilePage() {
           body: JSON.stringify(payload),
         });
 
+        const responseText = await res.text();
+        const parsedBody = parseJsonSafely(responseText);
+
         if (!res.ok) {
-          const err = await res.json().catch(() => null);
-          console.error('save user error', err);
-          throw new Error(err?.error || 'Erro ao salvar usuário');
+          const payloadLog = parsedBody ?? responseText;
+          console.error('save user error', { status: res.status, body: payloadLog });
+          throw new Error(getSaveErrorMessage(parsedBody, responseText, res.status));
         }
 
-        const saved = await res.json();
+        if (!parsedBody || typeof parsedBody !== 'object') {
+          console.error('save user error: resposta inválida', { status: res.status, body: responseText });
+          throw new Error('Resposta inesperada ao salvar usuário.');
+        }
+
+        const saved = parsedBody as any;
         setUser(saved);
         setFetchedUser(saved);
         setSaveStatus('saved');
