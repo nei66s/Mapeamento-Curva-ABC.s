@@ -40,6 +40,11 @@
     --curve-b-foreground: 0 0% 15%;
     --curve-c: 140 30% 45%;
     --curve-c-foreground: 0 0% 96%;
+    --chart-1: 0 79% 62%;
+    --chart-2: 210 78% 56%;
+    --chart-3: 142 55% 50%;
+    --chart-4: 45 86% 55%;
+    --chart-5: 274 58% 62%;
     --color-background: hsl(var(--background));
     --color-foreground: hsl(var(--foreground));
     --surface-background: hsl(var(--card));
@@ -84,6 +89,11 @@
     --curve-b-foreground: 0 0% 15%;
     --curve-c: 146 36% 42%;
     --curve-c-foreground: 0 0% 96%;
+    --chart-1: 0 78% 72%;
+    --chart-2: 210 84% 70%;
+    --chart-3: 142 45% 55%;
+    --chart-4: 45 78% 62%;
+    --chart-5: 274 62% 72%;
   }
 
   html,

@@ -46,6 +46,17 @@ function normalizeBooleanInput(raw: unknown) {
   return undefined;
 }
 
+function normalizeAvatarUrlInput(raw: unknown) {
+  if (raw === undefined) return undefined;
+  if (raw === null) return null;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    return trimmed === '' ? null : trimmed;
+  }
+  const coerced = String(raw).trim();
+  return coerced === '' ? null : coerced;
+}
+
 export async function GET() {
   try {
     // reuse adapter listUsers (defaults to limit=50, offset=0)
@@ -76,6 +87,7 @@ export async function POST(request: Request) {
       phone: normalizePhoneInput(body?.phone),
       hasWhatsapp: normalizeBooleanInput(body?.hasWhatsapp),
       whatsappNotifications: normalizeBooleanInput(body?.whatsappNotifications),
+      avatarUrl: normalizeAvatarUrlInput(avatarUrl),
     });
     const refreshed = await getUserById(created.id);
     const safeUser = refreshed ?? created;
@@ -93,12 +105,13 @@ export async function PUT(request: Request) {
     const { id, ...updates } = body;
     if (!id) return NextResponse.json({ error: 'id é obrigatório' }, { status: 400 });
 
+    const normalizedAvatarUrl = normalizeAvatarUrlInput(updates.avatarUrl);
     const patch: any = {};
     if (updates.name !== undefined) patch.name = updates.name;
     if (updates.email !== undefined) patch.email = updates.email;
     if (updates.role !== undefined) patch.role = updates.role;
     if (updates.password !== undefined) patch.password_hash = updates.password;
-    if (updates.avatarUrl !== undefined) patch.avatar_url = updates.avatarUrl;
+    if (normalizedAvatarUrl !== undefined) patch.avatar_url = normalizedAvatarUrl;
     if (updates.supplierId !== undefined) patch.supplier_id = updates.supplierId;
     if (updates.department !== undefined) patch.department = updates.department;
 
@@ -109,6 +122,7 @@ export async function PUT(request: Request) {
       phone: normalizePhoneInput(body.phone),
       hasWhatsapp: normalizeBooleanInput(body.hasWhatsapp),
       whatsappNotifications: normalizeBooleanInput(body.whatsappNotifications),
+      avatarUrl: normalizedAvatarUrl,
     });
 
     const refreshed = await getUserById(id);

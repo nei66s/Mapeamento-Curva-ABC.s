@@ -76,6 +76,22 @@ export async function POST(request: NextRequest) {
       sameSite: 'lax',
       path: '/',
     });
+    res.cookies.set(
+      'pm_user',
+      encodeURIComponent(
+        JSON.stringify({
+          id: userWithoutPassword.id,
+          role: userWithoutPassword.role ?? null,
+          name: userWithoutPassword.name ?? null,
+        })
+      ),
+      {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7,
+      }
+    );
 
     return res;
   } catch (err: any) {
