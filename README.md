@@ -104,3 +104,7 @@ No front-end (página "Meu Perfil"), há um botão "Remover Foto" que chama esse
 - **Rodar em desenvolvimento:** `npm run dev` (sidebar + guardas de rota já aplicados; tracking de pageview ativo por padrão).
 - **Build de produção:** `npm run build` e depois `npm start`.
 - **Testes:** `npm test` (requer Node >=20 para rodar Vitest/JS DOM sem erros de engine; no Node 18 o runner pode falhar). Cobertura mínima adicionada para página de analytics, hook de tracking e serviço de módulos.
+
+## WhatsApp notifications
+
+The notifications API now attempts to deliver WhatsApp messages whenever the environment is configured with `WHATSAPP_API_URL`, `WHATSAPP_API_TOKEN`, and either `WHATSAPP_FROM` or `WHATSAPP_SENDER`. A message is only sent if the target user has a phone number on their profile and has toggled both the "Tenho WhatsApp" and "Quero receber mensagens por WhatsApp" switches. Without those env vars the WhatsApp path is a no-op.

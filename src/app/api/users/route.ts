@@ -1,7 +1,14 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { listUsers, createUser, updateUser, deleteUser } from '@/server/adapters/users-adapter';
+import {
+  listUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+  getUserById,
+  updateUserProfilePreferences,
+} from '@/server/adapters/users-adapter';
 
 type UpdatePayload = {
   id?: string;
@@ -12,7 +19,32 @@ type UpdatePayload = {
   supplierId?: string | null;
   department?: string | null;
   password?: string | null;
+  phone?: string | null;
+  hasWhatsapp?: boolean;
+  whatsappNotifications?: boolean;
 };
+
+function normalizePhoneInput(raw: unknown) {
+  if (raw === undefined) return undefined;
+  if (raw === null) return null;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    return trimmed === '' ? null : trimmed;
+  }
+  const coerced = String(raw).trim();
+  return coerced === '' ? null : coerced;
+}
+
+function normalizeBooleanInput(raw: unknown) {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw === 'boolean') return raw;
+  if (typeof raw === 'string') {
+    const value = raw.toLowerCase();
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+  }
+  return undefined;
+}
 
 export async function GET() {
   try {
@@ -40,7 +72,14 @@ export async function POST(request: Request) {
     }
 
     const created = await createUser({ name, email, password_hash: password || null, role });
-    const { password_hash: _ph, password: _pw, ...safe } = created || ({} as any);
+    await updateUserProfilePreferences(created.id, {
+      phone: normalizePhoneInput(body?.phone),
+      hasWhatsapp: normalizeBooleanInput(body?.hasWhatsapp),
+      whatsappNotifications: normalizeBooleanInput(body?.whatsappNotifications),
+    });
+    const refreshed = await getUserById(created.id);
+    const safeUser = refreshed ?? created;
+    const { password_hash: _ph, password: _pw, ...safe } = safeUser || ({} as any);
     return NextResponse.json(safe, { status: 201 });
   } catch (error) {
     console.error('Erro ao criar usuário:', error);
@@ -66,7 +105,19 @@ export async function PUT(request: Request) {
     const updated = await updateUser(id, patch);
     if (!updated) return NextResponse.json({ error: 'Usuário não encontrado ou nada para atualizar' }, { status: 404 });
 
-    const { password_hash: _ph, password: _pw, ...safe } = updated as any;
+    await updateUserProfilePreferences(id, {
+      phone: normalizePhoneInput(body.phone),
+      hasWhatsapp: normalizeBooleanInput(body.hasWhatsapp),
+      whatsappNotifications: normalizeBooleanInput(body.whatsappNotifications),
+    });
+
+    const refreshed = await getUserById(id);
+    const responseUser = refreshed ?? updated;
+    if (!responseUser) {
+      return NextResponse.json({ error: 'Usuário atualizado, mas não foi possível recarregá-lo' }, { status: 500 });
+    }
+
+    const { password_hash: _ph, password: _pw, ...safe } = responseUser as any;
     return NextResponse.json(safe);
   } catch (error) {
     console.error('Erro ao atualizar usuário:', error);
