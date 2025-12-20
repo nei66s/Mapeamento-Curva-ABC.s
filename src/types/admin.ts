@@ -173,12 +173,18 @@ export type ErrorLog = {
   statusCode?: number;
 };
 
+export type ConnectionInfo = {
+  key: string;
+  value: string | null;
+};
+
 export type HealthSnapshot = {
   status: 'healthy' | 'degraded' | 'down';
   uptimeSeconds: number;
   version: string;
   dependencies: DependencyHealth[];
   lastErrors: ErrorLog[];
+  connections?: ConnectionInfo[];
 };
 
 export type TrackingEventInput = {
