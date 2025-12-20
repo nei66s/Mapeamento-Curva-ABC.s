@@ -25,7 +25,8 @@ describe('users_full view (integration)', () => {
         );
         create table if not exists roles (id uuid primary key default gen_random_uuid(), name text);
         create table if not exists user_roles (user_id uuid, role_id uuid);
-        create table if not exists user_profile (user_id uuid primary key, extra jsonb);
+        -- ensure a `phone` column exists for compatibility with view SQL
+        create table if not exists user_profile (user_id uuid primary key, extra jsonb, phone text);
       `);
       // store schema name in global for cleanup
       // @ts-ignore

@@ -22,7 +22,7 @@ const chartConfig = {
   media: { label: "Média", color: "hsl(var(--chart-2))" },
   alta: { label: "Alta", color: "hsl(var(--chart-3))" },
   muitoAlta: { label: "Muito Alta", color: "hsl(var(--chart-4))" },
-  proporcao: { label: "Proporção % por Aging", color: "hsl(var(--chart-5))" },
+    proporcao: { label: "Proporção % por Aging", color: "hsl(var(--foreground))" },
 };
 
 export function AgingChart({ data }: AgingChartProps) {
@@ -52,6 +52,26 @@ export function AgingChart({ data }: AgingChartProps) {
             proporcao: totalChamados > 0 ? (totalInRange / totalChamados) * 100 : 0,
         };
     });
+
+        // Custom label renderer to show a small adaptive background and slightly larger, bolder, monospace numbers
+        const ProporcaoLabel = (props: any) => {
+            const { x, y, value } = props;
+            if (value === undefined || value === null) return null;
+            const text = `${Number(value).toFixed(2)}%`;
+            const fontSize = 11;
+            const paddingX = 8;
+            const paddingY = 4;
+            const estWidth = Math.max(36, text.length * (fontSize * 0.6));
+            const rectX = (x ?? 0) + 8;
+            const rectY = (y ?? 0) - fontSize - paddingY - 2;
+
+            return (
+                <g>
+                    <rect x={rectX} y={rectY} width={estWidth + paddingX} height={fontSize + paddingY * 2} fill="var(--surface-background)" stroke="var(--surface-border)" rx={6} />
+                    <text x={rectX + paddingX / 2} y={(rectY + fontSize + paddingY)} fontSize={fontSize} fontWeight={600} fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Segoe UI Mono', 'Noto Mono', monospace" fill="var(--color-foreground)">{text}</text>
+                </g>
+            );
+        }
 
   return (
     <Card>
@@ -116,16 +136,16 @@ export function AgingChart({ data }: AgingChartProps) {
                 />
                 <Legend />
                 <Bar yAxisId="left" dataKey="baixa" fill={chartConfig.baixa.color} name="Baixa" radius={[4, 4, 0, 0]}>
-                    <LabelList dataKey="baixa" position="top" className="fill-foreground" fontSize={11} />
+                    <LabelList dataKey="baixa" position="top" className="fill-foreground font-mono font-medium text-xs" fontSize={12} />
                 </Bar>
                 <Bar yAxisId="left" dataKey="media" fill={chartConfig.media.color} name="Média" radius={[4, 4, 0, 0]}>
-                    <LabelList dataKey="media" position="top" className="fill-foreground" fontSize={11} />
+                    <LabelList dataKey="media" position="top" className="fill-foreground font-mono font-medium text-xs" fontSize={12} />
                 </Bar>
                 <Bar yAxisId="left" dataKey="alta" fill={chartConfig.alta.color} name="Alta" radius={[4, 4, 0, 0]}>
-                    <LabelList dataKey="alta" position="top" className="fill-foreground" fontSize={11} />
+                    <LabelList dataKey="alta" position="top" className="fill-foreground font-mono font-medium text-xs" fontSize={12} />
                 </Bar>
                 <Bar yAxisId="left" dataKey="muitoAlta" fill={chartConfig.muitoAlta.color} name="Muito Alta" radius={[4, 4, 0, 0]}>
-                    <LabelList dataKey="muitoAlta" position="top" className="fill-foreground" fontSize={11} />
+                    <LabelList dataKey="muitoAlta" position="top" className="fill-foreground font-mono font-medium text-xs" fontSize={12} />
                 </Bar>
                 <Line 
                     yAxisId="right" 
@@ -133,16 +153,12 @@ export function AgingChart({ data }: AgingChartProps) {
                     dataKey="proporcao"
                     stroke={chartConfig.proporcao.color}
                     strokeWidth={2}
-                    dot={{ r: 5 }}
+                    dot={{ r: 5, stroke: chartConfig.proporcao.color, strokeWidth: 1, fill: chartConfig.proporcao.color }}
                     name="Proporção %"
                 >
                     <LabelList 
                         dataKey="proporcao" 
-                        position="top" 
-                        offset={8} 
-                        formatter={(value: number) => `${value.toFixed(2)}%`}
-                        className="fill-foreground font-medium"
-                        fontSize={12}
+                        content={ProporcaoLabel}
                     />
                 </Line>
             </ComposedChart>

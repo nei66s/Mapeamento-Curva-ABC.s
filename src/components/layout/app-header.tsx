@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationCenter } from "@/components/layout/notification-center";
 import { UserNav } from "@/components/layout/user-nav";
+import { ActivityHistoryPanel } from "@/components/layout/activity-history";
 import { Separator } from "../ui/separator";
 // logo removed per UI request
 import { ThemeToggle } from "./theme-toggle";
@@ -235,6 +236,7 @@ export default function AppHeader({ onToggleSidebar, sidebarVisible, sidebarMode
         Fixly
       </div>
       <div className="relative ml-auto flex items-center gap-2">
+        <ActivityHistoryPanel />
         <NotificationCenter />
         <ThemeToggle />
         <UserNav />

@@ -23,11 +23,11 @@ const chartConfig = {
   },
   solucionados: {
     label: "Solucionados",
-    color: "hsl(var(--chart-2))",
+    color: "hsl(var(--chart-3))",
   },
   backlog: {
     label: "Backlog",
-    color: "hsl(var(--destructive))",
+    color: "hsl(var(--chart-4))",
   },
 };
 
@@ -117,11 +117,11 @@ export function CallsChart({ data }: CallsChartProps) {
                     name="Backlog"
                 >
                     <LabelList 
-                        dataKey="backlog" 
-                        position="top"
-                        offset={8}
-                        formatter={(value: number) => (value === maxBacklog || value === minBacklog) ? value.toLocaleString() : ''}
-                        className="fill-destructive font-medium text-xs"
+                      dataKey="backlog" 
+                      position="top"
+                      offset={8}
+                      formatter={(value: number) => (value === maxBacklog || value === minBacklog) ? value.toLocaleString() : ''}
+                      className="fill-foreground font-medium text-xs"
                     />
                 </Line>
             </ComposedChart>
