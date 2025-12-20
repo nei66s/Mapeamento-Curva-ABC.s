@@ -123,8 +123,8 @@ export function SlaChart({ data }: SlaChartProps) {
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[300px] w-full">
             <LineChart
-                data={chartData} 
-                margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
+              data={chartData} 
+              margin={{ top: 20, right: 10, left: -20, bottom: 40 }}
             >
                 <defs>
                   <linearGradient id="slaGradient" x1="0" y1="0" x2="0" y2="1">
@@ -138,7 +138,7 @@ export function SlaChart({ data }: SlaChartProps) {
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tick={{ angle: -20, textAnchor: 'end', dy: 6 } as any}
+                  tick={{ angle: -20, textAnchor: 'end', dy: 12 } as any}
                   interval={0}
                 />
         <YAxis 
