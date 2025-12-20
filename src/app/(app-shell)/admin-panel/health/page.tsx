@@ -15,7 +15,8 @@ import { Activity, AlertTriangle } from 'lucide-react';
 function formatUptime(seconds: number) {
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
-  return `${days}d ${hours}h`;
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return `${days}d ${hours}h ${minutes}m`;
 }
 
 export default function HealthPage() {
@@ -32,8 +33,24 @@ export default function HealthPage() {
             <CardDescription>Uptime e versão do backend.</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant={health.data?.status === 'healthy' ? 'secondary' : 'destructive'}>
-              {health.data?.status || '—'}
+            {/* Combined status from supabase + ia */}
+            <Badge
+              variant={
+                (() => {
+                  const deps = health.data?.dependencies || [];
+                  const sup = deps.find((d: any) => d.name === 'supabase')?.status;
+                  const ia = deps.find((d: any) => d.name === 'ia')?.status;
+                  const combined = sup === 'healthy' && ia === 'healthy' ? 'healthy' : (sup === 'healthy' || ia === 'healthy') ? 'degraded' : 'down';
+                  return combined === 'healthy' ? 'secondary' : 'destructive';
+                })()
+              }
+            >
+              {(() => {
+                const deps = health.data?.dependencies || [];
+                const sup = deps.find((d: any) => d.name === 'supabase')?.status;
+                const ia = deps.find((d: any) => d.name === 'ia')?.status;
+                return sup === 'healthy' && ia === 'healthy' ? 'healthy' : (sup === 'healthy' || ia === 'healthy') ? 'degraded' : 'down';
+              })()}
             </Badge>
             <Badge variant="outline">Versão {health.data?.version || '—'}</Badge>
             <Badge variant="outline">Uptime {health.data ? formatUptime(health.data.uptimeSeconds) : '—'}</Badge>
@@ -50,6 +67,21 @@ export default function HealthPage() {
                 Última checagem: {dep.lastChecked ? new Date(dep.lastChecked).toLocaleString('pt-BR') : '—'} · Latência {dep.latencyMs ?? '—'}ms
               </div>
               {dep.details && <div className="text-xs text-amber-600 dark:text-amber-400">{dep.details}</div>}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Conexões</CardTitle>
+          <CardDescription>Variáveis de conexão importadas (valores mascarados).</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {(health.data?.connections || []).map((c: { key: string; value: string | null }) => (
+            <div key={c.key} className="rounded-lg border p-3 flex items-center justify-between">
+              <div className="font-semibold">{c.key}</div>
+              <div className="text-sm text-muted-foreground">{c.value || '—'}</div>
             </div>
           ))}
         </CardContent>
