@@ -79,8 +79,10 @@ export async function middleware(req: NextRequest) {
   // Redirect root to login to avoid rendering the app-shell root page
   // (some deployments may miss client reference manifests for this page)
   if (path === '/') {
+    const accessToken = extractAccessToken(req);
+    const tokenValid = accessToken ? verifyAccessToken(accessToken).valid : false;
     const url = nextUrl.clone();
-    url.pathname = '/login';
+    url.pathname = tokenValid ? '/indicators' : '/login';
     return NextResponse.redirect(url);
   }
   // allow public/internal asset routes to pass through
