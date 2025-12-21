@@ -12,6 +12,7 @@
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "cross-env NODE_ENV=production next build",
     "postbuild": "node scripts/fix-missing-manifests.js",
+    "prestart": "node scripts/fix-missing-manifests.js",
     "start": "next start",
     "lint": "eslint \"middleware.ts\" \"src\" \"tests\" \"scripts\" --ext .ts,.tsx,.js,.jsx",
     "typecheck": "tsc --noEmit",
