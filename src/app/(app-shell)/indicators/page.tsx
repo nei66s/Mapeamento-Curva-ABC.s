@@ -478,7 +478,7 @@ export default function IndicatorsPage() {
         helper: selectedData ? `Meta ${selectedData.meta_sla ?? '—'}%` : 'Meta indisponível',
       },
     ];
-  }, [openIncidentsCount, selectedData]);
+  }, [currentIndicator, selectedData, incidentsForCurrentMonth.length, currentYm, solvedIncidentsCountCurrent, openIncidentsCountCurrent]);
 
   const quickHighlights = useMemo(() => [
     {

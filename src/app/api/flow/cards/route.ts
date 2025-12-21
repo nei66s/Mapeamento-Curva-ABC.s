@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   const openIncidents = incidents.filter((item) => item.status === 'Aberto' || item.status === 'Em Andamento').length;
   const resolvedIncidents = incidents.filter((item) => item.status === 'Resolvido' || item.status === 'Fechado').length;
 
-  const openRncs = rncs.filter((rnc) => rnc.status === 'Aberta' || rnc.status === 'Em AnÁlise').length;
+  const openRncs = rncs.filter((rnc) => rnc.status === 'Aberta' || rnc.status === 'Em Análise').length;
   const closedRncs = rncs.length - openRncs;
 
   const pendingVisits = filteredVisits.filter((visit) =>

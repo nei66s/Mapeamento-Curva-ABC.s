@@ -5,9 +5,10 @@ export const metadata = {
 }
 
 // This page reads ?token=... from the URL and passes it to the client form
-export default function Page({ searchParams }: { searchParams?: { token?: string; returnTo?: string } }) {
-  const token = searchParams?.token ?? null
-  const returnTo = searchParams?.returnTo ?? null
+export default async function Page({ searchParams }: { searchParams?: any }) {
+  const sp = await searchParams;
+  const token = sp?.token ?? null
+  const returnTo = sp?.returnTo ?? null
   return (
     <main style={{ padding: 24 }}>
       <h1>Redefinir senha</h1>

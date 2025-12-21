@@ -103,11 +103,13 @@ export default function EscoposPageClient() {
     [stores, selectedStoreId]
   );
 
+  const selectedStoreName = selectedStore?.name ?? null;
+
   const scopeContext = useMemo(() => {
-    const storeLabel = selectedStore?.name ?? 'Loja não informada';
+    const storeLabel = selectedStoreName ?? 'Loja não informada';
     const requesterLabel = requester.trim() || 'Solicitante não informado';
     return `Escopo: ${scopeName || 'Novo escopo'} • Loja: ${storeLabel} • Solicitante: ${requesterLabel}`;
-  }, [scopeName, selectedStore?.id, selectedStore?.name, requester]);
+  }, [scopeName, selectedStoreId, requester, selectedStoreName]);
 
   const preferenceText = useMemo(() => {
     return aiPreference === 'detail'

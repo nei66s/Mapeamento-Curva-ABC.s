@@ -122,11 +122,11 @@ function usePriceSimulator() {
     }
   }, [form, editableBreakdown, selectedScenarioIndex, tableReference, result])
 
-  const updateForm = (patch: Partial<FormState>) => {
+  const updateForm = useCallback((patch: Partial<FormState>) => {
     setForm((prev) => ({ ...prev, ...patch }))
-  }
+  }, [])
 
-  const makeAutoTitle = () => {
+  const makeAutoTitle = useCallback(() => {
     if (form.tipo === 'equipamento') {
       const parts = [form.equipamentoMarca, form.equipamentoModelo].filter(Boolean)
       return parts.join(' ') || 'Reparo/serviço em equipamento'
@@ -135,7 +135,7 @@ function usePriceSimulator() {
       return form.area_m2 > 0 ? `Obra civil ~${form.area_m2}m²` : 'Serviço civil / obra'
     }
     return 'Serviço de manutenção'
-  }
+  }, [form.tipo, form.equipamentoMarca, form.equipamentoModelo, form.area_m2])
 
   const updateClarify = (patch: Record<string, any>) => {
     setClarifyAnswers((previous) => ({ ...previous, ...patch }))
@@ -302,13 +302,13 @@ function usePriceSimulator() {
     } catch (e) {
       setSuggestedHours(null)
     }
-  }, [form.tipo, form.quantidade, form.area_m2, form.complexidade, result])
+  }, [form.tipo, form.quantidade, form.area_m2, form.complexidade, form.materialQualidade, form.precisaAlvara, result])
 
   useEffect(() => {
     if (!hoursManuallyEdited && suggestedHours !== null) {
       updateForm({ estimativaEquipeHoras: Number(suggestedHours) })
     }
-  }, [suggestedHours, hoursManuallyEdited])
+  }, [suggestedHours, hoursManuallyEdited, updateForm])
 
   const manualEstimate = useMemo(
     () => editableBreakdown.reduce((sum, item) => sum + (Number(item.amount) || 0), 0),
