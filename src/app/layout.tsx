@@ -33,7 +33,7 @@ export default async function RootLayout({
   // Try to read userId from cookie (set at login). If present, load server-side settings.
   let serverSettings = null;
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const userId = cookieStore.get('userId')?.value;
     if (userId) {
       serverSettings = await getUserSettings(String(userId));
