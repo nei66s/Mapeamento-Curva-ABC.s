@@ -6,7 +6,8 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
-    exclude: ['tests/e2e/**', 'playwright.config.*'],
+    // Exclude external packages and heavy folders to avoid running tests from node_modules
+    exclude: ['tests/e2e/**', 'playwright.config.*', '**/node_modules/**', 'node_modules', '.next', 'dist'],
   },
   resolve: {
     alias: {

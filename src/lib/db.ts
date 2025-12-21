@@ -9,7 +9,19 @@
 import { execFileSync } from 'child_process';
 import { Pool } from 'pg';
 // initialize server-side error logger (registers process handlers)
-import '@/server/error-logger';
+// Try path-alias import first (works inside Next/ts-node with path support),
+// fall back to a relative require so plain Node runs (scripts) still work.
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  require('@/server/error-logger');
+} catch (e) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    require('../server/error-logger');
+  } catch (err) {
+    // If both fail, swallow — DB should still throw meaningful errors later.
+  }
+}
 
 // Basic Pool with optional instrumentation. When DB_LOG_QUERIES is set to 'true',
 // we log query durations (ms) to help identify slow queries.
@@ -80,11 +92,15 @@ const poolConfig = (() => {
   }
 
   const resolved = resolveHostname(hostname);
-  console.info('[db] DATABASE_URL host resolved', {
-    hostname,
-    resolvedAddress: resolved.address,
-    resolvedFamily: resolved.family,
-  });
+  // Only log hostname resolution when explicitly requested. Use `DB_LOG_QUERIES`
+  // to enable query timing logs or `SHOW_DB_RESOLVE=true` to enable this message.
+  if (process.env.DB_LOG_QUERIES === 'true' || process.env.SHOW_DB_RESOLVE === 'true') {
+    console.info('[db] DATABASE_URL host resolved', {
+      hostname,
+      resolvedAddress: resolved.address,
+      resolvedFamily: resolved.family,
+    });
+  }
 
   return {
     connectionString: databaseUrl,
