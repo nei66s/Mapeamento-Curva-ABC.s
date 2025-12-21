@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 import path from 'path';
 import { fileURLToPath } from 'url';
+import webpack from 'webpack';
 
 // ESM-safe __dirname
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -100,6 +101,13 @@ const nextConfig = {
         module: /require-in-the-middle/,
         message: /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
       });
+
+      // Replace @opentelemetry imports on the client with a small noop module to
+      // avoid webpack attempting to bundle server-only dynamic requires.
+      config.plugins = config.plugins || [];
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(/@opentelemetry\/.*/, path.resolve(__dirname, 'src/empty-opentelemetry-client.js'))
+      );
     }
     // Externalize pg for server-side
     if (isServer) {

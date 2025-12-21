@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { applySeasonTheme } from '@/lib/season-theme-utils';
 import { getSeasonSnapshot } from '@/lib/season';
 
 export function SeasonStatus() {
-  const { seasonLabel, seasonNote, activeEvent, theme } = useMemo(() => getSeasonSnapshot(), []);
+  const { seasonLabel, seasonNote, activeEvent, theme } = getSeasonSnapshot();
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
