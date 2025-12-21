@@ -76,14 +76,9 @@ function getModuleId(path: string) {
 export async function middleware(req: NextRequest) {
   const { nextUrl } = req;
   const path = nextUrl.pathname;
-  // Redirect root to login to avoid rendering the app-shell root page
-  // (some deployments may miss client reference manifests for this page)
+  // Let Vercel handle root redirect at the edge; do not intercept '/'
   if (path === '/') {
-    const accessToken = extractAccessToken(req);
-    const tokenValid = accessToken ? verifyAccessToken(accessToken).valid : false;
-    const url = nextUrl.clone();
-    url.pathname = tokenValid ? '/indicators' : '/login';
-    return NextResponse.redirect(url);
+    return NextResponse.next();
   }
   // allow public/internal asset routes to pass through
   if (
@@ -176,7 +171,7 @@ export async function middleware(req: NextRequest) {
     }
     if (sessionRes.status === 403) {
       const url = nextUrl.clone();
-      url.pathname = '/';
+      url.pathname = '/indicators';
       return NextResponse.redirect(url);
     }
     let sessionJson: any = null;

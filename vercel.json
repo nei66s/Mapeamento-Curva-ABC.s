@@ -4,5 +4,12 @@
     { "src": "package.json", "use": "@vercel/next" }
   ],
   "routes": [],
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/login",
+      "permanent": true
+    }
+  ],
   "buildCommand": "npm run build"
 }
