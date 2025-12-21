@@ -1,3 +1,5 @@
+// Ensure client manifest fallback runs on server before other server code
+import '@/lib/ensure-client-manifest.server';
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import type { Metadata } from 'next';
 import './globals.css';
