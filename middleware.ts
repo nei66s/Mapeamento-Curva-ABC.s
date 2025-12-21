@@ -3,6 +3,29 @@ import type { NextRequest } from 'next/server';
 import { cloneDefaultPermissions } from './src/lib/permissions-config';
 import { verifyAccessToken } from './src/lib/auth/jwt';
 
+const IDLE_SESSION_TIMEOUT_SECONDS = Number(process.env.IDLE_SESSION_TIMEOUT_SECONDS ?? 0);
+
+function attachLastActiveCookie(res: NextResponse, nowSec?: number) {
+  if (!IDLE_SESSION_TIMEOUT_SECONDS) return res;
+  const now = nowSec ?? Math.floor(Date.now() / 1000);
+  res.cookies.set('pm_last_active', String(now), {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: IDLE_SESSION_TIMEOUT_SECONDS,
+  });
+  return res;
+}
+
+function clearAuthCookies(res: NextResponse) {
+  const opts = { path: '/', maxAge: 0 } as any;
+  res.cookies.set('pm_access_token', '', opts);
+  res.cookies.set('pm_refresh_token', '', opts);
+  res.cookies.set('pm_user', '', opts);
+  res.cookies.set('pm_last_active', '', opts);
+  return res;
+}
+
 function extractAccessToken(req: NextRequest) {
   const cookieToken = req.cookies.get('pm_access_token')?.value;
   const headerToken = req.headers.get('authorization')?.replace('Bearer ', '');
@@ -117,6 +140,20 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Idle-session check: if enabled and last active exceeds timeout, force logout
+  if (IDLE_SESSION_TIMEOUT_SECONDS) {
+    const lastActive = Number(req.cookies.get('pm_last_active')?.value || '0');
+    const now = Math.floor(Date.now() / 1000);
+    if (lastActive && now - lastActive > IDLE_SESSION_TIMEOUT_SECONDS) {
+      const url = nextUrl.clone();
+      url.pathname = '/login';
+      try { url.searchParams.set('returnTo', path); } catch (e) {}
+      const res = NextResponse.redirect(url);
+      clearAuthCookies(res);
+      return res;
+    }
+  }
+
   const moduleId = getModuleId(path);
   const isAdminRoute = path.startsWith('/admin-panel');
 
@@ -148,10 +185,10 @@ export async function middleware(req: NextRequest) {
         return NextResponse.redirect(url);
       }
     }
-    return NextResponse.next();
+    return attachLastActiveCookie(NextResponse.next());
   }
 
-  return NextResponse.next();
+  return attachLastActiveCookie(NextResponse.next());
 }
 
 export const config = {

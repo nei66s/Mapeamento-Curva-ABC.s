@@ -7,9 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig = {
   /* config options here */
-  // Note: `outputFileTracingRoot` removed — Next.js no longer accepts this key
-  // to avoid the 'Unrecognized key' warning. If you need custom tracing root,
-  // manage it via Next.js server configuration or environment settings.
+  // Ensure Next.js uses this repository as the tracing root. This prevents
+  // Next.js from inferring a parent folder (e.g. C:\Users\neiol) when
+  // multiple lockfiles exist and silences the related warning.
+  outputFileTracingRoot: __dirname,
   typescript: {
     // Temporarily ignore TypeScript build errors to allow production
     // builds while we address typing mismatches caused by dependency
