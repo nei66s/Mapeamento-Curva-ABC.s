@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
         const mime: string | null = row.avatar_mime ?? null;
 
         if (data && mime) {
-          return new NextResponse(data, {
+          return new NextResponse(new Uint8Array(data as Buffer), {
             status: 200,
             headers: {
               'Content-Type': mime,
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
                 : ext === '.jpg' || ext === '.jpeg'
                 ? 'image/jpeg'
                 : 'application/octet-stream';
-            return new NextResponse(buffer, { status: 200, headers: { 'Content-Type': contentType } });
+            return new NextResponse(new Uint8Array(buffer as Buffer), { status: 200, headers: { 'Content-Type': contentType } });
           } catch (err) {
             // fall through to 404
           }

@@ -1,23 +1,32 @@
 // Ensure a minimal clientReferenceManifest singleton exists on the server
-// This is a guarded fallback to avoid Next.js throwing when the build
-// does not populate client reference manifests correctly.
+// Provide a resilient fallback that returns an empty manifest for any route
+// so Next's runtime can safely access client references during module eval.
 const sym = Symbol.for('next.server.action-manifests');
 
-if (!globalThis[sym]) {
-  // Populate a minimal structure. Keys are common route forms used by the app.
-  globalThis[sym] = {
-    clientReferenceManifestsPerPage: {
-      '/': {
-        clientModules: {},
-        edgeRscModuleMapping: {},
-        rscModuleMapping: {},
-      },
-      '/(app-shell)/page': {
-        clientModules: {},
-        edgeRscModuleMapping: {},
-        rscModuleMapping: {},
-      },
+if (!(globalThis as any)[sym]) {
+  const emptyManifest = () => ({
+    clientModules: {},
+    edgeRscModuleMapping: {},
+    rscModuleMapping: {},
+  });
+
+  const clientReferenceManifestsPerPage = new Proxy(Object.create(null), {
+    get(_target, _prop) {
+      return emptyManifest();
     },
+    has() {
+      return true;
+    },
+    ownKeys() {
+      return [];
+    },
+    getOwnPropertyDescriptor() {
+      return { configurable: true, enumerable: true, value: emptyManifest() };
+    },
+  });
+
+  (globalThis as any)[sym] = {
+    clientReferenceManifestsPerPage,
     serverActionsManifest: {},
     serverModuleMap: {},
   };
