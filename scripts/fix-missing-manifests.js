@@ -53,4 +53,25 @@ for (const nftPath of nftFiles) {
 }
 
 console.log(`Done. Created ${created} stub manifest(s).`);
-process.exit(created>0?0:0);
+
+// Patch compiled page routes to use fallback manifest
+function patchCompiledRoutes() {
+  const pagePath = path.join(root, '.next', 'server', 'app', '(app-shell)', 'page.js');
+  if (!fs.existsSync(pagePath)) return 0;
+  
+  let content = fs.readFileSync(pagePath, 'utf8');
+  const before = 'serverActionsManifest:X,clientReferenceManifest:Y,setIsrStatus:';
+  const after = 'serverActionsManifest:X,clientReferenceManifest:Y??{clientModules:{},edgeRscModuleMapping:{},rscModuleMapping:{}},setIsrStatus:';
+  
+  if (content.includes(before) && !content.includes(after)) {
+    content = content.replace(before, after);
+    fs.writeFileSync(pagePath, content, 'utf8');
+    console.log('Patched app-shell page.js with manifest fallback');
+    return 1;
+  }
+  return 0;
+}
+
+const patched = patchCompiledRoutes();
+console.log(`Patched ${patched} route(s).`);
+process.exit(0);
