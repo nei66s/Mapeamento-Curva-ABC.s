@@ -3,6 +3,7 @@ import '@/lib/ensure-client-manifest.server';
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import type { Metadata } from 'next';
 import './globals.css';
+import { Inter, Lexend, Source_Code_Pro } from 'next/font/google';
 import { Toaster } from '@/components/ui/toaster';
 import LeftEdgeListener from '@/components/layout/left-edge-listener.client';
 import type { ReactNode } from 'react';
@@ -50,23 +51,17 @@ export default async function RootLayout({
 
   // Inline script will prefer server-provided settings when available, otherwise fall back to localStorage.
   const inlineScript = `(function(){try{var server=${JSON.stringify(ss)};var stored=localStorage.getItem('theme')||'light';var prefer=(server&&server.theme)||stored;document.documentElement.classList.toggle('dark', prefer==='dark');document.documentElement.setAttribute('data-theme', prefer);localStorage.setItem('theme', prefer);}catch(e){}})();`;
+  const inter = Inter({ subsets: ['latin'], weight: ['400','500','600','700'], display: 'swap' });
+  const lexend = Lexend({ subsets: ['latin'], weight: ['600','700','800'], display: 'swap' });
+  const sourceCodePro = Source_Code_Pro({ subsets: ['latin'], display: 'swap' });
+
   return (
     <html lang="en" suppressHydrationWarning data-theme="light">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script dangerouslySetInnerHTML={{ __html: inlineScript }} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@600;700;800&display=swap"
-          rel="stylesheet"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap"
-          rel="stylesheet"
-        />
       </head>
-      <body className="font-body antialiased">
+      <body className={`${inter.className} ${lexend.className} ${sourceCodePro.className} font-body antialiased`}>
         <AppProviders>
           <LeftEdgeListener threshold={48} />
           {children}
