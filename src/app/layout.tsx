@@ -4,12 +4,13 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 import type { Metadata } from 'next';
 import './globals.css';
 import { Inter, Lexend, Source_Code_Pro } from 'next/font/google';
+// Font loaders must be called at module scope (Next.js requirement).
+const inter = Inter({ subsets: ['latin'], weight: ['400','500','600','700'], display: 'swap' });
+const lexend = Lexend({ subsets: ['latin'], weight: ['600','700','800'], display: 'swap' });
+const sourceCodePro = Source_Code_Pro({ subsets: ['latin'], display: 'swap' });
 import { Toaster } from '@/components/ui/toaster';
 import LeftEdgeListener from '@/components/layout/left-edge-listener.client';
-import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
-// Ensure client manifest fallback runs on server before other server code
-import '@/lib/ensure-client-manifest.server';
 import { getUserSettings } from '@/lib/settings.server';
 import { AppProviders } from '@/components/providers/app-providers';
 
@@ -32,7 +33,7 @@ export default async function RootLayout({
   // Try to read userId from cookie (set at login). If present, load server-side settings.
   let serverSettings = null;
   try {
-    const cookieStore = await cookies();
+    const cookieStore = cookies();
     const userId = cookieStore.get('userId')?.value;
     if (userId) {
       serverSettings = await getUserSettings(String(userId));
@@ -51,9 +52,6 @@ export default async function RootLayout({
 
   // Inline script will prefer server-provided settings when available, otherwise fall back to localStorage.
   const inlineScript = `(function(){try{var server=${JSON.stringify(ss)};var stored=localStorage.getItem('theme')||'light';var prefer=(server&&server.theme)||stored;document.documentElement.classList.toggle('dark', prefer==='dark');document.documentElement.setAttribute('data-theme', prefer);localStorage.setItem('theme', prefer);}catch(e){}})();`;
-  const inter = Inter({ subsets: ['latin'], weight: ['400','500','600','700'], display: 'swap' });
-  const lexend = Lexend({ subsets: ['latin'], weight: ['600','700','800'], display: 'swap' });
-  const sourceCodePro = Source_Code_Pro({ subsets: ['latin'], display: 'swap' });
 
   return (
     <html lang="en" suppressHydrationWarning data-theme="light">
