@@ -5,6 +5,8 @@ import { Toaster } from '@/components/ui/toaster';
 import LeftEdgeListener from '@/components/layout/left-edge-listener.client';
 import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
+// Ensure client manifest fallback runs on server before other server code
+import '@/lib/ensure-client-manifest.server';
 import { getUserSettings } from '@/lib/settings.server';
 import { AppProviders } from '@/components/providers/app-providers';
 
