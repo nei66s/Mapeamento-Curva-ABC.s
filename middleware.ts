@@ -76,6 +76,13 @@ function getModuleId(path: string) {
 export async function middleware(req: NextRequest) {
   const { nextUrl } = req;
   const path = nextUrl.pathname;
+  // Redirect root to login to avoid rendering the app-shell root page
+  // (some deployments may miss client reference manifests for this page)
+  if (path === '/') {
+    const url = nextUrl.clone();
+    url.pathname = '/login';
+    return NextResponse.redirect(url);
+  }
   // allow public/internal asset routes to pass through
   if (
     path.startsWith('/_next') ||
