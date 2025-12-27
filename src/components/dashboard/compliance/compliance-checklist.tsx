@@ -50,9 +50,9 @@ interface ComplianceChecklistProps {
 }
 
 const statusIcon: Record<ComplianceStatus, React.ReactNode> = {
-    completed: <CheckCircle2 className="h-5 w-5 text-green-500" />,
-    pending: <XCircle className="h-5 w-5 text-destructive" />,
-    'not-applicable': <CircleSlash className="h-5 w-5 text-muted-foreground" />
+  completed: <CheckCircle2 className="h-5 w-5 text-green-500" aria-hidden />,
+  pending: <XCircle className="h-5 w-5 text-destructive" aria-hidden />,
+  'not-applicable': <CircleSlash className="h-5 w-5 text-muted-foreground" aria-hidden />
 };
 
 const statusLabel: Record<ComplianceStatus, string> = {
@@ -129,9 +129,10 @@ export function ComplianceChecklist({
                           <div className="flex items-center justify-between">
                             <span className="truncate">{store.storeName}</span>
                              <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive">
-                                  <Trash2 className="h-4 w-4" />
+                                <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" aria-label={`Excluir visita agendada para ${store.storeName}`}>
+                                  <Trash2 className="h-4 w-4" aria-hidden />
+                                  <span className="sr-only">Excluir visita agendada</span>
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
@@ -158,9 +159,9 @@ export function ComplianceChecklist({
                             <TableCell key={checklistItem.id} className="text-center">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <button className="flex items-center justify-center w-full h-full p-2 rounded-md hover:bg-muted">
+                                        <button className="flex items-center justify-center w-full h-full p-2 rounded-md hover:bg-muted" aria-label={`Status: ${statusLabel[currentStatus]}`}>
                                             {statusIcon[currentStatus]}
-                                        </button>
+                                          </button>
                                     </DropdownMenuTrigger>
           <DropdownMenuContent>
           {STATUSES.map(status => (

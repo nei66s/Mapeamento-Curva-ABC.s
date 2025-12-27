@@ -340,9 +340,11 @@ export default function AppSidebar({ visible, onRequestClose, onMouseEnter, onMo
   useEffect(() => {
     if (backdropRef.current) {
       backdropRef.current.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      if (!visible) backdropRef.current.setAttribute('inert', ''); else backdropRef.current.removeAttribute('inert');
     }
     if (asideRef.current) {
       asideRef.current.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      if (!visible) asideRef.current.setAttribute('inert', ''); else asideRef.current.removeAttribute('inert');
     }
   }, [visible]);
 
