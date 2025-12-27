@@ -326,7 +326,7 @@ export default function IndicatorsPage() {
     }
   }, []);
 
-  const seasonSnapshot = useMemo(() => getSeasonSnapshot(), []);
+  const seasonSnapshot = getSeasonSnapshot();
   const { theme } = seasonSnapshot;
 
   useEffect(() => {

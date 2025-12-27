@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo } from 'react';
 import { getSeasonSnapshot } from '@/lib/season';
 
 export function SidebarSeasonCard() {
-  const { seasonLabel, seasonNote, activeEvent, theme } = useMemo(() => getSeasonSnapshot(), []);
+  const { seasonLabel, seasonNote, activeEvent, theme } = getSeasonSnapshot();
   return (
     <div className="space-y-3 rounded-3xl border border-white/10 bg-slate-900/65 p-4 shadow-[0_20px_60px_rgba(2,6,23,0.45)]">
       <div className="rounded-2xl border border-white/10 bg-slate-900/40 px-3 py-2 text-[0.65rem] uppercase tracking-[0.3em] text-slate-300">
