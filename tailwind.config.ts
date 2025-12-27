@@ -8,11 +8,24 @@ export default {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    fontWeight: {
+      normal: '400',
+      medium: '500',
+      semibold: '700',
+      bold: '700',
+      extrabold: '700',
+      black: '700',
+    },
+    fontFamily: {
+      sans: ['var(--font-body)'],
+      mono: ['var(--font-body)'],
+      serif: ['var(--font-body)'],
+    },
     extend: {
       fontFamily: {
-        body: ['var(--font-body)', 'Inter', 'sans-serif'],
-        headline: ['var(--font-headline)', 'Lexend', 'Inter', 'sans-serif'],
-        code: ['var(--font-code)', 'Source Code Pro', 'monospace'],
+        body: ['var(--font-body)'],
+        headline: ['var(--font-headline)'],
+        code: ['var(--font-code)'],
       },
       colors: {
         background: 'hsl(var(--background))',

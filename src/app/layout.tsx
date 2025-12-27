@@ -1,13 +1,16 @@
-// Ensure client manifest fallback runs on server before other server code
+﻿// Ensure client manifest fallback runs on server before other server code
 import '@/lib/ensure-client-manifest.server';
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import type { Metadata } from 'next';
 import './globals.css';
-import { Inter, Lexend, Source_Code_Pro } from 'next/font/google';
+import { Roboto } from 'next/font/google';
 // Font loaders must be called at module scope (Next.js requirement).
-const inter = Inter({ subsets: ['latin'], weight: ['400','500','600','700'], display: 'swap' });
-const lexend = Lexend({ subsets: ['latin'], weight: ['600','700','800'], display: 'swap' });
-const sourceCodePro = Source_Code_Pro({ subsets: ['latin'], display: 'swap' });
+const roboto = Roboto({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['400', '500', '700'],
+  display: 'swap',
+  variable: '--font-roboto',
+});
 import { Toaster } from '@/components/ui/toaster';
 import LeftEdgeListener from '@/components/layout/left-edge-listener.client';
 import { cookies } from 'next/headers';
@@ -54,12 +57,11 @@ export default async function RootLayout({
   const inlineScript = `(function(){try{var server=${JSON.stringify(ss)};var stored=localStorage.getItem('theme')||'light';var prefer=(server&&server.theme)||stored;document.documentElement.classList.toggle('dark', prefer==='dark');document.documentElement.setAttribute('data-theme', prefer);localStorage.setItem('theme', prefer);}catch(e){}})();`;
 
   return (
-    <html lang="en" suppressHydrationWarning data-theme="light">
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <html lang="pt-BR" suppressHydrationWarning data-theme="light" className={roboto.variable}>
+      <head>\r\n        <meta charSet="utf-8" />\r\n        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script dangerouslySetInnerHTML={{ __html: inlineScript }} />
       </head>
-      <body className={`${inter.className} ${lexend.className} ${sourceCodePro.className} font-body antialiased`}>
+      <body className="font-body antialiased">
         <AppProviders>
           <LeftEdgeListener threshold={48} />
           {children}

@@ -4,9 +4,10 @@
 
 @layer base {
   :root {
-    --font-body: 'Inter', sans-serif;
-    --font-headline: 'Lexend', 'Inter', sans-serif;
-    --font-code: 'Source Code Pro', monospace;
+    --font-body: var(--font-roboto, "Roboto"), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    --font-headline: var(--font-roboto, "Roboto"), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    --font-code: var(--font-roboto, "Roboto"), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    --font-icon: "Material Icons", "Material Icons Outlined", "Font Awesome 6 Free", "Font Awesome 6 Brands", sans-serif;
     --text-h1: 2.25rem;
     --text-h2: 1.75rem;
     --text-h3: 1.375rem;
@@ -14,8 +15,10 @@
     --text-body: 1rem;
     --text-small: 0.875rem;
     --text-caption: 0.75rem;
-    --line-tight: 1.1;
+    --line-tight: 1.2;
     --line-normal: 1.5;
+    --tracking-body: 0.03125em;
+    --tracking-ui: 0.02em;
     --background: 210 25% 97%;
     --foreground: 214 16% 18%;
     --card: 0 0% 100%;
@@ -125,12 +128,35 @@
 
   body {
     @apply text-foreground antialiased min-h-screen;
+    font-family: var(--font-body);
+    font-weight: 400;
+    line-height: var(--line-normal);
+    letter-spacing: var(--tracking-body);
     background-color: transparent;
     background-image: none;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
     padding: 0;
+  }
+
+  .font-icon,
+  .material-icons,
+  .material-icons-outlined,
+  .fa,
+  .fa-solid,
+  .fa-regular,
+  .fa-brands {
+    font-family: var(--font-icon);
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  button,
+  [role="button"],
+  label {
+    font-weight: 500;
+    letter-spacing: var(--tracking-ui);
   }
 
   h1,
@@ -140,33 +166,32 @@
   h5,
   h6 {
     font-family: var(--font-headline);
+    font-weight: 700;
     color: hsl(var(--foreground));
   }
 
   h1 {
     font-size: var(--text-h1);
     line-height: var(--line-tight);
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
   }
 
   h2 {
     font-size: var(--text-h2);
     line-height: var(--line-tight);
-    font-weight: 600;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.005em;
   }
 
   h3 {
     font-size: var(--text-h3);
     line-height: var(--line-normal);
-    font-weight: 600;
+    letter-spacing: 0em;
   }
 
   h4 {
     font-size: var(--text-h4);
     line-height: var(--line-normal);
-    font-weight: 600;
+    letter-spacing: 0em;
   }
 
   .card,
@@ -349,7 +374,7 @@
     text-transform: uppercase;
     letter-spacing: 0.2em;
     color: hsl(var(--muted-foreground));
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .surface-glass {
@@ -404,7 +429,7 @@
   color: #000000;
   box-sizing: border-box;
   padding: 2rem;
-  font-family: serif;
+  font-family: var(--font-body);
 }
 
 .pdf-a4 header,
@@ -445,7 +470,7 @@
 .pdf-a4 h1 { font-size: 18px; margin: 0; }
 .pdf-a4 h2 { font-size: 13px; margin: 0 0 6px 0; }
 .pdf-a4 p { font-size: 11px; margin: 0 0 6px 0; }
-.pdf-a4 .label { font-weight: 600; color: #374151; }
+.pdf-a4 .label { font-weight: 700; color: #374151; }
 .pdf-a4 .value { font-weight: 400; color: #111827; }
 
 .pdf-footer { position: absolute; bottom: 16mm; left: 0; right: 0; text-align: center; font-size: 10px; color: #6b7280; }
