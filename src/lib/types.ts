@@ -241,6 +241,29 @@ export type SettlementLetter = {
   periodEndDate: string; // ISO date string
 };
 
+export type ActionBoardItem = {
+  id: string;
+  title: string;
+  owner: string;
+  dueDate?: string | null;
+  status: string;
+  progress: number;
+  details?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AiInsight = {
+  id: string;
+  title: string;
+  summary?: string | null;
+  action?: string | null;
+  status: string;
+  source?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 // Technical report types used by the Laudos (technical reports) feature
 export type ReportStatus = 'Pendente' | 'Concluído';
 

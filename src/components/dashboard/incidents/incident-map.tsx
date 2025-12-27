@@ -268,7 +268,7 @@ export default function IncidentMap({ incidents }: IncidentMapProps) {
       const LocateControlClass = (L.Control as any).extend({
         onAdd: function () {
           const container = L.DomUtil.create('div', 'leaflet-control-locate');
-          const btn = L.DomUtil.create('button', 'p-2 bg-white rounded-md shadow-sm', container) as HTMLButtonElement;
+          const btn = L.DomUtil.create('button', 'p-2 bg-card text-foreground rounded-md border border-border/60 shadow-sm', container) as HTMLButtonElement;
           btn.title = 'Minha localização';
           btn.setAttribute('aria-label', 'Minha localização');
           btn.setAttribute('role', 'button');

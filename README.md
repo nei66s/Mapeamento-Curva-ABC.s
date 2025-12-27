@@ -108,3 +108,34 @@ No front-end (página "Meu Perfil"), há um botão "Remover Foto" que chama esse
 ## WhatsApp notifications
 
 The notifications API now attempts to deliver WhatsApp messages whenever the environment is configured with `WHATSAPP_API_URL`, `WHATSAPP_API_TOKEN`, and either `WHATSAPP_FROM` or `WHATSAPP_SENDER`. A message is only sent if the target user has a phone number on their profile and has toggled both the "Tenho WhatsApp" and "Quero receber mensagens por WhatsApp" switches. Without those env vars the WhatsApp path is a no-op.
+
+## Padronizacao UI/UX
+
+O que foi padronizado
+
+- Tema central: tokens de tipografia e cores (incluindo success/info) e ajustes de foco para inputs.
+- Layout base: classes utilitarias para container, espacamento e superficies (`app-container`, `app-content`, `page-stack`, `surface-*`).
+- Cabecalho de paginas: tipografia e hierarquia consolidadas em `PageHeader`.
+- Cards/paineis: substituicao de backgrounds hardcoded por tokens em paginas de insights, integracoes e qualidade.
+- Manutencao e notificacoes: inputs, badges e cards alinhados ao tema.
+
+Arquivos alterados
+
+- tailwind.config.ts
+- src/app/globals.css
+- src/lib/design-tokens.ts
+- src/components/layout/sidebar-shell.client.tsx
+- src/components/shared/page-header.tsx
+- src/components/layout/page-panel.tsx
+- src/components/layout/ai-connection-indicator.tsx
+- src/components/layout/demand-indicator.tsx
+- src/components/dashboard/incidents/incident-map.tsx
+- src/components/maintenance/Table.tsx
+- src/components/maintenance/Row.tsx
+- src/app/maintenance/page.tsx
+- src/app/notifications/Preferences.tsx
+- src/app/(app-shell)/admin/reset-password/page.tsx
+- src/app/(app-shell)/action-board/page.tsx
+- src/app/(app-shell)/data-quality/page.tsx
+- src/app/(app-shell)/ai-insights/page.tsx
+- src/app/(app-shell)/integrations/page.tsx

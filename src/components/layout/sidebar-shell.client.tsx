@@ -81,8 +81,8 @@ export default function SidebarShell({ children }: { children: ReactNode }) {
     return (
       <CurrentUserProvider>
         <div className="min-h-screen w-full bg-background">
-          <main className="flex-1 px-4 py-6 sm:px-6 md:py-8">
-            <div className="mx-auto w-full max-w-7xl">
+          <main className="app-content">
+            <div className="app-container">
               <div className="page-shell p-4 sm:p-6">
                 <RequirePermission>{children}</RequirePermission>
               </div>
@@ -157,8 +157,8 @@ export default function SidebarShell({ children }: { children: ReactNode }) {
               }
             }}
           />
-          <main className="flex-1 px-4 py-6 sm:px-6 md:py-8">
-            <div className="mx-auto w-full max-w-7xl">
+          <main className="app-content">
+            <div className="app-container">
               <div className="page-shell p-4 sm:p-6">
                 <RequirePermission>{children}</RequirePermission>
               </div>

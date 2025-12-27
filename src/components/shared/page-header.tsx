@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import { Badge } from '@/components/ui/badge';
 import { useAdminSession } from '@/hooks/use-admin-session';
@@ -18,10 +20,10 @@ export function PageHeader({ title, description, className, children, moduleKey 
     <div className={cn("flex items-center justify-between", className)}>
       <div className="grid gap-1">
         <div className="flex items-center gap-3">
-          <h1 className="font-headline text-3xl md:text-4xl font-bold tracking-tight text-primary">{title}</h1>
+          <h1 className="type-title text-primary">{title}</h1>
           {isBeta && <Badge variant="outline">Beta</Badge>}
         </div>
-        {description && <p className="text-lg text-muted-foreground">{description}</p>}
+        {description && <p className="type-lead">{description}</p>}
       </div>
       {children}
     </div>
