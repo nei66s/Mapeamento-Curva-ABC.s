@@ -12,8 +12,10 @@ export const designTokens = {
     destructiveForeground: "hsl(var(--destructive-foreground))",
     muted: "hsl(var(--muted))",
     mutedForeground: "hsl(var(--muted-foreground))",
-    success: "hsl(142 47% 48%)",
-    info: "hsl(198 67% 46%)",
+    success: "hsl(var(--success))",
+    successForeground: "hsl(var(--success-foreground))",
+    info: "hsl(var(--info))",
+    infoForeground: "hsl(var(--info-foreground))",
     warning: "hsl(var(--warning))",
   },
   spacing: {

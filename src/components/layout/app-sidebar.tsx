@@ -31,6 +31,11 @@ import {
   ActivitySquare,
   Shield,
   Plug,
+  Radar,
+  ClipboardList,
+  Bot,
+  Cloud,
+  Wrench,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -49,6 +54,7 @@ const mainLinks = [
 ];
 
 const executionLinks = [
+  { href: '/services', icon: Wrench, label: 'Gestao de Servicos' },
   { href: '/incidents', icon: Activity, label: 'Incidentes', moduleId: 'incidents' },
   { href: '/rncs', icon: FileWarning, label: 'Registros de Não Conformidade', moduleId: 'rncs' },
   { href: '/releases', icon: ClipboardPaste, label: 'Lançamentos', moduleId: 'releases' },
@@ -79,9 +85,18 @@ const resourcesLinks = [
   { href: '/unsalvageable', icon: ArchiveX, label: 'Itens Inservíveis' },
 ];
 
+const observabilityLinks = [
+  { href: '/data-quality', icon: Radar, label: 'Qualidade dos Dados', moduleId: 'dataQuality' },
+  { href: '/action-board', icon: ClipboardList, label: 'Quadro de Ações', moduleId: 'actionBoard' },
+  { href: '/ai-insights', icon: Bot, label: 'Insights AI', moduleId: 'aiInsights' },
+  { href: '/integrations', icon: Cloud, label: 'Integrações', moduleId: 'integrations' },
+];
+
 const secondaryLinks = [
   { href: '/price-simulator', icon: Calculator, label: 'Simulador de Preços' },
   { href: '/vacations', icon: CalendarDays, label: 'Gestão de Férias', moduleId: 'vacations' },
+  { href: '/activity-feed', icon: Activity, label: 'Atividade' },
+  { href: '/components-demo', icon: Grid3x3, label: 'Demonstração de Componentes' },
 ];
 
 const linkGroups = [
@@ -91,6 +106,7 @@ const linkGroups = [
   { title: 'Ativos', links: assetsLinks },
   { title: 'Preventivas', links: preventiveLinks },
   { title: 'Recursos', links: resourcesLinks },
+  { title: 'Observatórios', links: observabilityLinks },
   { title: 'Utilitários', links: secondaryLinks },
 ];
 

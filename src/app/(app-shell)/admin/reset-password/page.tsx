@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 
 export default function ResetPasswordPage() {
   const searchParams = useSearchParams();
@@ -44,28 +45,28 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-24 p-6 bg-white rounded shadow">
-      <h1 className="text-xl font-semibold mb-4">Redefinir senha</h1>
-      {email ? <p className="text-sm mb-2">Email: {email}</p> : null}
+    <div className="page-shell mx-auto mt-24 max-w-md space-y-4">
+      <h1 className="text-2xl font-semibold">Redefinir senha</h1>
+      {email ? <p className="text-sm text-muted-foreground">Email: {email}</p> : null}
       <form onSubmit={submit} className="space-y-3">
         <div>
-          <label htmlFor="rp-token" className="block text-sm">Token</label>
-          <input id="rp-token" name="token" value={token} onChange={e => setToken(e.target.value)} placeholder="Cole o token recebido" title="Token de redefinição" className="w-full border p-2 rounded" />
+          <label htmlFor="rp-token" className="block text-sm text-muted-foreground">Token</label>
+          <input id="rp-token" name="token" value={token} onChange={e => setToken(e.target.value)} placeholder="Cole o token recebido" title="Token de redefinição" className="surface-control w-full" />
         </div>
         <div>
-          <label htmlFor="rp-new" className="block text-sm">Nova senha</label>
-          <input id="rp-new" name="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Nova senha" title="Nova senha" className="w-full border p-2 rounded" />
+          <label htmlFor="rp-new" className="block text-sm text-muted-foreground">Nova senha</label>
+          <input id="rp-new" name="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Nova senha" title="Nova senha" className="surface-control w-full" />
         </div>
         <div>
-          <label htmlFor="rp-confirm" className="block text-sm">Confirme a senha</label>
-          <input id="rp-confirm" name="confirmPassword" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Digite novamente a senha" title="Confirme a senha" className="w-full border p-2 rounded" />
+          <label htmlFor="rp-confirm" className="block text-sm text-muted-foreground">Confirme a senha</label>
+          <input id="rp-confirm" name="confirmPassword" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Digite novamente a senha" title="Confirme a senha" className="surface-control w-full" />
         </div>
         <div>
-          <button type="submit" disabled={loading} className="px-4 py-2 bg-blue-600 text-white rounded">
+          <Button type="submit" disabled={loading}>
             {loading ? 'Enviando...' : 'Redefinir senha'}
-          </button>
+          </Button>
         </div>
-        {message ? <p className="text-sm mt-2">{message}</p> : null}
+        {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
       </form>
     </div>
   );

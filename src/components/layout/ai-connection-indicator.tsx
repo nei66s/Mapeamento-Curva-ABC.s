@@ -58,11 +58,11 @@ export function AiConnectionIndicator() {
 
   return (
     <div
-      className="flex items-center gap-1 text-[0.65rem] uppercase tracking-wider text-slate-500"
+      className="flex items-center gap-1 text-[0.65rem] uppercase tracking-wider text-muted-foreground"
       title={meta.description}
       aria-live="polite"
     >
-      <span aria-hidden className={`h-2 w-2 rounded-full border border-slate-200 ${meta.className}`} />
+      <span aria-hidden className={`h-2 w-2 rounded-full border border-border ${meta.className}`} />
       <span>{meta.label}</span>
     </div>
   );
