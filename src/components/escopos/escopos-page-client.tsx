@@ -460,7 +460,7 @@ export default function EscoposPageClient() {
       const container = document.createElement('div');
       container.style.width = '900px';
       container.style.padding = '20px';
-      container.style.fontFamily = 'Arial, Helvetica, sans-serif';
+      container.style.fontFamily = 'var(--font-body)';
       container.style.background = '#ffffff';
       container.style.color = '#111827';
 

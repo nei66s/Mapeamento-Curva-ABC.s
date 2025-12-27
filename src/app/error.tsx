@@ -3,7 +3,7 @@ import React from 'react'
 
 export default function RootError({ error, reset }: { error?: any, reset?: () => void }) {
   return (
-    <main style={{ padding: 24, fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial' }}>
+    <main style={{ padding: 24, fontFamily: 'var(--font-body)' }}>
       <h1>Application error</h1>
       <pre style={{ whiteSpace: 'pre-wrap', color: '#b91c1c' }}>{String(error?.message ?? error)}</pre>
       {reset && (

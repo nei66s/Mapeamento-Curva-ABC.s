@@ -7,7 +7,7 @@ export default function GlobalError({
 }) {
   return (
     <html>
-      <body style={{ fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial' }}>
+      <body style={{ fontFamily: 'var(--font-body)' }}>
         <main style={{ padding: 24 }}>
           <h1>Something went wrong</h1>
           <p style={{ color: '#666', marginBottom: 16 }}>

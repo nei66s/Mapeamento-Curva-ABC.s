@@ -54,7 +54,7 @@ const mainLinks = [
 ];
 
 const executionLinks = [
-  { href: '/services', icon: Wrench, label: 'Gestao de Servicos' },
+  { href: '/services', icon: Wrench, label: 'Gestão de Serviços' },
   { href: '/incidents', icon: Activity, label: 'Incidentes', moduleId: 'incidents' },
   { href: '/rncs', icon: FileWarning, label: 'Registros de Não Conformidade', moduleId: 'rncs' },
   { href: '/releases', icon: ClipboardPaste, label: 'Lançamentos', moduleId: 'releases' },
@@ -88,6 +88,7 @@ const resourcesLinks = [
 const observabilityLinks = [
   { href: '/data-quality', icon: Radar, label: 'Qualidade dos Dados', moduleId: 'dataQuality' },
   { href: '/action-board', icon: ClipboardList, label: 'Quadro de Ações', moduleId: 'actionBoard' },
+  { href: '/ai-chat', icon: Bot, label: 'Chat IA', moduleId: 'aiChat' },
   { href: '/ai-insights', icon: Bot, label: 'Insights AI', moduleId: 'aiInsights' },
   { href: '/integrations', icon: Cloud, label: 'Integrações', moduleId: 'integrations' },
 ];
@@ -368,3 +369,4 @@ export default function AppSidebar({ visible, onRequestClose, onMouseEnter, onMo
     </>
   );
 }
+

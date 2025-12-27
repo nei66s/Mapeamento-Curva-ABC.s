@@ -53,7 +53,7 @@ export function AgingChart({ data }: AgingChartProps) {
         };
     });
 
-        // Custom label renderer to show a small adaptive background and slightly larger, bolder, monospace numbers
+        // Custom label renderer to show a small adaptive background and slightly larger, bolder numbers
         const ProporcaoLabel = (props: any) => {
             const { x, y, value } = props;
             if (value === undefined || value === null) return null;
@@ -68,7 +68,7 @@ export function AgingChart({ data }: AgingChartProps) {
             return (
                 <g>
                     <rect x={rectX} y={rectY} width={estWidth + paddingX} height={fontSize + paddingY * 2} fill="var(--surface-background)" stroke="var(--surface-border)" rx={6} />
-                    <text x={rectX + paddingX / 2} y={(rectY + fontSize + paddingY)} fontSize={fontSize} fontWeight={600} fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Segoe UI Mono', 'Noto Mono', monospace" fill="var(--color-foreground)">{text}</text>
+                    <text x={rectX + paddingX / 2} y={(rectY + fontSize + paddingY)} fontSize={fontSize} fontWeight={500} fill="var(--color-foreground)">{text}</text>
                 </g>
             );
         }
