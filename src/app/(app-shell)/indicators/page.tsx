@@ -649,6 +649,7 @@ export default function IndicatorsPage() {
                               className="w-full h-2 rounded-full overflow-hidden bg-muted/40"
                               value={entry.count}
                               max={maxCount}
+                              aria-label={`${entry.name} — ${relative}%`}
                             />
                           </div>
                         </div>

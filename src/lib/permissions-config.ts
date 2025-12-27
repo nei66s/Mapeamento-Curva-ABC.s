@@ -1,4 +1,4 @@
-import { UserRole } from './types';
+﻿import { UserRole } from './types';
 
 export type ModuleDefinition = {
   id: string;
@@ -9,38 +9,39 @@ export const roleList: UserRole[] = ['admin', 'gestor', 'regional', 'visualizado
 
 export const moduleDefinitions: ModuleDefinition[] = [
   { id: 'indicators', label: 'Painel de Indicadores' },
-  { id: 'releases', label: 'Lançamentos Mensais' },
+  { id: 'releases', label: 'LanÃ§amentos Mensais' },
   { id: 'incidents', label: 'Registro de Incidentes' },
-  { id: 'rncs', label: 'Registros de Não Conformidade' },
-  { id: 'laudos', label: 'Gerar Laudo Técnico' },
+  { id: 'rncs', label: 'Registros de NÃ£o Conformidade' },
+  { id: 'laudos', label: 'Gerar Laudo TÃ©cnico' },
   { id: 'categories', label: 'Categorias de Itens' },
   { id: 'matrix', label: 'Matriz de Itens' },
   { id: 'compliance', label: 'Cronograma de Preventivas' },
-  { id: 'suppliers', label: 'Gestão de Fornecedores' },
+  { id: 'suppliers', label: 'GestÃ£o de Fornecedores' },
   { id: 'warranty', label: 'Controle de Garantias' },
   { id: 'tools', label: 'Almoxarifado de Ferramentas' },
-  { id: 'assets', label: 'Gestão de Ativos' },
-  { id: 'vacations', label: 'Gestão de Férias' },
-  { id: 'settlement', label: 'Cartas de Quitação' },
-  { id: 'escopos', label: 'Criação de Escopos' },
-  { id: 'dataQuality', label: 'Observatório de Dados' },
-  { id: 'actionBoard', label: 'Quadro de Ações' },
+  { id: 'assets', label: 'GestÃ£o de Ativos' },
+  { id: 'vacations', label: 'GestÃ£o de FÃ©rias' },
+  { id: 'settlement', label: 'Cartas de QuitaÃ§Ã£o' },
+  { id: 'escopos', label: 'CriaÃ§Ã£o de Escopos' },
+  { id: 'dataQuality', label: 'ObservatÃ³rio de Dados' },
+  { id: 'actionBoard', label: 'Quadro de AÃ§Ãµes' },
+  { id: 'aiChat', label: 'Chat Tecnico com IA' },
   { id: 'aiInsights', label: 'Insights do Assistente AI' },
-  { id: 'integrations', label: 'Painel de Integrações' },
+  { id: 'integrations', label: 'Painel de IntegraÃ§Ãµes' },
   { id: 'profile', label: 'Meu Perfil' },
-  { id: 'settings', label: 'Configurações' },
+  { id: 'settings', label: 'ConfiguraÃ§Ãµes' },
   { id: 'about', label: 'Sobre a Plataforma' },
-  { id: 'users', label: 'Usuários' },
-  { id: 'administration', label: 'Administração' },
+  { id: 'users', label: 'UsuÃ¡rios' },
+  { id: 'administration', label: 'AdministraÃ§Ã£o' },
   { id: 'admin-dashboard', label: 'Dashboard Global (Admin)' },
-  { id: 'admin-users', label: 'Usuários e Papéis' },
-  { id: 'admin-integrations', label: 'Integrações e API' },
-  { id: 'admin-modules', label: 'Módulos e Flags' },
-  { id: 'admin-analytics', label: 'Métricas e Acessos' },
+  { id: 'admin-users', label: 'UsuÃ¡rios e PapÃ©is' },
+  { id: 'admin-integrations', label: 'IntegraÃ§Ãµes e API' },
+  { id: 'admin-modules', label: 'MÃ³dulos e Flags' },
+  { id: 'admin-analytics', label: 'MÃ©tricas e Acessos' },
   { id: 'admin-audit', label: 'Auditoria' },
-  { id: 'admin-config', label: 'Configurações do Sistema' },
+  { id: 'admin-config', label: 'ConfiguraÃ§Ãµes do Sistema' },
   { id: 'admin-health', label: 'Healthcheck' },
-  { id: 'admin-roles', label: 'Papéis e RBAC' },
+  { id: 'admin-roles', label: 'PapÃ©is e RBAC' },
 ];
 
 const adminPermissions = Object.fromEntries(moduleDefinitions.map(m => [m.id, true]));
@@ -65,6 +66,7 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     escopos: true,
     dataQuality: true,
     actionBoard: true,
+    aiChat: true,
     aiInsights: true,
     integrations: true,
     profile: true,
@@ -99,6 +101,7 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     escopos: true,
     dataQuality: true,
     actionBoard: true,
+    aiChat: true,
     aiInsights: true,
     integrations: true,
     profile: true,
@@ -133,6 +136,7 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     escopos: false,
     dataQuality: true,
     actionBoard: true,
+    aiChat: true,
     aiInsights: true,
     integrations: true,
     profile: true,
@@ -167,6 +171,7 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     escopos: false,
     dataQuality: true,
     actionBoard: false,
+    aiChat: true,
     aiInsights: true,
     integrations: false,
     profile: true,
@@ -201,6 +206,7 @@ const defaultRolePermissions: Record<UserRole, Record<string, boolean>> = {
     escopos: false,
     dataQuality: true,
     actionBoard: true,
+    aiChat: true,
     aiInsights: true,
     integrations: true,
     profile: true,
@@ -227,3 +233,4 @@ export function cloneDefaultPermissions(): Record<UserRole, Record<string, boole
   });
   return copy;
 }
+
