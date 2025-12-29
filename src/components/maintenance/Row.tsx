@@ -43,7 +43,7 @@ export default function Row(props: Props) {
   };
 
   return (
-    <div role="listitem" className={`surface-highlight ${severityBorder} ${faded} flex flex-col gap-4 rounded-md shadow-sm transition-shadow hover:shadow-md`}>
+    <div className={`surface-highlight ${severityBorder} ${faded} flex flex-col gap-4 rounded-md shadow-sm transition-shadow hover:shadow-md`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">

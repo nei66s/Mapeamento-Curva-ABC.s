@@ -67,7 +67,7 @@ export default function ActivityFeedPage() {
         >
           <label htmlFor="types-select" className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">Tipo</span>
-            <select id="types-select" value={types} onChange={(e) => setTypes(e.target.value as any)} className="ml-2 rounded border surface-control px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/60">
+            <select id="types-select" aria-label="Tipo de atividade" value={types} onChange={(e) => setTypes(e.target.value as any)} className="ml-2 rounded border surface-control px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/60">
               <option value="both">Todos</option>
               <option value="audit">Auditoria</option>
               <option value="tracking">Rota / Acesso</option>
@@ -81,7 +81,7 @@ export default function ActivityFeedPage() {
 
           <label htmlFor="since-select" className="flex items-center gap-2 text-sm">
             <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-            <select id="since-select" value={String(since)} onChange={(e) => setSince(e.target.value === '' ? '' : Number(e.target.value))} className="ml-2 rounded border surface-control px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/60">
+            <select id="since-select" aria-label="Desde (minutos)" value={String(since)} onChange={(e) => setSince(e.target.value === '' ? '' : Number(e.target.value))} className="ml-2 rounded border surface-control px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/60">
               <option value="15">Últimos 15 minutos</option>
               <option value="60">Última 1 hora</option>
               <option value="360">Últimas 6 horas</option>

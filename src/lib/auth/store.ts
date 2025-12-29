@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { SessionUser } from '@/types/admin';
 import { AuthService } from '@/services/auth-service';
-import { clearTokens, getRefreshToken, setTokens, persistSessionUser } from './tokens';
+import { clearTokens, setTokens, persistSessionUser } from './tokens';
 
 type AuthStatus = 'idle' | 'authenticating' | 'authenticated' | 'unauthenticated';
 
@@ -34,7 +34,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   async login(email: string, password: string) {
     set({ status: 'authenticating' });
     const { user, accessToken, refreshToken, expiresIn } = await AuthService.login(email, password);
-    setTokens(accessToken, refreshToken, expiresIn);
+    setTokens(accessToken, undefined, expiresIn);
     persistSessionUser(user);
     set({ user, status: 'authenticated' });
     return user;
@@ -50,23 +50,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: null, status: 'unauthenticated' });
   },
   async refresh() {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) {
-      set({ status: 'unauthenticated', user: null });
-      return null;
-    }
-    const res = await AuthService.refresh(refreshToken);
+    const res = await AuthService.refresh();
     if (!res?.accessToken) {
       clearTokens();
       persistSessionUser(null);
       set({ status: 'unauthenticated', user: null });
       return null;
     }
-    setTokens(res.accessToken, res.refreshToken ?? refreshToken, res.expiresIn);
-    if (res.user) {
-      set({ user: res.user, status: 'authenticated' });
-      persistSessionUser(res.user);
-    }
+    setTokens(res.accessToken, undefined, res.expiresIn);
     return res.accessToken;
   },
   setUser(user) {

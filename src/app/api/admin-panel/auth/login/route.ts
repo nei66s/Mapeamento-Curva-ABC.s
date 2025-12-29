@@ -25,14 +25,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Usuário bloqueado.' }, { status: 403 });
     }
 
-    // If a password_hash exists, verify it. Otherwise allow DEFAULT_PASSWORD for local/dev.
+    const isProd = process.env.NODE_ENV === 'production';
+    // If a password_hash exists, verify it. Otherwise allow DEFAULT_PASSWORD ONLY for local/dev.
     const stored = (user as any).password_hash || (user as any).password || null;
     let ok = false;
     try {
       if (stored) ok = await bcrypt.compare(password, stored);
-      else ok = password === DEFAULT_PASSWORD;
+      else ok = !isProd && process.env.ALLOW_ADMIN_DEFAULT_PASSWORD === 'true' && password === DEFAULT_PASSWORD;
     } catch (e) {
-      ok = password === DEFAULT_PASSWORD;
+      ok = !isProd && process.env.ALLOW_ADMIN_DEFAULT_PASSWORD === 'true' && password === DEFAULT_PASSWORD;
     }
 
     if (!ok) return NextResponse.json({ message: 'Senha inválida.' }, { status: 401 });
@@ -55,11 +56,12 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     // log details to file for later inspection
     try {
-      await logErrorToFile({ message: err.message || 'login error', stack: err.stack, service: 'auth.login', meta: { body: await request.text(), ip: getRequestIp(request), ua: request.headers.get('user-agent') } });
+      // NEVER persist raw request bodies for auth endpoints (may contain passwords/tokens).
+      await logErrorToFile({ message: err.message || 'login error', stack: err.stack, service: 'auth.login', meta: { ip: getRequestIp(request), ua: request.headers.get('user-agent') } });
     } catch (e) {
       // swallow
     }
-    console.error('Auth login error', err);
+    console.error('Auth login error', { message: err?.message || String(err) });
     return NextResponse.json({ message: 'Erro interno' }, { status: 500 });
   }
 }

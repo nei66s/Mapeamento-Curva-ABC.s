@@ -4,7 +4,16 @@ const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
   throw new Error('DATABASE_URL not set. debug-build-admin-session-pg requires DATABASE_URL to run.');
 }
-const pool = new Pool({ connectionString: databaseUrl, ssl: { rejectUnauthorized: false } });
+const rejectUnauthorizedEnv = (process.env.DB_SSL_REJECT_UNAUTHORIZED || '').trim().toLowerCase();
+const rejectUnauthorized = rejectUnauthorizedEnv
+  ? rejectUnauthorizedEnv !== 'false' && rejectUnauthorizedEnv !== '0'
+  : true;
+const sslMode = (process.env.PGSSLMODE || '').trim().toLowerCase();
+const sslDisabled = sslMode === 'disable' || sslMode === 'disabled' || sslMode === 'off';
+if (process.env.NODE_ENV === 'production' && sslDisabled) {
+  throw new Error('Refusing to run with PGSSLMODE=disable in production.');
+}
+const pool = new Pool({ connectionString: databaseUrl, ssl: sslDisabled ? false : { rejectUnauthorized } });
 
 async function run() {
   try {

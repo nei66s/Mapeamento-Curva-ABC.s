@@ -8,11 +8,17 @@ export type LoginResponse = {
   user: SessionUser;
 };
 
+export type RefreshResponse = {
+  accessToken: string;
+  refreshToken?: string;
+  expiresIn?: number;
+};
+
 export const AuthService = {
   login: (email: string, password: string) =>
     apiClient.post<LoginResponse>('/auth/login', { email, password }, { auth: false }),
-  refresh: (refreshToken: string) =>
-    apiClient.post<LoginResponse>('/auth/refresh', { refreshToken }, { auth: false }),
+  refresh: () =>
+    apiClient.post<RefreshResponse, Record<string, never>>('/auth/refresh', {}, { auth: false }),
   me: () => apiClient.get<SessionUser>('/auth/me'),
   logout: () => apiClient.post<void>('/auth/logout', {}),
 };

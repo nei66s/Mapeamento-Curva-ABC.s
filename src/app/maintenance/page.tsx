@@ -67,8 +67,8 @@ export default function MaintenancePage() {
             <span className="rounded-full bg-success/15 px-2 py-1 text-success">Concluídos {counts.done}</span>
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-xs text-muted-foreground">Perfil</label>
-            <select value={role} onChange={e => setRole(e.target.value as Role)} className="surface-control min-w-[140px]">
+            <label htmlFor="role-select" className="text-xs text-muted-foreground">Perfil</label>
+            <select id="role-select" value={role} onChange={e => setRole(e.target.value as Role)} className="surface-control min-w-[140px]">
               <option value="leader">Líder</option>
               <option value="intern">Estagiário</option>
             </select>

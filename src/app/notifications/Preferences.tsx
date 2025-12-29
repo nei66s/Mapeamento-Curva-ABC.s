@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -9,12 +9,7 @@ export default function Preferences() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [userId] = useState('1');
 
-  useEffect(() => {
-    void fetchNotifications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function fetchNotifications() {
+  const fetchNotifications = useCallback(async () => {
     try {
       const res = await fetch(`/api/notifications?userId=${userId}`);
       const json = await res.json();
@@ -22,7 +17,11 @@ export default function Preferences() {
     } catch (err) {
       console.error(err);
     }
-  }
+  }, [userId]);
+
+  useEffect(() => {
+    void fetchNotifications();
+  }, [fetchNotifications]);
 
   async function markAllRead() {
     try {
