@@ -3,7 +3,7 @@
   "version": "1.0.22",
   "private": true,
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-dev.ps1",
