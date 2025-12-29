@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -59,8 +59,7 @@ export default function CategoriesPage() {
   const [isBulkFormOpen, setIsBulkFormOpen] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const load = async () => {
+  const loadCategories = useCallback(async () => {
       try {
         const res = await fetch('/api/categories');
         if (!res.ok) throw new Error('Failed to load categories');
@@ -74,10 +73,11 @@ export default function CategoriesPage() {
           description: 'Não foi possível carregar as categorias do servidor.',
         });
       }
-    };
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [toast]);
+
+  useEffect(() => {
+    void loadCategories();
+  }, [loadCategories]);
 
   const handleFormSubmit = async (values: Omit<Category, 'id' | 'itemCount' | 'riskIndex'>) => {
     try {

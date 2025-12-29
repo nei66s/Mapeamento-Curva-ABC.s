@@ -1,5 +1,5 @@
 import { appConfig } from './config';
-import { clearTokens, getAccessToken, getRefreshToken, setTokens } from './auth/tokens';
+import { clearTokens, getAccessToken, setTokens } from './auth/tokens';
 
 export class ApiError extends Error {
   status: number;
@@ -27,18 +27,17 @@ type RequestOptions<TBody = unknown> = {
 };
 
 async function refreshAccessToken() {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
   try {
     const res = await fetch(`${appConfig.apiBaseUrl}${appConfig.auth.refreshEndpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
+      credentials: 'include',
+      body: JSON.stringify({}),
     });
     if (!res.ok) return null;
     const data = await res.json();
     if (data?.accessToken) {
-      setTokens(data.accessToken, data.refreshToken ?? refreshToken, data.expiresIn);
+      setTokens(data.accessToken, undefined, data.expiresIn);
       return data.accessToken as string;
     }
   } catch (e) {

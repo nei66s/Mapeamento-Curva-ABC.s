@@ -128,8 +128,7 @@ export default function ProfilePage() {
     return () => {
       canceled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [form, setUser, user, userId]);
 
   // Permissions are managed centrally in the Admin page; no client-side loading here.
 

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useCallback, useMemo, useEffect, useRef, useState } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import type { MaintenanceIndicator } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -114,7 +114,7 @@ export default function ReleasesPage() {
     })();
   };
   
-  const scheduleSave = (updated: MaintenanceIndicator) => {
+  const scheduleSave = useCallback((updated: MaintenanceIndicator) => {
     const key = updated.mes;
     if (saveTimers.current[key]) clearTimeout(saveTimers.current[key]);
     saveTimers.current[key] = setTimeout(async () => {
@@ -130,7 +130,7 @@ export default function ReleasesPage() {
         delete saveTimers.current[key];
       }
     }, 500);
-  };
+  }, []);
 
   const handleAgingUpdate = (updatedAging: MaintenanceIndicator['aging']) => {
     setIndicators(prevIndicators => {
@@ -159,8 +159,7 @@ export default function ReleasesPage() {
       next.forEach(ind => scheduleSave(ind));
       return next;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [annualSlaGoal]);
+  }, [annualSlaGoal, scheduleSave]);
 
   return (
     <div className="flex flex-col gap-8">

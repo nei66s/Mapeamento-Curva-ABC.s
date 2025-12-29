@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
@@ -77,8 +77,7 @@ export default function IncidentsPage() {
 
   const itemsMap = useMemo(() => new Map(items.map(item => [item.name, item])), [items]);
 
-  useEffect(() => {
-    const load = async () => {
+  const loadData = useCallback(async () => {
       // Fetch each resource individually to get clearer errors and graceful fallbacks
       // Items
       try {
@@ -133,10 +132,11 @@ export default function IncidentsPage() {
         toast({ variant: 'destructive', title: 'Erro de rede', description: 'Não foi possível conectar ao endpoint de lojas.' });
         setStores([]);
       }
-    };
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [toast]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
   
   const IncidentMap = useMemo(() => dynamic(() => import('@/components/dashboard/incidents/incident-map'), {
     ssr: false,

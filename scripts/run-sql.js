@@ -1,48 +1,53 @@
+#!/usr/bin/env node
+// Run a SQL file against DATABASE_URL. Loads .env automatically.
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
 const { Client } = require('pg');
 
 async function main() {
-  const sqlPath = path.resolve(__dirname, 'create-compliance-tables.sql');
-  if (!fs.existsSync(sqlPath)) {
-    console.error('SQL file not found:', sqlPath);
-    process.exit(1);
-  }
-  const sql = fs.readFileSync(sqlPath, 'utf8');
-
-  function parseArg(nameShort, nameLong) {
-    const idxShort = process.argv.indexOf(nameShort);
-    if (idxShort !== -1 && process.argv.length > idxShort + 1) return process.argv[idxShort + 1];
-    const idxLong = process.argv.indexOf(nameLong);
-    if (idxLong !== -1 && process.argv.length > idxLong + 1) return process.argv[idxLong + 1];
-    return undefined;
+  const fileArg = process.argv[2];
+  if (!fileArg) {
+    console.error('Usage: node scripts/run-sql.js <path-to-sql-file>');
+    process.exit(2);
   }
 
-  const password = process.env.PGPASSWORD || parseArg('--password');
-  if (!password) {
-    console.error('ERRO: senha não fornecida. Defina PGPASSWORD ou passe --password');
-    process.exit(1);
+  const filePath = path.resolve(fileArg);
+  if (!fs.existsSync(filePath)) {
+    console.error('SQL file not found:', filePath);
+    process.exit(3);
   }
 
-  const client = new Client({
-    host: process.env.PGHOST || 'localhost',
-    port: process.env.PGPORT ? Number(process.env.PGPORT) : 5432,
-    user: process.env.PGUSER || 'postgres',
-    password,
-    database: process.env.PGDATABASE || 'postgres',
-  });
+  const sql = fs.readFileSync(filePath, { encoding: 'utf8' });
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    console.error('DATABASE_URL not set in environment or .env');
+    process.exit(4);
+  }
 
+  const client = new Client({ connectionString });
   try {
     await client.connect();
-    console.log('Connected to Postgres:', `${client.host}:${client.port}/${client.database}`);
+    console.log('Connected to DB. Executing:', filePath);
+    await client.query('BEGIN');
     await client.query(sql);
-    console.log('SQL executed successfully. Tables created (if not existed).');
-    await client.end();
+    await client.query('COMMIT');
+    console.log('SQL executed successfully.');
     process.exit(0);
   } catch (err) {
-    console.error('Failed to run SQL:', err);
-    try { await client.end(); } catch (_) {}
+    try {
+      await client.query('ROLLBACK');
+    } catch (e) {
+      // ignore
+    }
+    console.error('Error executing SQL:', err.message || err);
     process.exit(1);
+  } finally {
+    try {
+      await client.end();
+    } catch (e) {
+      // ignore
+    }
   }
 }
 

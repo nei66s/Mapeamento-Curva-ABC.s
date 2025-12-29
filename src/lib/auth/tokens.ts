@@ -17,7 +17,9 @@ export function getAccessToken() {
 }
 
 export function getRefreshToken() {
-  return Cookies.get(appConfig.auth.refreshTokenCookie) || null;
+  // Refresh token should be stored server-side as HttpOnly cookie.
+  // Client JS must not read it.
+  return null;
 }
 
 export function setTokens(accessToken: string, refreshToken?: string, expiresInSeconds?: number) {
@@ -26,19 +28,13 @@ export function setTokens(accessToken: string, refreshToken?: string, expiresInS
     ...baseCookieOptions,
     expires: expiresInSeconds ? expiresInSeconds / 86400 : 0.125, // default 3h
   });
-  if (refreshToken) {
-    Cookies.set(appConfig.auth.refreshTokenCookie, refreshToken, {
-      ...baseCookieOptions,
-      // refresh token should live longer; backend should ideally set HttpOnly
-      expires: 7,
-    });
-  }
+  // Do not persist refresh tokens in JS-accessible cookies.
 }
 
 export function clearTokens() {
   inMemoryAccessToken = null;
   Cookies.remove(appConfig.auth.accessTokenCookie, { path: '/' });
-  Cookies.remove(appConfig.auth.refreshTokenCookie, { path: '/' });
+  // Refresh token is HttpOnly; clear via /api/auth/logout.
 }
 
 export function persistSessionUser(user: SessionUser | null) {

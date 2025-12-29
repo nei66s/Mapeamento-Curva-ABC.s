@@ -58,7 +58,9 @@ export default async function RootLayout({
 
   return (
     <html lang="pt-BR" suppressHydrationWarning data-theme="light" className={roboto.variable}>
-      <head>\r\n        <meta charSet="utf-8" />\r\n        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script dangerouslySetInnerHTML={{ __html: inlineScript }} />
       </head>
       <body className="font-body antialiased">
