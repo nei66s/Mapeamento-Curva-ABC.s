@@ -203,9 +203,6 @@ export function VacationCalendar({
   function MonthFooter(props: FooterProps) {
     const displayMonth: Date | undefined = props.displayMonth;
 
-    const visibleUsersArray = Array.from(visibleUsers)
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     const { monthUsers, hasConflict } = useMemo(() => {
       if (!displayMonth) {
         return { monthUsers: [], hasConflict: false };
@@ -239,7 +236,7 @@ export function VacationCalendar({
         }
       });
       return { monthUsers: Array.from(users.values()), hasConflict: conflict };
-    }, [displayMonth, vacations, userColors, vacationsByDay, visibleUsersArray]);
+    }, [displayMonth, vacations, userColors, vacationsByDay, visibleUsers]);
 
     if (!displayMonth) {
       return null;

@@ -59,6 +59,33 @@ const nextConfig = {
       
     ],
   },
+  async headers() {
+    const isProd = process.env.NODE_ENV === 'production';
+    const headers = [
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'X-Frame-Options', value: 'DENY' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+      { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()' },
+    ];
+    if (isProd) {
+      headers.push({ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' });
+    }
+    // Keep CSP minimal to avoid breaking Next.js runtime while still preventing clickjacking and unsafe base/object usage.
+    const csp = [
+      "base-uri 'self'",
+      "object-src 'none'",
+      "frame-ancestors 'none'",
+      "form-action 'self'",
+      ...(isProd ? ["upgrade-insecure-requests"] : []),
+    ].join('; ');
+    headers.push({ key: 'Content-Security-Policy', value: csp });
+    return [
+      {
+        source: '/:path*',
+        headers,
+      },
+    ];
+  },
   // serverExternalPackages is not supported in Next.js 14; remove it to avoid invalid config
   async rewrites() {
     return [
@@ -68,7 +95,7 @@ const nextConfig = {
       },
     ];
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack }) => {
     config.ignoreWarnings = config.ignoreWarnings || [];
     config.ignoreWarnings.push({
       module: /@opentelemetry/,
@@ -100,6 +127,13 @@ const nextConfig = {
         module: /require-in-the-middle/,
         message: /Critical dependency: require function is used in a way in which dependencies cannot be statically extracted/,
       });
+
+      // Replace @opentelemetry imports on the client with a small noop module to
+      // avoid webpack attempting to bundle server-only dynamic requires.
+      config.plugins = config.plugins || [];
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(/@opentelemetry\/.*/, path.resolve(__dirname, 'src/empty-opentelemetry-client.js'))
+      );
     }
     // Externalize pg for server-side
     if (isServer) {

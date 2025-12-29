@@ -1,13 +1,27 @@
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
-import { verifyAccessToken } from '@/lib/auth/jwt'
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 export default async function Page() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('pm_access_token')?.value ?? null
-  const verified = verifyAccessToken(token)
-  if (verified.valid) {
-    redirect('/indicators')
+  const cookieStore = await cookies();
+  // The login route sets `pm_user` (httpOnly) with basic user info. Use it
+  // as the signal that the user is authenticated. Fall back to access token.
+  const pmUserRaw = cookieStore.get('pm_user')?.value;
+  let userId: string | undefined = undefined;
+  if (pmUserRaw) {
+    try {
+      const decoded = decodeURIComponent(pmUserRaw);
+      const parsed = JSON.parse(decoded);
+      userId = parsed?.id;
+    } catch (e) {
+      userId = undefined;
+    }
   }
-  redirect('/login')
+  const hasAccessToken = Boolean(cookieStore.get('pm_access_token')?.value);
+
+  if (!userId && !hasAccessToken) {
+    redirect('/login?returnTo=/');
+  }
+
+  // If authenticated, send to default module/dashboard
+  redirect('/indicators');
 }

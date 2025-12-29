@@ -8,7 +8,10 @@ import { logErrorToFile } from '@/server/error-logger';
 // Dev-only helper: visit /api/dev/login-as-admin to set session cookies for the admin user
 export async function GET() {
   if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'not-allowed' }, { status: 403 });
+    return NextResponse.json({ error: 'not-found' }, { status: 404 });
+  }
+  if (process.env.ALLOW_DEV_LOGIN_AS_ADMIN !== 'true') {
+    return NextResponse.json({ error: 'not-found' }, { status: 404 });
   }
   try {
     const email = 'admin@gmail.com';
@@ -28,7 +31,7 @@ export async function GET() {
     return res;
   } catch (err: any) {
     try { await logErrorToFile({ message: err.message || 'dev login error', stack: err.stack, service: 'dev.login', meta: {} }); } catch (e) {}
-    console.error('Dev login error', err);
+    console.error('Dev login error', { message: err?.message || String(err) });
     return NextResponse.json({ error: 'internal' }, { status: 500 });
   }
 }

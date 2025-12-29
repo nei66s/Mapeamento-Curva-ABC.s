@@ -1,5 +1,7 @@
 "use client"
 
+import styles from "./global-error.module.css"
+
 export default function GlobalError({
   error,
 }: {
@@ -7,17 +9,17 @@ export default function GlobalError({
 }) {
   return (
     <html>
-      <body style={{ fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial' }}>
-        <main style={{ padding: 24 }}>
+      <body className={styles.body}>
+        <main className={styles.main}>
           <h1>Something went wrong</h1>
-          <p style={{ color: '#666', marginBottom: 16 }}>
+          <p className={styles.message}>
             An unexpected error occurred. Please try refreshing the page.
           </p>
-          <pre style={{ whiteSpace: 'pre-wrap', color: '#b91c1c', fontSize: 12, background: '#f5f5f5', padding: 12 }}>
+          <pre className={styles.errorPre}>
             {String(error?.message ?? error)}
           </pre>
           {error?.digest && (
-            <p style={{ color: '#999', fontSize: 12, marginTop: 16 }}>
+            <p className={styles.digest}>
               Error ID: {error.digest}
             </p>
           )}

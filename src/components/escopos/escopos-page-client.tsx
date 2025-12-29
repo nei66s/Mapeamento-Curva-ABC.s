@@ -286,145 +286,52 @@ export default function EscoposPageClient() {
     }
     setIsExporting(true);
     try {
-      const { utils, write } = await import('xlsx');
-      const headerRow = ['Item nº', 'Título', 'Descrição do item', 'Checklist', 'Valor fornecedor'];
-      const metadataRows = [
-        ['Escopo', scopeName || '—', '', 'Solicitante', requester || '—'],
-        ['Loja', selectedStore?.name ?? '—', '', 'Descrição do Escopo', scopeDescription || '—'],
-        [],
-      ];
+      const sanitizeForSpreadsheet = (value: unknown) => {
+        const str = String(value ?? '');
+        // Prevent CSV/Excel formula injection.
+        if (/^[=+\-@]/.test(str)) return `'${str}`;
+        return str;
+      };
+
+      const escapeCsv = (value: unknown) => {
+        const v = sanitizeForSpreadsheet(value);
+        const needsQuotes = /[";\n\r]/.test(v);
+        const escaped = v.replace(/"/g, '""');
+        return needsQuotes ? `"${escaped}"` : escaped;
+      };
+
+      const sep = ';';
       const companyName = 'Sua Empresa';
       const now = new Date();
-      const titleRow = [`${companyName} — ${now.toLocaleString()}`];
 
-      const tableRows = [
-        headerRow,
-        ...items.map((item, index) => [
-          index + 1,
+      const rows: Array<Array<unknown>> = [];
+      rows.push([`${companyName} — ${now.toLocaleString()}`]);
+      rows.push(['Escopo', scopeName || '—', '', 'Solicitante', requester || '—']);
+      rows.push(['Loja', selectedStore?.name ?? '—', '', 'Descrição do Escopo', scopeDescription || '—']);
+      rows.push([]);
+      rows.push(['Item nº', 'Título', 'Descrição do item', 'Checklist', 'Valor fornecedor']);
+      for (const [idx, item] of items.entries()) {
+        rows.push([
+          idx + 1,
           item.title,
           item.description,
           item.checklist.filter(Boolean).join('\n'),
           '',
-        ]),
-      ];
-      const sheetRows = [titleRow, ...metadataRows, ...tableRows];
-      const worksheet = utils.aoa_to_sheet(sheetRows);
-
-      worksheet['!cols'] = [
-        { wch: 8 },
-        { wch: 30 },
-        { wch: 50 },
-        { wch: 35 },
-        { wch: 20 },
-      ];
-
-      const headerHex = '#1F2937';
-      const headerRgb = 'FF' + headerHex.replace('#', '').toUpperCase();
-      const headerStyle = {
-        font: { bold: true, color: { rgb: 'FFFFFFFF' } },
-        fill: { patternType: 'solid', fgColor: { rgb: headerRgb } },
-        alignment: { horizontal: 'center', vertical: 'center' },
-      } as any;
-      const metadataStyle = {
-        font: { bold: true, color: { rgb: 'FF111827' } },
-      } as any;
-
-      const headerRowIndex = 1 + metadataRows.length;
-
-      headerRow.forEach((_, colIndex) => {
-        const cell = worksheet[utils.encode_cell({ r: headerRowIndex, c: colIndex })];
-        if (cell) {
-          cell.s = { ...(cell.s || {}), ...headerStyle } as any;
-          cell.s.border = cell.s.border || {
-            top: { style: 'thin', color: { rgb: 'FF000000' } },
-            bottom: { style: 'thin', color: { rgb: 'FF000000' } },
-            left: { style: 'thin', color: { rgb: 'FF000000' } },
-            right: { style: 'thin', color: { rgb: 'FF000000' } },
-          };
-        }
-      });
-
-      metadataRows.forEach((row, rowIndex) => {
-        row.forEach((value, colIndex) => {
-          const cell = worksheet[utils.encode_cell({ r: rowIndex, c: colIndex })];
-          if (cell && value) {
-            cell.s = { ...(cell.s || {}), ...metadataStyle } as any;
-          }
-        });
-      });
-
-      try {
-        const titleCellRef = utils.encode_cell({ r: 0, c: 0 });
-        const titleCell = worksheet[titleCellRef];
-        if (titleCell) {
-          titleCell.t = 's';
-          titleCell.v = `${companyName} — ${new Date().toLocaleString()}`;
-          titleCell.s = titleCell.s || {};
-          titleCell.s.font = { bold: true, sz: 14, color: { rgb: 'FF111827' } };
-          titleCell.s.alignment = { horizontal: 'left', vertical: 'center' };
-        }
-        worksheet['!merges'] = worksheet['!merges'] || [];
-        worksheet['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: headerRow.length - 1 } });
-      } catch (e) {}
-
-      const startDataRow = headerRowIndex + 1;
-      const endDataRow = startDataRow + items.length - 1;
-      for (let r = startDataRow; r <= endDataRow; r++) {
-        const descCell = worksheet[utils.encode_cell({ r, c: 2 })];
-        if (descCell) {
-          descCell.s = descCell.s || {};
-          descCell.s.alignment = { wrapText: true, vertical: 'top' };
-        }
-        const checklistCell = worksheet[utils.encode_cell({ r, c: 3 })];
-        if (checklistCell) {
-          checklistCell.s = checklistCell.s || {};
-          checklistCell.s.alignment = { wrapText: true, vertical: 'top' };
-        }
-        const valorRef = utils.encode_cell({ r, c: 4 });
-        const valorCell = worksheet[valorRef];
-        if (valorCell) {
-          if (valorCell.v === '' || valorCell.v == null) {
-            valorCell.v = 0;
-            valorCell.t = 'n';
-          }
-          valorCell.z = valorCell.z || 'R$#,##0.00';
-          valorCell.s = valorCell.s || {};
-          valorCell.s.numFmt = valorCell.s.numFmt || 'R$#,##0.00';
-        }
+        ]);
       }
 
-      try {
-        const filterRange = utils.encode_range({ s: { r: headerRowIndex, c: 0 }, e: { r: endDataRow, c: headerRow.length - 1 } });
-        worksheet['!autofilter'] = { ref: filterRange };
-      } catch (e) {}
-      const totalRow = endDataRow + 1;
-      const totalLabelCellRef = utils.encode_cell({ r: totalRow, c: 3 });
-      worksheet[totalLabelCellRef] = { t: 's', v: 'Total', s: { font: { bold: true } } } as any;
-      const sumFormula = `SUM(E${startDataRow + 1}:E${endDataRow + 1})`;
-      const totalValueCellRef = utils.encode_cell({ r: totalRow, c: 4 });
-      worksheet[totalValueCellRef] = { t: 'n', f: sumFormula, z: 'R$#,##0.00' } as any;
-
-      const workbook = utils.book_new();
-      try {
-        (workbook as any).Workbook = (workbook as any).Workbook || {};
-        (workbook as any).Workbook.Views = (workbook as any).Workbook.Views || [];
-        (workbook as any).Workbook.Views.push({ ySplit: headerRowIndex + 1, activeTab: 0 });
-      } catch (e) {}
-      utils.book_append_sheet(workbook, worksheet, 'Escopo');
-      const buffer = write(workbook, { bookType: 'xlsx', type: 'array' });
-      const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
+      const csv = '\uFEFF' + rows.map(r => r.map(escapeCsv).join(sep)).join('\r\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       const filename = (scopeName.trim() || 'escopo').replace(/[^a-z0-9]/gi, '_').toLowerCase();
       anchor.href = url;
-      anchor.download = `${filename || 'escopo'}.xlsx`;
+      anchor.download = `${filename || 'escopo'}.csv`;
       anchor.click();
       URL.revokeObjectURL(url);
       toast({
-        title: 'Planilha pronta',
-        description: 'Excel profissional com espaço para o fornecedor preencher valores.',
+        title: 'Arquivo pronto',
+        description: 'CSV pronto para abrir no Excel (com proteção contra fórmulas).',
       });
     } catch (error) {
       toast({
@@ -460,7 +367,7 @@ export default function EscoposPageClient() {
       const container = document.createElement('div');
       container.style.width = '900px';
       container.style.padding = '20px';
-      container.style.fontFamily = 'Arial, Helvetica, sans-serif';
+      container.style.fontFamily = 'var(--font-body)';
       container.style.background = '#ffffff';
       container.style.color = '#111827';
 

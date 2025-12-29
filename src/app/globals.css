@@ -4,6 +4,21 @@
 
 @layer base {
   :root {
+    --font-body: var(--font-roboto, "Roboto"), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    --font-headline: var(--font-roboto, "Roboto"), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    --font-code: var(--font-roboto, "Roboto"), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    --font-icon: "Material Icons", "Material Icons Outlined", "Font Awesome 6 Free", "Font Awesome 6 Brands", sans-serif;
+    --text-h1: 2.25rem;
+    --text-h2: 1.75rem;
+    --text-h3: 1.375rem;
+    --text-h4: 1.125rem;
+    --text-body: 1rem;
+    --text-small: 0.875rem;
+    --text-caption: 0.75rem;
+    --line-tight: 1.2;
+    --line-normal: 1.5;
+    --tracking-body: 0.03125em;
+    --tracking-ui: 0.02em;
     --background: 210 25% 97%;
     --foreground: 214 16% 18%;
     --card: 0 0% 100%;
@@ -20,6 +35,10 @@
     --accent-foreground: 214 18% 18%;
     --warning: 35 95% 60%;
     --warning-foreground: 0 0% 100%;
+    --success: 142 52% 40%;
+    --success-foreground: 0 0% 100%;
+    --info: 204 70% 45%;
+    --info-foreground: 0 0% 100%;
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
     --border: 210 12% 86%;
@@ -71,6 +90,10 @@
     --accent-foreground: 214 16% 96%;
     --warning: 35 95% 60%;
     --warning-foreground: 0 0% 100%;
+    --success: 142 45% 55%;
+    --success-foreground: 0 0% 100%;
+    --info: 204 70% 60%;
+    --info-foreground: 0 0% 100%;
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
     --border: 218 25% 22%;
@@ -105,12 +128,70 @@
 
   body {
     @apply text-foreground antialiased min-h-screen;
+    font-family: var(--font-body);
+    font-weight: 400;
+    line-height: var(--line-normal);
+    letter-spacing: var(--tracking-body);
     background-color: transparent;
     background-image: none;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
     padding: 0;
+  }
+
+  .font-icon,
+  .material-icons,
+  .material-icons-outlined,
+  .fa,
+  .fa-solid,
+  .fa-regular,
+  .fa-brands {
+    font-family: var(--font-icon);
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  button,
+  [role="button"],
+  label {
+    font-weight: 500;
+    letter-spacing: var(--tracking-ui);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-headline);
+    font-weight: 700;
+    color: hsl(var(--foreground));
+  }
+
+  h1 {
+    font-size: var(--text-h1);
+    line-height: var(--line-tight);
+    letter-spacing: -0.01em;
+  }
+
+  h2 {
+    font-size: var(--text-h2);
+    line-height: var(--line-tight);
+    letter-spacing: -0.005em;
+  }
+
+  h3 {
+    font-size: var(--text-h3);
+    line-height: var(--line-normal);
+    letter-spacing: 0em;
+  }
+
+  h4 {
+    font-size: var(--text-h4);
+    line-height: var(--line-normal);
+    letter-spacing: 0em;
   }
 
   .card,
@@ -156,7 +237,7 @@
   }
 
   .surface-control:focus-visible {
-    outline: 2px solid var(--primary);
+    outline: 2px solid hsl(var(--primary));
     outline-offset: 2px;
   }
 
@@ -262,6 +343,52 @@
 }
 
 @layer components {
+  .app-container {
+    @apply mx-auto w-full max-w-7xl;
+  }
+
+  .app-content {
+    @apply flex-1 px-4 py-6 sm:px-6 md:py-8;
+  }
+
+  .page-stack {
+    @apply space-y-6;
+  }
+
+  .type-title {
+    font-family: var(--font-headline);
+    font-size: var(--text-h1);
+    line-height: var(--line-tight);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .type-lead {
+    font-size: var(--text-h4);
+    line-height: var(--line-normal);
+    color: hsl(var(--muted-foreground));
+  }
+
+  .type-label {
+    font-size: var(--text-caption);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: hsl(var(--muted-foreground));
+    font-weight: 500;
+  }
+
+  .surface-glass {
+    @apply rounded-2xl border border-border/40 bg-card/70 shadow-sm;
+  }
+
+  .surface-muted {
+    @apply rounded-lg border border-border/50 bg-muted/40;
+  }
+
+  .surface-outline {
+    @apply rounded-lg border border-border/60 bg-background/80;
+  }
+
   .page-shell {
     position: relative;
     overflow: hidden;
@@ -302,7 +429,7 @@
   color: #000000;
   box-sizing: border-box;
   padding: 2rem;
-  font-family: serif;
+  font-family: var(--font-body);
 }
 
 .pdf-a4 header,
@@ -343,7 +470,7 @@
 .pdf-a4 h1 { font-size: 18px; margin: 0; }
 .pdf-a4 h2 { font-size: 13px; margin: 0 0 6px 0; }
 .pdf-a4 p { font-size: 11px; margin: 0 0 6px 0; }
-.pdf-a4 .label { font-weight: 600; color: #374151; }
+.pdf-a4 .label { font-weight: 700; color: #374151; }
 .pdf-a4 .value { font-weight: 400; color: #111827; }
 
 .pdf-footer { position: absolute; bottom: 16mm; left: 0; right: 0; text-align: center; font-size: 10px; color: #6b7280; }

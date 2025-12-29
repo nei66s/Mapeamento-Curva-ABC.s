@@ -5,6 +5,27 @@ import { verifyAccessToken } from './src/lib/auth/jwt';
 
 const IDLE_SESSION_TIMEOUT_SECONDS = Number(process.env.IDLE_SESSION_TIMEOUT_SECONDS ?? 0);
 
+type RateBucket = { resetAtMs: number; count: number };
+const RATE_BUCKETS: Map<string, RateBucket> = new Map();
+
+function getClientIp(req: NextRequest) {
+  const forwarded = req.headers.get('x-forwarded-for');
+  const ip = forwarded?.split(',')[0]?.trim();
+  return ip || 'unknown';
+}
+
+function isRateLimited(key: string, limit: number, windowMs: number) {
+  const now = Date.now();
+  const bucket = RATE_BUCKETS.get(key);
+  if (!bucket || now >= bucket.resetAtMs) {
+    RATE_BUCKETS.set(key, { resetAtMs: now + windowMs, count: 1 });
+    return false;
+  }
+  bucket.count += 1;
+  RATE_BUCKETS.set(key, bucket);
+  return bucket.count > limit;
+}
+
 function attachLastActiveCookie(res: NextResponse, nowSec?: number) {
   if (!IDLE_SESSION_TIMEOUT_SECONDS) return res;
   const now = nowSec ?? Math.floor(Date.now() / 1000);
@@ -12,13 +33,20 @@ function attachLastActiveCookie(res: NextResponse, nowSec?: number) {
     path: '/',
     httpOnly: true,
     sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
     maxAge: IDLE_SESSION_TIMEOUT_SECONDS,
   });
   return res;
 }
 
 function clearAuthCookies(res: NextResponse) {
-  const opts = { path: '/', maxAge: 0 } as any;
+  const opts = {
+    path: '/',
+    maxAge: 0,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  } as any;
   res.cookies.set('pm_access_token', '', opts);
   res.cookies.set('pm_refresh_token', '', opts);
   res.cookies.set('pm_user', '', opts);
@@ -76,14 +104,10 @@ function getModuleId(path: string) {
 export async function middleware(req: NextRequest) {
   const { nextUrl } = req;
   const path = nextUrl.pathname;
-  // Redirect root to login to avoid rendering the app-shell root page
-  // (some deployments may miss client reference manifests for this page)
+  const isProd = process.env.NODE_ENV === 'production';
+  // Let Vercel handle root redirect at the edge; do not intercept '/'
   if (path === '/') {
-    const accessToken = extractAccessToken(req);
-    const tokenValid = accessToken ? verifyAccessToken(accessToken).valid : false;
-    const url = nextUrl.clone();
-    url.pathname = tokenValid ? '/indicators' : '/login';
-    return NextResponse.redirect(url);
+    return NextResponse.next();
   }
   // allow public/internal asset routes to pass through
   if (
@@ -97,6 +121,20 @@ export async function middleware(req: NextRequest) {
   }
 
   const isApiRoute = path.startsWith('/api');
+
+  // Hard block dangerous dev/seed endpoints in production.
+  if (isProd && isApiRoute) {
+    if (path.startsWith('/api/dev/') || path === '/api/dev/login-as-admin') {
+      return NextResponse.json({ message: 'not found' }, { status: 404 });
+    }
+    if (path === '/api/admin/dev-login') {
+      return NextResponse.json({ message: 'not found' }, { status: 404 });
+    }
+    if (path.startsWith('/api/seed') || path.startsWith('/api/seed-')) {
+      return NextResponse.json({ message: 'not found' }, { status: 404 });
+    }
+  }
+
   const PUBLIC_API_EXACT = new Set([
     '/api/auth/login',
     '/api/auth/forgot-password',
@@ -105,7 +143,7 @@ export async function middleware(req: NextRequest) {
     '/api/admin-panel/auth/login',
     '/api/admin-panel/auth/refresh',
     '/api/admin-panel/auth/logout',
-    '/api/dev/login-as-admin',
+    '/api/cron',
     '/api/whoami',
   ]);
   const PUBLIC_API_PREFIXES = ['/api/health'];
@@ -116,6 +154,23 @@ export async function middleware(req: NextRequest) {
 
   if (isApiRoute) {
     if (isPublicApiRoute) {
+      // Brute-force protection for auth-related public endpoints.
+      const SENSITIVE_PUBLIC = new Set([
+        '/api/auth/login',
+        '/api/admin-panel/auth/login',
+        '/api/auth/forgot-password',
+        '/api/auth/reset-password',
+        '/api/auth/refresh',
+        '/api/admin-panel/auth/refresh',
+      ]);
+      if (SENSITIVE_PUBLIC.has(path)) {
+        const ip = getClientIp(req);
+        const key = `${ip}:${path}`;
+        // 20 requests / 5 minutes per IP per endpoint.
+        if (isRateLimited(key, 20, 5 * 60 * 1000)) {
+          return NextResponse.json({ message: 'too_many_requests' }, { status: 429 });
+        }
+      }
       return NextResponse.next();
     }
     const accessToken = extractAccessToken(req);
@@ -176,7 +231,7 @@ export async function middleware(req: NextRequest) {
     }
     if (sessionRes.status === 403) {
       const url = nextUrl.clone();
-      url.pathname = '/';
+      url.pathname = '/indicators';
       return NextResponse.redirect(url);
     }
     let sessionJson: any = null;

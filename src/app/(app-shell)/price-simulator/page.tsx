@@ -847,6 +847,9 @@ export default function PriceSimulatorPage() {
               <div className="mt-4 rounded-lg border border-amber-200 bg-white p-2">
                 <div className="text-[0.65rem] font-semibold uppercase tracking-wide text-amber-600">Planta Nano Banana</div>
                 <div className="mt-2">
+                  {/* Dynamic image (data URL / external) provided by AI; next/image may
+                      break for data URLs or unknown external hosts — keep <img> here. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={nanoBanana.image}
                     alt="Planta baixa gerada"

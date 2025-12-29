@@ -19,14 +19,14 @@ import { useTracking } from '@/hooks/use-tracking';
 const highlightStats = [
   {
     title: 'Disponibilidade',
-    value: '99,9%',
-    description: 'Alertas e redundância multirregional mantendo o painel no ar.',
+    value: '—',
+    description: 'Métrica real será exibida quando o backend estiver conectado.',
     icon: ShieldCheck,
   },
   {
     title: 'Resposta Operacional',
-    value: '1.280',
-    description: 'Incidentes resolvidos neste mês com workflow automatizado.',
+    value: '—',
+    description: 'Número ilustrativo para fins de demonstração.',
     icon: Activity,
   },
   {

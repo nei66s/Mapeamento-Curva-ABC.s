@@ -24,7 +24,8 @@ import { Textarea } from '@/components/ui/textarea';
 import type { Item, Category, Classification } from '@/lib/types';
 import { impactFactors } from '@/lib/impact-factors';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { ClassificationBadge } from '@/components/shared/risk-badge';
@@ -97,6 +98,8 @@ export function ItemForm({ item, categories, onSubmit, onCancel }: ItemFormProps
   useEffect(() => {
     form.reset(getDefaultValues(item ?? null));
   }, [item, form]);
+
+  const [previewFallback, setPreviewFallback] = useState(false);
 
   return (
     <Form {...form}>
@@ -184,18 +187,13 @@ export function ItemForm({ item, categories, onSubmit, onCancel }: ItemFormProps
                       {/* Show actual preview when imageUrl is set. Otherwise show nothing (no placeholder). */}
                       {form.getValues('imageUrl') ? (
                         <div className="flex items-center gap-3">
-                          <img
-                            src={form.getValues('imageUrl') as string}
+                          <Image
+                            src={previewFallback ? '/logo.png' : (form.getValues('imageUrl') as string)}
                             alt={form.getValues('name') || 'Imagem do item'}
+                            width={128}
+                            height={80}
                             className="h-20 w-32 rounded object-cover border"
-                            onError={(e) => {
-                              // Fallback to a local placeholder if the image is missing.
-                              const target = e.currentTarget as HTMLImageElement;
-                              if (!target.dataset.fallback) {
-                                target.dataset.fallback = '1';
-                                target.src = '/logo.png';
-                              }
-                            }}
+                            onError={() => setPreviewFallback(true)}
                           />
                           <div className="flex flex-col">
                             <Button

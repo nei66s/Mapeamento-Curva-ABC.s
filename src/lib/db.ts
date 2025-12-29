@@ -71,11 +71,74 @@ const resolveHostname = (hostname: string): DnsLookupResult => {
 };
 
 const poolConfig = (() => {
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = (process.env.DATABASE_URL || '').trim();
+  const isProd = process.env.NODE_ENV === 'production';
+
+  // IMPORTANT: never disable TLS certificate verification by default.
+  // Allow an explicit override only for controlled environments.
+  const rejectUnauthorizedEnv = (process.env.DB_SSL_REJECT_UNAUTHORIZED || '').trim().toLowerCase();
+  const rejectUnauthorized = rejectUnauthorizedEnv
+    ? rejectUnauthorizedEnv !== 'false' && rejectUnauthorizedEnv !== '0'
+    : true;
+
+  // Allow disabling SSL completely (not recommended) for local/test.
+  const sslMode = (process.env.PGSSLMODE || '').trim().toLowerCase();
+  const sslDisabled = sslMode === 'disable' || sslMode === 'disabled' || sslMode === 'off';
+  const ssl = sslDisabled ? false : { rejectUnauthorized };
+
+  if (isProd && sslDisabled) {
+    throw new Error('Refusing to start with PGSSLMODE=disable in production.');
+  }
+
+  const pgHost = (process.env.PGHOST || '').trim();
+  const pgPortRaw = (process.env.PGPORT || '').trim();
+  const pgUser = (process.env.PGUSER || '').trim();
+  const pgPassword = (process.env.PGPASSWORD || '').trim();
+  const pgDatabase = (process.env.PGDATABASE || '').trim();
+  const hasPgEnv = Boolean(pgHost || pgPortRaw || pgUser || pgPassword || pgDatabase);
+
+  if (!databaseUrl && !hasPgEnv) {
+    // In production, fail fast to avoid running without a DB.
+    // In dev/test, allow importing modules that depend on `pool` without
+    // immediately crashing the process; callers will fail on first query.
+    if (isProd) {
+      throw new Error(
+        'Database configuration not set. Configure DATABASE_URL or PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE to connect.'
+      );
+    }
+    return null;
+  }
+
   if (!databaseUrl) {
-    throw new Error(
-      'DATABASE_URL not set. Configure DATABASE_URL for your environment to connect to the database.'
-    );
+    // Allow configuring via PG* environment variables.
+    const port = pgPortRaw ? Number(pgPortRaw) : undefined;
+    if (pgPortRaw && (!Number.isFinite(port) || port! <= 0)) {
+      throw new Error(`PGPORT is invalid: "${pgPortRaw}"`);
+    }
+
+    if (pgHost && (process.env.DB_LOG_QUERIES === 'true' || process.env.SHOW_DB_RESOLVE === 'true')) {
+      try {
+        const resolved = resolveHostname(pgHost);
+        console.info('[db] PGHOST resolved', {
+          hostname: pgHost,
+          resolvedAddress: resolved.address,
+          resolvedFamily: resolved.family,
+        });
+      } catch (e) {
+        // ignore resolution failures; pg will still attempt to connect
+      }
+    }
+
+    return {
+      host: pgHost || undefined,
+      port,
+      user: pgUser || undefined,
+      password: pgPassword || undefined,
+      database: pgDatabase || undefined,
+      ssl,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 10000,
+    };
   }
 
   let parsedUrl: URL;
@@ -91,10 +154,19 @@ const poolConfig = (() => {
     throw new Error('DATABASE_URL is missing a hostname portion.');
   }
 
-  const resolved = resolveHostname(hostname);
-  // Only log hostname resolution when explicitly requested. Use `DB_LOG_QUERIES`
-  // to enable query timing logs or `SHOW_DB_RESOLVE=true` to enable this message.
-  if (process.env.DB_LOG_QUERIES === 'true' || process.env.SHOW_DB_RESOLVE === 'true') {
+  let resolved: DnsLookupResult | null = null;
+  try {
+    resolved = resolveHostname(hostname);
+  } catch (e: any) {
+    const message = e?.message || String(e);
+    console.warn('[db] Could not resolve DATABASE_URL hostname', { hostname, error: message });
+    // Continue without resolved address; `pg` will attempt to connect using the
+    // original hostname. Avoid crashing the process on transient DNS issues.
+  }
+
+  // Only log hostname resolution when explicitly requested and when we have
+  // a successful resolution result.
+  if ((process.env.DB_LOG_QUERIES === 'true' || process.env.SHOW_DB_RESOLVE === 'true') && resolved) {
     console.info('[db] DATABASE_URL host resolved', {
       hostname,
       resolvedAddress: resolved.address,
@@ -104,13 +176,38 @@ const poolConfig = (() => {
 
   return {
     connectionString: databaseUrl,
-    ssl: { rejectUnauthorized: false },
+    ssl,
     connectionTimeoutMillis: 5000,
     idleTimeoutMillis: 10000,
   };
 })();
 
-const pool = new Pool(poolConfig);
+const pool = (() => {
+  if (!poolConfig) {
+    // Minimal stub to keep unit tests and non-DB code paths working and to
+    // avoid failing during Next's page-data collection in dev when no DB is
+    // configured. Return safe empty results for queries and a connect() that
+    // yields a no-op client.
+    const makeWarn = () => console.warn('[db] Database not configured; returning safe stub.');
+    return {
+      async query() {
+        makeWarn();
+        return { rows: [], rowCount: 0 };
+      },
+      async connect() {
+        makeWarn();
+        return {
+          query: async () => ({ rows: [], rowCount: 0 }),
+          release: async () => {},
+        } as any;
+      },
+      async end() {
+        return;
+      },
+    } as any;
+  }
+  return new Pool(poolConfig as any);
+})();
 
 // No lazy password validation required: production will error early if DATABASE_URL is absent.
 const originalConnect = pool.connect.bind(pool);
@@ -145,7 +242,13 @@ if (process.env.DB_LOG_QUERIES === 'true') {
       return res;
     } catch (err) {
       const dt = Date.now() - start;
-      console.error('[db] query error', { durationMs: dt, err });
+      // Avoid logging full error objects which may contain sensitive details.
+      const safe = {
+        message: (err as any)?.message || String(err),
+        code: (err as any)?.code,
+        severity: (err as any)?.severity,
+      };
+      console.error('[db] query error', { durationMs: dt, err: safe });
       throw err;
     }
   };

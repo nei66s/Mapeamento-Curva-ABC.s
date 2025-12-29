@@ -31,8 +31,13 @@ export async function POST(request: NextRequest) {
     if (/^\$2[aby]\$/.test(stored)) {
       ok = await bcrypt.compare(String(password), stored);
     } else {
-      // Legacy: stored password may be plaintext (from SQL seed). Accept direct match.
-      ok = String(password) === stored;
+      // Legacy: stored password may be plaintext (from SQL seed).
+      // Do NOT allow plaintext passwords in production.
+      if (process.env.NODE_ENV === 'production') {
+        ok = false;
+      } else {
+        ok = String(password) === stored;
+      }
     }
     if (!ok) {
       console.debug('[auth/login] invalid password for user', { email, userId: user.id });
@@ -68,13 +73,17 @@ export async function POST(request: NextRequest) {
     res.cookies.set('pm_access_token', accessToken, {
       httpOnly: true,
       sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
+      maxAge: 60 * 60,
     });
 
     res.cookies.set('pm_refresh_token', refreshToken, {
       httpOnly: true,
       sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
+      maxAge: 60 * 60 * 24 * 7,
     });
     res.cookies.set(
       'pm_user',
@@ -88,6 +97,7 @@ export async function POST(request: NextRequest) {
       {
         httpOnly: true,
         sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
         path: '/',
         maxAge: 60 * 60 * 24 * 7,
       }
@@ -95,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     return res;
   } catch (err: any) {
-    console.error('[auth/login] unexpected error', err);
-    return NextResponse.json({ message: err?.message || 'error' }, { status: 500 });
+    console.error('[auth/login] unexpected error', { message: err?.message || String(err) });
+    return NextResponse.json({ message: 'Erro interno' }, { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -77,8 +77,7 @@ export default function MatrixPage() {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
   // Load items and categories from API (DB-backed)
-  useEffect(() => {
-    const load = async () => {
+  const loadData = useCallback(async () => {
       try {
         const [itemsRes, categoriesRes] = await Promise.all([
           fetch('/api/items'),
@@ -110,10 +109,11 @@ export default function MatrixPage() {
           description,
         });
       }
-    };
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [toast]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const filteredItems = useMemo(() => {
     if (!categoryFilter) {

@@ -5,7 +5,13 @@ import { verifyRefreshToken, issueAccessToken } from '@/lib/auth/jwt';
 import { getUserById } from '@/server/adapters/users-adapter';
 
 export async function POST(request: NextRequest) {
-  const { refreshToken: bodyRefreshToken } = await request.json();
+  let bodyRefreshToken: string | null = null;
+  try {
+    const body = await request.json();
+    bodyRefreshToken = body?.refreshToken ? String(body.refreshToken) : null;
+  } catch (e) {
+    bodyRefreshToken = null;
+  }
   const cookieRefresh = request.cookies.get('pm_refresh_token')?.value;
   const refreshToken = bodyRefreshToken || cookieRefresh;
   if (!refreshToken) return NextResponse.json({ message: 'Refresh token ausente.' }, { status: 401 });

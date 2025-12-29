@@ -1,6 +1,7 @@
 node-v20.9.0/
 logs/
 public/uploads/
+tmp/
 .DS_Store
 /.vscode/# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 

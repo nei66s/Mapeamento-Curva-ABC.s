@@ -6,7 +6,14 @@ import { validateRefreshToken, saveRefreshToken, invalidateRefreshToken } from '
 
 export async function POST(request: NextRequest) {
   try {
-    const { refreshToken } = await request.json();
+    let refreshToken: string | null = null;
+    try {
+      const body = await request.json();
+      refreshToken = body?.refreshToken ? String(body.refreshToken) : null;
+    } catch (e) {
+      refreshToken = null;
+    }
+    refreshToken = refreshToken || request.cookies.get('pm_refresh_token')?.value || null;
     if (!refreshToken) return NextResponse.json({ message: 'missing' }, { status: 400 });
     const verified = verifyRefreshToken(refreshToken);
     if (!verified.valid) return NextResponse.json({ message: 'invalid' }, { status: 401 });
@@ -21,10 +28,23 @@ export async function POST(request: NextRequest) {
     await saveRefreshToken(saved.user_id, newRefresh, expiresAt);
 
     const res = NextResponse.json({ accessToken, refreshToken: newRefresh, expiresIn: 3600 });
-    res.cookies.set('pm_access_token', accessToken, { httpOnly: false, path: '/', sameSite: 'lax' });
-    res.cookies.set('pm_refresh_token', newRefresh, { httpOnly: true, path: '/', sameSite: 'lax' });
+    res.cookies.set('pm_access_token', accessToken, {
+      httpOnly: false,
+      path: '/',
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60,
+    });
+    res.cookies.set('pm_refresh_token', newRefresh, {
+      httpOnly: true,
+      path: '/',
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7,
+    });
     return res;
   } catch (err: any) {
-    return NextResponse.json({ message: err?.message || 'error' }, { status: 500 });
+    console.error('[auth/refresh] unexpected error', { message: err?.message || String(err) });
+    return NextResponse.json({ message: 'Erro interno' }, { status: 500 });
   }
 }

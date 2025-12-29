@@ -1,8 +1,17 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "package.json", "use": "@vercel/next" }
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/login",
+      "permanent": true
+    }
   ],
-  "routes": [],
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 10 * * *"
+    }
+  ],
   "buildCommand": "npm run build"
 }

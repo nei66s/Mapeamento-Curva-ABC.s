@@ -1,14 +1,19 @@
-// Ensure client manifest fallback runs on server before other server code
+﻿// Ensure client manifest fallback runs on server before other server code
 import '@/lib/ensure-client-manifest.server';
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import type { Metadata } from 'next';
 import './globals.css';
+import { Roboto } from 'next/font/google';
+// Font loaders must be called at module scope (Next.js requirement).
+const roboto = Roboto({
+  subsets: ['latin', 'latin-ext'],
+  weight: ['400', '500', '700'],
+  display: 'swap',
+  variable: '--font-roboto',
+});
 import { Toaster } from '@/components/ui/toaster';
 import LeftEdgeListener from '@/components/layout/left-edge-listener.client';
-import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
-// Ensure client manifest fallback runs on server before other server code
-import '@/lib/ensure-client-manifest.server';
 import { getUserSettings } from '@/lib/settings.server';
 import { AppProviders } from '@/components/providers/app-providers';
 
@@ -50,21 +55,13 @@ export default async function RootLayout({
 
   // Inline script will prefer server-provided settings when available, otherwise fall back to localStorage.
   const inlineScript = `(function(){try{var server=${JSON.stringify(ss)};var stored=localStorage.getItem('theme')||'light';var prefer=(server&&server.theme)||stored;document.documentElement.classList.toggle('dark', prefer==='dark');document.documentElement.setAttribute('data-theme', prefer);localStorage.setItem('theme', prefer);}catch(e){}})();`;
+
   return (
-    <html lang="en" suppressHydrationWarning data-theme="light">
+    <html lang="pt-BR" suppressHydrationWarning data-theme="light" className={roboto.variable}>
       <head>
+        <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script dangerouslySetInnerHTML={{ __html: inlineScript }} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@600;700;800&display=swap"
-          rel="stylesheet"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap"
-          rel="stylesheet"
-        />
       </head>
       <body className="font-body antialiased">
         <AppProviders>
