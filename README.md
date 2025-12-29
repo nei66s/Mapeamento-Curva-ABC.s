@@ -139,3 +139,9 @@ Arquivos alterados
 - src/app/(app-shell)/data-quality/page.tsx
 - src/app/(app-shell)/ai-insights/page.tsx
 - src/app/(app-shell)/integrations/page.tsx
+
+## Environment notes
+
+- Keep sensitive values in `.env.local` (this file is gitignored).
+- For local development we provide `env.example` with safe example values.
+- Build note: Next.js may refuse to start during production page-data collection if `PGSSLMODE=disable` is set. Use `PGSSLMODE=prefer` in local examples so builds succeed while allowing SSL in production environments. Do not commit production secrets; configure strict SSL (e.g., `PGSSLMODE=require`) in your deployment environment if needed.
