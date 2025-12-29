@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import AppSidebar from './app-sidebar';
 import AppHeader from './app-header';
+import FloatingChat from '@/components/ai-chat/FloatingChat';
 import RequirePermission from '@/components/auth/RequirePermission.client';
 import { CurrentUserProvider } from '@/hooks/use-current-user';
 import { cn } from '@/lib/utils';
@@ -165,6 +166,7 @@ export default function SidebarShell({ children }: { children: ReactNode }) {
             </div>
           </main>
         </div>
+        <FloatingChat />
       </div>
     </CurrentUserProvider>
   );

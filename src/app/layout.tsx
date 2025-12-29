@@ -3,13 +3,13 @@ import '@/lib/ensure-client-manifest.server';
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import type { Metadata } from 'next';
 import './globals.css';
-import { Roboto } from 'next/font/google';
+import { Inter } from 'next/font/google';
 // Font loaders must be called at module scope (Next.js requirement).
-const roboto = Roboto({
+const inter = Inter({
   subsets: ['latin', 'latin-ext'],
-  weight: ['400', '500', '700'],
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
-  variable: '--font-roboto',
+  variable: '--font-inter',
 });
 import { Toaster } from '@/components/ui/toaster';
 import LeftEdgeListener from '@/components/layout/left-edge-listener.client';
@@ -57,8 +57,10 @@ export default async function RootLayout({
   const inlineScript = `(function(){try{var server=${JSON.stringify(ss)};var stored=localStorage.getItem('theme')||'light';var prefer=(server&&server.theme)||stored;document.documentElement.classList.toggle('dark', prefer==='dark');document.documentElement.setAttribute('data-theme', prefer);localStorage.setItem('theme', prefer);}catch(e){}})();`;
 
   return (
-    <html lang="pt-BR" suppressHydrationWarning data-theme="light" className={roboto.variable}>
-      <head>\r\n        <meta charSet="utf-8" />\r\n        <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <html lang="pt-BR" suppressHydrationWarning data-theme="light" className={inter.className}>
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script dangerouslySetInnerHTML={{ __html: inlineScript }} />
       </head>
       <body className="font-body antialiased">

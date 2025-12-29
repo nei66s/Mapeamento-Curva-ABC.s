@@ -11,7 +11,7 @@ export default {
     fontWeight: {
       normal: '400',
       medium: '500',
-      semibold: '700',
+      semibold: '600',
       bold: '700',
       extrabold: '700',
       black: '700',
