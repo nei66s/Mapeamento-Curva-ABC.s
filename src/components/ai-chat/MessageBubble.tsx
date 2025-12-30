@@ -19,16 +19,18 @@ export function MessageBubble({ role, content, isLoading = false, avatarUrl, ass
   const bubble = (
     <div
       className={cn(
-        "max-w-2xl rounded-2xl border px-4 py-3 text-sm leading-relaxed",
-        isAssistant ? "bg-muted/40 text-foreground" : "border-primary/20 bg-primary/10 text-foreground"
+        "max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
+        isAssistant
+          ? "bg-slate-800 text-white border border-white/6"
+          : "bg-white text-slate-900 border border-slate-200"
       )}
     >
       {isLoading && isAssistant ? (
         <div className="flex items-center">
-          <div className="h-8 w-16 rounded-full bg-muted/30 px-3 py-1 flex items-center justify-center">
-            <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground animate-pulse" style={{ animationDelay: '0s' }} />
-            <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground ml-2 animate-pulse" style={{ animationDelay: '150ms' }} />
-            <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground ml-2 animate-pulse" style={{ animationDelay: '300ms' }} />
+          <div className="h-8 w-16 rounded-full bg-slate-700/40 px-3 py-1 flex items-center justify-center">
+            <span className="inline-block h-2 w-2 rounded-full bg-white/80 animate-pulse" style={{ animationDelay: '0s' }} />
+            <span className="inline-block h-2 w-2 rounded-full bg-white/80 ml-2 animate-pulse" style={{ animationDelay: '150ms' }} />
+            <span className="inline-block h-2 w-2 rounded-full bg-white/80 ml-2 animate-pulse" style={{ animationDelay: '300ms' }} />
           </div>
         </div>
       ) : (
@@ -42,12 +44,12 @@ export function MessageBubble({ role, content, isLoading = false, avatarUrl, ass
   const avatarNode = (
     <div className="flex-shrink-0 flex flex-col items-center">
       {avatar ? (
-        <img src={avatar} alt={isAssistant ? 'Assistente' : 'Usuario'} className="h-8 w-8 rounded-full object-cover" />
+        <img src={avatar} alt={isAssistant ? 'Assistente' : 'Usuario'} className="h-9 w-9 rounded-full object-cover" />
       ) : (
-        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-semibold text-primary-foreground">{isAssistant ? 'IA' : 'TU'}</div>
+        <div className="h-9 w-9 rounded-full bg-slate-700 flex items-center justify-center text-xs font-semibold text-white">{isAssistant ? 'IA' : 'TU'}</div>
       )}
       {isAssistant && (
-        <div className="text-[10px] mt-1 text-muted-foreground">zeca</div>
+        <div className="text-[11px] mt-1 text-muted-foreground capitalize">zeca</div>
       )}
     </div>
   );

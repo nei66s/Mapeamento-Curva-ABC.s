@@ -14,7 +14,19 @@ if ([string]::IsNullOrEmpty($dbHost) -and -not [string]::IsNullOrEmpty($env:DATA
 if ([string]::IsNullOrEmpty($dbHost)) { $dbHost = 'localhost' }
 if ([string]::IsNullOrEmpty($dbPort)) { $dbPort = '5432' }
 
-$portOpen = (Test-NetConnection -ComputerName $dbHost -Port ([int]$dbPort)).TcpTestSucceeded
+# Determine whether Test-NetConnection supports -Quiet, fall back otherwise
+if ((Get-Command Test-NetConnection).Parameters.Keys -contains 'Quiet') {
+	$portOpen = Test-NetConnection -ComputerName $dbHost -Port ([int]$dbPort) -Quiet
+} else {
+	$portOpen = (Test-NetConnection -ComputerName $dbHost -Port ([int]$dbPort)).TcpTestSucceeded
+}
+
+# Forcefully unset NODE_TLS_REJECT_UNAUTHORIZED in the process environment to avoid
+# Node emitting the insecure-TLS warning for child processes.
+$originalTls = [System.Environment]::GetEnvironmentVariable('NODE_TLS_REJECT_UNAUTHORIZED', 'Process')
+if ($null -ne $originalTls) {
+	[System.Environment]::SetEnvironmentVariable('NODE_TLS_REJECT_UNAUTHORIZED', $null, 'Process')
+}
 if ($portOpen) {
 	Write-Host "Database is reachable on ${dbHost}:${dbPort} - running seed scripts..."
 	npx ts-node scripts/seed-vacations-for-test.ts

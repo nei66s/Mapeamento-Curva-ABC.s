@@ -4,11 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCurrentUser } from '@/hooks/use-current-user';
 import type { KeyboardEventHandler } from "react";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from 'lucide-react';
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { Trash2, Send } from 'lucide-react';
+import ChatHeader from "./ChatHeader";
+import ChatMessages from "./ChatMessages";
+import ChatInput from "./ChatInput";
 import { aiProfiles, getProfileById } from "@/lib/ai/ai-profiles";
 import { createMockResponse } from "@/lib/ai/mock-response";
 import { MessageBubble } from "./MessageBubble";
@@ -21,7 +20,17 @@ type ChatMessage = {
   content: string;
 };
 
-const createId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const createId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  // Fallback to a pseudo-uuid format
+  const rnd = Math.random().toString(16).slice(2, 10);
+  const ts = Date.now().toString(16).padStart(12, '0');
+  return `${ts.slice(0, 8)}-${ts.slice(8, 12)}-4${rnd.slice(0,3)}-a${rnd.slice(3,6)}-${rnd.slice(6, 8)}${Math.random().toString(16).slice(2,6)}`;
+};
+
+const isUuidClient = (v?: string | null) => Boolean(v && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v));
 
 const isExplicitReportRequest = (text: string) =>
   /relatorio|diagnostico estruturado/i.test(text);
@@ -42,6 +51,9 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
+  const [guestId, setGuestId] = useState<string | null>(null);
+  const [allowServerRestore, setAllowServerRestore] = useState(true);
+  const [restoredFromServer, setRestoredFromServer] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
   const saveTimerRef = useRef<number | null>(null);
 
@@ -51,35 +63,70 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
   );
   const { user } = useCurrentUser();
   const hasUserMessages = useMemo(() => messages.some((message) => message.role === "user"), [messages]);
-  const storageKey = typeof window !== 'undefined' && user ? `ai_chat_${user.id}` : 'ai_chat_guest';
+  const guestIdKey = 'ai_chat_guest_id';
 
-  // load persisted messages/profile when storageKey changes (e.g. user becomes available)
+  // Create or load a stable guestId so we can persist server-side even sem login
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
-      // do not overwrite an active conversation
-      if (messages.length > 0) return;
-      const raw = localStorage.getItem(storageKey as string);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed.messages)) setMessages(parsed.messages);
-        if (parsed.activeProfileId) setActiveProfileId(parsed.activeProfileId);
-        if (parsed.conversationId) setConversationId(parsed.conversationId);
+      const existing = localStorage.getItem(guestIdKey);
+      if (existing) {
+        setGuestId(existing);
+        return;
       }
+      const newId = `guest-${crypto.randomUUID ? crypto.randomUUID() : createId()}`;
+      localStorage.setItem(guestIdKey, newId);
+      setGuestId(newId);
     } catch (e) {
-      // ignore
+      // fallback: still set a transient id so server persistence can happen during session
+      setGuestId((prev) => prev ?? `guest-${createId()}`);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageKey]);
+  }, []);
 
-  // persist messages/profile and conversationId
+  // Load last conversation from the API (user or guest) when there is nothing in memory
   useEffect(() => {
-    try {
-      if (typeof window === 'undefined') return;
-      const payload = { messages, activeProfileId, conversationId };
-      localStorage.setItem(storageKey as string, JSON.stringify(payload));
-    } catch (e) {}
-  }, [messages, activeProfileId, conversationId, storageKey]);
+    const ownerId = user?.id ?? guestId;
+    if (!ownerId) return;
+    if (messages.length > 0) return;
+    if (!allowServerRestore) return;
+
+    const loadFromServer = async () => {
+      try {
+        // If we already have conversationId but no messages, fetch by id
+        if (conversationId) {
+          const res = await fetch(`/api/ai/chat?conversationId=${conversationId}`);
+          const body = await res.json().catch(() => null);
+          if (body?.ok && Array.isArray(body.result?.messages) && body.result.messages.length > 0) {
+            const msgs = body.result.messages.map((m: any) => ({ id: m.id, role: m.role, content: m.content }));
+            setMessages(msgs);
+            setRestoredFromServer(true);
+            return;
+          }
+        }
+
+        // Otherwise fetch the latest conversation for this owner
+        const res = await fetch(`/api/ai/chat?userId=${ownerId}&limit=1`);
+        const body = await res.json().catch(() => null);
+        if (body?.ok && Array.isArray(body.result) && body.result.length > 0) {
+          const conv = body.result[0];
+          const convId = conv.id;
+          const msgs = await fetch(`/api/ai/chat?conversationId=${convId}`).then((r) => r.json()).catch(() => null);
+          if (msgs?.ok && Array.isArray(msgs.result?.messages) && msgs.result.messages.length > 0) {
+            setConversationId(convId);
+            setMessages(msgs.result.messages.map((m: any) => ({ id: m.id, role: m.role, content: m.content })));
+            setRestoredFromServer(true);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load conversation from server', e);
+      }
+    };
+
+    loadFromServer();
+  }, [user?.id, guestId, conversationId, messages.length, allowServerRestore]);
+
+  // persist messages/profile and conversationId to guest key and user key (when available) - save immediately
+  // no localStorage persistence for messages: we rely on backend
 
   useEffect(() => {
     if (initialProfileId && !activeProfileId) {
@@ -88,7 +135,8 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
   }, [initialProfileId, activeProfileId]);
 
   useEffect(() => {
-    if (activeProfile && messages.length === 0) {
+    if (restoredFromServer) return;
+    if (activeProfile && messages.length === 0 && !conversationId) {
       setMessages([
         {
           id: createId(),
@@ -97,17 +145,16 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
         },
       ]);
     }
-  }, [activeProfile, messages.length]);
+  }, [activeProfile?.profileId, conversationId, messages.length, restoredFromServer]);
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, loading, reportLoading]);
+  // scrolling handled inside ChatMessages (only scroll when user is at bottom)
 
-  // auto-save conversation to server (debounced) when user is logged
+  // auto-save conversation to server (debounced) when we have an owner (user or guest)
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
-      if (!user?.id) return;
+      const ownerId = user?.id ?? guestId;
+      if (!ownerId) return;
       if (messages.length === 0) return;
 
       if (saveTimerRef.current) {
@@ -116,10 +163,15 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
 
       saveTimerRef.current = window.setTimeout(async () => {
         try {
+          const sanitized = messages.map((m) => ({
+            id: isUuidClient(m.id) ? m.id : createId(),
+            role: m.role,
+            content: m.content,
+          }));
           const payload = {
-            userId: user.id,
-            messages: messages.map((m) => ({ role: m.role, content: m.content })),
-            conversationId: conversationId ?? undefined,
+            userId: ownerId,
+            messages: sanitized,
+            conversationId: isUuidClient(conversationId) ? conversationId : undefined,
             profileId: activeProfile?.profileId ?? undefined,
             title: messages.find((m) => m.role === 'user')?.content?.slice(0, 120) ?? undefined,
           };
@@ -146,11 +198,15 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
         saveTimerRef.current = null;
       }
     };
-  }, [messages, user?.id, conversationId, activeProfile?.profileId]);
+  }, [messages, user?.id, guestId, conversationId, activeProfile?.profileId]);
 
   const sendMessage = async (mode: "chat" | "report" = "chat") => {
     const trimmed = input.trim();
     if (!trimmed || loading || reportLoading || !activeProfile) return;
+
+    // Once user starts a new message, allow future restores
+    setAllowServerRestore(true);
+    setRestoredFromServer(false);
 
     const userMessage: ChatMessage = {
       id: createId(),
@@ -258,65 +314,42 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
 
   const clearChat = () => {
     setMessages([]);
+    setAllowServerRestore(false);
+    setRestoredFromServer(false);
     try {
-      if (typeof window !== 'undefined') localStorage.removeItem(storageKey as string);
       setConversationId(null);
     } catch (e) {}
   };
 
-  // Compact (floating) layout similar to WhatsApp: header, scroll area, sticky input
+  // Compact (floating) layout similar to WhatsApp
   if (compact) {
     return (
-      <div className="bg-popover rounded-2xl shadow-lg overflow-hidden transform transition-all duration-200">
-        <div className="flex items-center justify-between gap-3 px-3 py-2 bg-primary text-primary-foreground">
-          <div className="flex items-center gap-3">
-            <img src="/ai-avatar.svg" alt="Zeca" className="h-8 w-8 rounded-full object-cover" />
-            <div className="text-sm font-medium">Zeca</div>
-          </div>
-          <div className="text-xs text-primary-foreground/80">{activeProfile ? activeProfile.description : ''}</div>
-          <div className="ml-2 flex items-center gap-2">
-            <Button size="sm" variant="ghost" onClick={clearChat} aria-label="Limpar conversa">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-        <div className="h-72 overflow-hidden">
-          <ScrollArea className="h-full">
-            <div className="p-3 space-y-3">
-                {messages.map((message) => (
-                  <MessageBubble
-                    key={message.id}
-                    role={message.role}
-                    content={message.content}
-                    avatarUrl={message.role === 'user' ? user?.avatarUrl ?? null : null}
-                    assistantAvatarUrl={message.role === 'assistant' ? '/ai-avatar.svg' : null}
-                  />
-                ))}
-              {(loading || reportLoading) && (
-                <MessageBubble role="assistant" content="digitando..." isLoading />
-              )}
-              <div ref={endRef} />
-            </div>
-          </ScrollArea>
-        </div>
-        <div className="p-2 bg-surface">
-          <div className="flex gap-2">
-            <Textarea
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder="Digite uma mensagem..."
-              rows={1}
-              className="resize-none h-10"
-              disabled={!activeProfileId || loading || reportLoading}
-            />
+      <div className="flex flex-col overflow-hidden h-full">
+        <div
+          className="rounded-2xl bg-white border border-gray-200 flex flex-col overflow-hidden"
+          style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.08)', width: 360, height: '100%' }}
+        >
+          <ChatHeader name="Zeca" status={activeProfile ? 'online' : 'offline'} avatarUrl={'/ai-avatar.png'} onNewChat={clearChat} onHistory={() => {}} />
+          <ChatMessages
+            messages={messages}
+            loading={loading}
+            reportLoading={reportLoading}
+            userAvatar={user?.avatarUrl ?? null}
+            assistantAvatar={'/ai-avatar.png'}
+            endRef={endRef}
+          />
+          <div className="flex-shrink-0 p-2">
             <div className="flex items-center gap-2">
-              <Button
-                onClick={() => sendMessage(isExplicitReportRequest(input) ? "report" : "chat")}
-                disabled={!activeProfileId || loading || reportLoading || !input.trim()}
-                className="h-10"
-              >
-                {loading ? "..." : "Enviar"}
+              <ChatInput
+                value={input}
+                onChange={(v) => setInput(v)}
+                onKeyDown={onKeyDown}
+                onSend={() => sendMessage(isExplicitReportRequest(input) ? "report" : "chat")}
+                disabled={!activeProfileId || loading || reportLoading}
+                loading={loading}
+              />
+              <Button size="sm" variant="ghost" onClick={clearChat} aria-label="Limpar conversa">
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -326,84 +359,56 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Perfil:</span>
-            <Badge variant="outline">{activeProfile?.label ?? "Selecione um perfil"}</Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            O perfil e escolhido uma unica vez e define o tom da conversa.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <ProfileSelector
-          profiles={aiProfiles}
-          value={activeProfileId ?? undefined}
-          onChange={handleProfileChange}
-          disabled={Boolean(activeProfileId)}
-          />
-          <Button size="sm" variant="ghost" onClick={clearChat}>Limpar</Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="surface-muted p-4">
-          <ScrollArea className="h-80 md:h-96">
-            <div className="space-y-4">
-              {!activeProfileId && (
-                <div className="rounded-xl border border-dashed border-border/60 p-6 text-sm text-muted-foreground">
-                  Selecione um perfil para iniciar a conversa.
-                </div>
-              )}
-              {messages.map((message) => (
-                <MessageBubble
-                  key={message.id}
-                  role={message.role}
-                  content={message.content}
-                  avatarUrl={message.role === 'user' ? user?.avatarUrl ?? null : null}
-                  assistantAvatarUrl={message.role === 'assistant' ? '/ai-avatar.svg' : null}
-                />
-              ))}
-              {(loading || reportLoading) && (
-                <MessageBubble role="assistant" content="digitando..." isLoading />
-              )}
-              <div ref={endRef} />
+    <div className="flex flex-col h-full max-h-full min-h-0 overflow-hidden">
+      <div
+        className="bg-white border border-gray-200 rounded-[14px] w-full max-w-[480px] flex flex-col overflow-hidden"
+        style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.08)', height: '600px' }}
+      >
+        <ChatHeader name="Zeca" status={activeProfile ? 'online' : 'offline'} avatarUrl={'/ai-avatar.png'} onNewChat={clearChat} onHistory={() => {}} />
+        <ChatMessages
+          messages={messages}
+          loading={loading}
+          reportLoading={reportLoading}
+          userAvatar={user?.avatarUrl ?? null}
+          assistantAvatar={'/ai-avatar.png'}
+          endRef={endRef}
+        />
+        <div className="flex-shrink-0 px-3 py-2">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-xs text-slate-500">{activeProfile ? activeProfile.description : 'Assistente de IA'}</div>
+            <div className="flex items-center gap-2">
+              <ProfileSelector
+                profiles={aiProfiles}
+                value={activeProfileId ?? undefined}
+                onChange={handleProfileChange}
+                disabled={Boolean(activeProfileId)}
+              />
+              <Button size="sm" variant="ghost" onClick={clearChat}>Limpar</Button>
             </div>
-          </ScrollArea>
-        </div>
-        <div className="space-y-3">
-          <Textarea
+          </div>
+          <ChatInput
             value={input}
-            onChange={(event) => setInput(event.target.value)}
+            onChange={(v) => setInput(v)}
             onKeyDown={onKeyDown}
-            placeholder="Descreva o problema como se estivesse falando com um colega de campo..."
-            rows={3}
+            onSend={() => sendMessage(isExplicitReportRequest(input) ? "report" : "chat")}
             disabled={!activeProfileId || loading || reportLoading}
+            loading={loading}
           />
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-muted-foreground">
-              Converse normalmente. Gere relatorio tecnico apenas se precisar.
-            </p>
+          <div className="mt-2 flex items-center justify-between">
+            <p className="text-xs text-slate-500">Converse normalmente. Gere relatorio tecnico apenas se precisar.</p>
             <div className="flex items-center gap-2">
               <ReportButton
                 onClick={handleReport}
                 disabled={!activeProfileId || !hasUserMessages || loading || reportLoading}
                 loading={reportLoading}
               />
-              <Button
-                onClick={() => sendMessage(isExplicitReportRequest(input) ? "report" : "chat")}
-                disabled={!activeProfileId || loading || reportLoading || !input.trim()}
-              >
-                {loading ? "Enviando..." : "Enviar"}
-              </Button>
               <Button size="sm" variant="ghost" onClick={clearChat} aria-label="Limpar conversa">
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -13,6 +13,7 @@ export default function FloatingChat() {
   const hoverCloseTimer = useRef<number | null>(null);
   const dragging = useRef(false);
   const start = useRef<{ x: number; y: number } | null>(null);
+  const moved = useRef(false);
   const posRef = useRef(pos);
   const [busy, setBusy] = useState(false);
 
@@ -35,6 +36,7 @@ export default function FloatingChat() {
   useEffect(() => {
     const onMove = (ev: MouseEvent) => {
       if (!dragging.current || !start.current) return;
+      moved.current = true;
       const dx = start.current.x - ev.clientX;
       const dy = start.current.y - ev.clientY;
       setPos((p) => {
@@ -61,6 +63,7 @@ export default function FloatingChat() {
   }, []);
 
   const onPointerDown = (e: React.PointerEvent) => {
+    moved.current = false;
     dragging.current = true;
     start.current = { x: e.clientX, y: e.clientY };
   };
@@ -102,13 +105,20 @@ export default function FloatingChat() {
           onPointerDown={onPointerDown}
           role="button"
           tabIndex={0}
-          onClick={() => setOpen((v) => !v)}
+          onClick={(e) => {
+            if (moved.current) {
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
+            setOpen((v) => !v);
+          }}
           onMouseEnter={() => openWithHover()}
           onMouseLeave={() => scheduleCloseAfterTimeout(1800)}
           aria-label={open ? "Fechar chat com Zeca" : "Abrir chat com Zeca"}
-          className="w-16 h-16 cursor-pointer select-none rounded-2xl bg-white/95 dark:bg-surface border border-border shadow-md hover:shadow-lg transition-transform transform hover:-translate-y-0.5 flex flex-col items-center justify-center p-2"
+          className="cursor-pointer select-none flex flex-col items-center justify-center"
         >
-          <img src="/ai-avatar.svg" alt="Zeca" className="h-9 w-9 rounded-full object-cover shadow-sm" />
+          <img src="/ai-avatar.png" alt="Zeca" className="h-12 w-12 rounded-full object-cover shadow-sm" />
           <div className="text-[11px] mt-1 font-medium">Zeca</div>
         </div>
       </div>
@@ -123,12 +133,11 @@ export default function FloatingChat() {
               }
             }}
             onMouseLeave={() => scheduleCloseAfterTimeout(1800)}
-            className="pointer-events-auto w-[92vw] max-w-sm md:w-96 p-1"
+            className="pointer-events-auto w-[92vw] max-w-sm md:w-96 overflow-hidden"
+            style={{ height: '420px' }}
           >
-            <div className="transform transition-all duration-200 ease-out scale-100 opacity-100">
-              <div className="rounded-2xl overflow-hidden">
-                <ChatWindow compact initialProfileId={defaultProfileId} onBusyChange={(b) => setBusy(b)} />
-              </div>
+            <div className="transform transition-all duration-200 ease-out scale-100 opacity-100 w-full h-full">
+              <ChatWindow compact initialProfileId={defaultProfileId} onBusyChange={(b) => setBusy(b)} />
             </div>
           </div>
         </div>

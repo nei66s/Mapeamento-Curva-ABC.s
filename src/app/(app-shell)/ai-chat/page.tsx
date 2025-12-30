@@ -7,12 +7,14 @@ export const metadata = {
 
 export default function AiChatPage() {
   return (
-    <div className="page-stack">
+    <div className="page-stack flex flex-col h-screen overflow-hidden">
       <PageHeader
         title="Chat tecnico com IA"
         description="Converse com um especialista para diagnosticar e resolver problemas tecnicos."
       />
-      <ChatWindow />
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <ChatWindow />
+      </div>
     </div>
   );
 }

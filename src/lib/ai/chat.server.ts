@@ -5,54 +5,43 @@ export type ChatMessage = {
   meta?: Record<string, any> | null;
   created_at?: string;
 };
+import { randomUUID } from 'crypto';
+import pool from '../db';
 
-const getSupabaseConfig = () => {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error('Supabase not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)');
-  return { url: url.replace(/\/$/, ''), key };
-};
+const isUuid = (v?: string | null) => Boolean(v && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v));
 
-async function supabaseRest(path: string, opts: { method?: string; body?: any; params?: Record<string, string> } = {}) {
-  const { url, key } = getSupabaseConfig();
-  const u = new URL(`${url}/rest/v1/${path}`);
-  if (opts.params) {
-    Object.entries(opts.params).forEach(([k, v]) => u.searchParams.set(k, v));
-  }
-  const res = await fetch(u.toString(), {
-    method: opts.method ?? 'GET',
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation',
-    },
-    body: opts.body ? JSON.stringify(opts.body) : undefined,
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Supabase REST error ${res.status}: ${txt}`);
-  }
-  return res.json();
+// Use the project's Postgres pool directly (DATABASE_URL) so the AI chat
+// storage works without needing separate Supabase REST keys in env.
+async function query(sql: string, params: any[] = []) {
+  const res = await pool.query(sql, params);
+  return res.rows;
 }
 
 export async function createConversation(userId: string, opts?: { profileId?: string; title?: string; metadata?: any }) {
-  const body = [{ user_id: userId, profile_id: opts?.profileId ?? null, title: opts?.title ?? null, metadata: opts?.metadata ?? null }];
-  const rows = await supabaseRest('ai_conversations', { method: 'POST', body });
+  const rows = await query(
+    `INSERT INTO ai_conversations(user_id, profile_id, title, metadata) VALUES ($1,$2,$3,$4) RETURNING *`,
+    [userId, opts?.profileId ?? null, opts?.title ?? null, opts?.metadata ?? null]
+  );
   return rows?.[0] ?? null;
 }
 
 export async function insertMessage(conversationId: string, message: ChatMessage) {
-  const body = [{ conversation_id: conversationId, role: message.role, content: message.content, meta: message.meta ?? null }];
-  const rows = await supabaseRest('ai_messages', { method: 'POST', body });
+  // Ensure deterministic IDs from the caller to avoid duplicates on retries.
+  const id = isUuid(message.id) ? message.id! : randomUUID();
+  const rows = await query(
+    `INSERT INTO ai_messages(id, conversation_id, role, content, meta) VALUES ($1,$2,$3,$4,$5)
+     ON CONFLICT (id) DO NOTHING RETURNING *`,
+    [id, conversationId, message.role, message.content, message.meta ?? null]
+  );
   return rows?.[0] ?? null;
 }
 
 export async function saveConversation(userId: string, messages: ChatMessage[], opts?: { conversationId?: string; profileId?: string; title?: string }) {
   // create conversation if missing
   let conversation = null;
-  if (opts?.conversationId) {
-    const res = await supabaseRest('ai_conversations', { params: { select: '*', id: `eq.${opts.conversationId}` } });
+  const candidateConvId = isUuid(opts?.conversationId) ? opts?.conversationId : null;
+  if (candidateConvId) {
+    const res = await query(`SELECT * FROM ai_conversations WHERE id = $1`, [candidateConvId]);
     conversation = res?.[0] ?? null;
   }
   if (!conversation) {
@@ -68,14 +57,14 @@ export async function saveConversation(userId: string, messages: ChatMessage[], 
 }
 
 export async function loadConversation(conversationId: string) {
-  const conv = await supabaseRest('ai_conversations', { params: { select: '*', id: `eq.${conversationId}` } });
+  const conv = await query(`SELECT * FROM ai_conversations WHERE id = $1`, [conversationId]);
   if (!Array.isArray(conv) || conv.length === 0) return null;
   const conversation = conv[0];
-  const msgs = await supabaseRest('ai_messages', { params: { select: '*', conversation_id: `eq.${conversationId}`, order: 'created_at.asc' } });
+  const msgs = await query(`SELECT * FROM ai_messages WHERE conversation_id = $1 ORDER BY created_at ASC`, [conversationId]);
   return { conversation, messages: msgs };
 }
 
 export async function listUserConversations(userId: string, limit = 50) {
-  const res = await supabaseRest('ai_conversations', { params: { select: '*', user_id: `eq.${userId}`, order: 'updated_at.desc', limit: String(limit) } });
+  const res = await query(`SELECT * FROM ai_conversations WHERE user_id = $1 ORDER BY updated_at DESC LIMIT $2`, [userId, limit]);
   return Array.isArray(res) ? res : [];
 }
