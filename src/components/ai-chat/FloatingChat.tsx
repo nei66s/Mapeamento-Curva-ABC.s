@@ -125,7 +125,7 @@ export default function FloatingChat() {
 
       {open && (
         <div className="fixed z-50" style={mounted ? { right: pos.right, bottom: pos.bottom + 88 } : undefined}>
-          <div
+            <div
             onMouseEnter={() => {
               if (hoverCloseTimer.current) {
                 window.clearTimeout(hoverCloseTimer.current);
@@ -133,7 +133,7 @@ export default function FloatingChat() {
               }
             }}
             onMouseLeave={() => scheduleCloseAfterTimeout(1800)}
-            className="pointer-events-auto w-[92vw] max-w-sm md:w-96 overflow-hidden"
+            className="pointer-events-auto w-[92vw] max-w-sm md:w-96 overflow-visible"
             style={{ height: '420px' }}
           >
             <div className="transform transition-all duration-200 ease-out scale-100 opacity-100 w-full h-full">
