@@ -295,13 +295,13 @@ export default function EscoposPageClient() {
     }
     setImprovingItemId(item.id);
     try {
-      const improved = await improveScopeText({
+      const result = await improveScopeText({
         text: item.description,
         context: `${scopeContext} • Item: ${item.title || 'Sem título'}`,
         tone,
         preferenceText,
       });
-      updateItem(item.id, { description: improved });
+      updateItem(item.id, { description: result.improved });
       toast({ title: 'Item aprimorado', description: 'Texto atualizado com a sugestão da IA.' });
     } catch (error) {
       toast({
@@ -370,7 +370,7 @@ export default function EscoposPageClient() {
   };
 
   const handleAddAttachments = (event: any) => {
-    const files = Array.from(event.target.files || []);
+    const files = Array.from(event.target.files || []) as File[];
     if (!files.length) return;
     const newAtt = files.map(f => ({ id: createId(), file: f, url: URL.createObjectURL(f) }));
     setAttachments(prev => [...prev, ...newAtt]);
@@ -787,7 +787,9 @@ export default function EscoposPageClient() {
         const normsContent = document.createElement('div');
         normsContent.style.whiteSpace = 'pre-wrap';
         normsContent.style.fontSize = '12px';
-        normsContent.innerText = scopeNorms;
+        normsContent.innerText = Array.isArray(scopeNorms)
+          ? scopeNorms.map(n => (n.code ? `${n.code} - ${n.name}` : n.name) + (n.area ? ` (${n.area})` : '')).join('\n')
+          : String(scopeNorms || '');
         normsBlock.appendChild(normsTitle);
         normsBlock.appendChild(normsContent);
         topCapture.appendChild(normsBlock);
@@ -1146,7 +1148,7 @@ export default function EscoposPageClient() {
               Remover todos
             </Button>
           </div>
-          <p className="text-sm text-muted-foreground">Use "Adicionar item" para inserir tarefas ou gere itens a partir da descrição com IA.</p>
+          <p className="text-sm text-muted-foreground">Use &quot;Adicionar item&quot; para inserir tarefas ou gere itens a partir da descrição com IA.</p>
         </CardFooter>
       </Card>
  

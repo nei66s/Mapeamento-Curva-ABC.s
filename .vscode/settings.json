@@ -1,5 +1,8 @@
 {
     "geminicodeassist.agentDebugMode": true,
     "geminicodeassist.codeGenerationPaneViewEnabled": true,
-    "chatgpt.openOnStartup": true
+    "chatgpt.openOnStartup": true,
+    "chat.tools.terminal.autoApprove": {
+        "&": true
+    }
 }
