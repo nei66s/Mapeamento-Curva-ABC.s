@@ -103,6 +103,80 @@ export async function POST(request: Request) {
 
     // footer for the current page is handled by the pageAdded handler (or initial renderFooter above)
 
+    // Helper: calculate available vertical space on current page (points)
+    const availableHeight = () => doc.page.height - doc.y - doc.page.margins.bottom;
+
+    // Ensure there's enough space for a block; if not, add a page
+    const ensureSpace = (required: number) => {
+      if (availableHeight() < required) {
+        doc.addPage();
+        // after addPage the pageAdded handler runs and places header/footer
+        // reset x to left margin
+        doc.x = doc.page.margins.left;
+      }
+    };
+
+    // Helper: load image buffer from data URI or remote URL
+    const loadImageBuffer = async (src: string) => {
+      try {
+        if (!src) return null;
+        if (src.startsWith('data:')) {
+          const parts = src.split(',');
+          const b64 = parts[1] ?? '';
+          return Buffer.from(b64, 'base64');
+        }
+        // remote URL - fetch it
+        const res = await fetch(src);
+        if (!res.ok) return null;
+        const arrayBuf = await res.arrayBuffer();
+        return Buffer.from(arrayBuf);
+      } catch (e) {
+        return null;
+      }
+    };
+
+    // Section: Photos (larger and with pagination safety)
+    const photos: string[] = Array.isArray(body.photos) ? body.photos : [];
+    if (photos.length > 0) {
+      // Reserve header/footer area and start a dedicated page for photos
+      doc.addPage();
+      doc.x = doc.page.margins.left;
+      doc.fontSize(12).fillColor('#111827').text('4. Fotos do Local', { width: contentWidth });
+      doc.moveDown(0.5);
+
+      // Desired image box height (points) -- a bit larger for clearer photos
+      const imgBoxHeight = 180;
+      const imgGap = 10;
+
+      for (let i = 0; i < photos.length; i++) {
+        const src = photos[i];
+        const imgBuf = await loadImageBuffer(src);
+        if (!imgBuf) continue;
+
+        // ensure enough space for image + caption
+        ensureSpace(imgBoxHeight + 30);
+
+        try {
+          // center image by using fit and calculate x offset
+          const fitWidth = contentWidth * 0.9;
+          const x = doc.page.margins.left + (contentWidth - fitWidth) / 2;
+          doc.image(imgBuf, x, doc.y, { fit: [fitWidth, imgBoxHeight], align: 'center' });
+          // move cursor below image
+          doc.moveTo(x, doc.y + imgBoxHeight + imgGap);
+          doc.y = doc.y + imgBoxHeight + imgGap;
+        } catch (e) {
+          // fallback: skip problematic images
+        }
+
+        // optional caption
+        const caption = (body.photo_captions && body.photo_captions[i]) || '';
+        if (caption) {
+          doc.fontSize(10).fillColor('#374151').text(caption, { width: contentWidth, align: 'center' });
+          doc.moveDown(0.5);
+        }
+      }
+    }
+
     doc.end();
 
     // wait for stream to finish

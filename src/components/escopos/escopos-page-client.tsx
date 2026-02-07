@@ -40,6 +40,8 @@ const createEmptyItem = (): ScopeItem => ({
 
 // Note: this is a client page moved to components — server wrapper ensures auth.
 
+type NormItem = { code?: string; name: string; area?: string };
+
 async function improveScopeText(payload: { text: string; context?: string; tone?: string; preferenceText?: string }) {
   const response = await fetch('/api/ai/improve-scope', {
     method: 'POST',
@@ -50,12 +52,38 @@ async function improveScopeText(payload: { text: string; context?: string; tone?
   if (!response.ok || typeof data?.improved !== 'string') {
     throw new Error(data?.error || 'Não foi possível aprimorar o texto.');
   }
-  return data.improved as string;
+  // Normalize norms: can be a string with lines like "CODE - Name (Area)" or already an array
+  const raw = data?.norms;
+  const parseNormsString = (s: string): NormItem[] => {
+    const lines = s.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const items: NormItem[] = [];
+    for (const line of lines) {
+      // Try to parse "CODE - Name (Area)"
+      const m = line.match(/^([^\-–—]+)\s*[\-–—]\s*(.+?)\s*(?:\((.+)\))?$/);
+      if (m) {
+        items.push({ code: m[1].trim(), name: m[2].trim(), area: m[3]?.trim() });
+      } else {
+        // If not matching, push entire line as name
+        items.push({ name: line });
+      }
+    }
+    return items;
+  };
+
+  let normsArr: NormItem[] = [];
+  if (Array.isArray(raw)) {
+    normsArr = raw.map((r: any) => (typeof r === 'string' ? ({ name: r }) : ({ code: r.code, name: r.name || String(r), area: r.area })));
+  } else if (typeof raw === 'string' && raw.trim()) {
+    normsArr = parseNormsString(raw);
+  }
+
+  return { improved: data.improved as string, norms: normsArr };
 }
 
 export default function EscoposPageClient() {
   const [scopeName, setScopeName] = useState('');
   const [scopeDescription, setScopeDescription] = useState('');
+  const [scopeNorms, setScopeNorms] = useState<NormItem[]>([]);
   const tone = 'Técnico e engenheiro';
   const [requester, setRequester] = useState('');
   const { user: currentUser } = useCurrentUser();
@@ -174,13 +202,14 @@ export default function EscoposPageClient() {
       // - Don't write from the engineer's perspective (no "Como engenheiro...")
       // - Keep it focused on the service the third party must execute
       // - Mention cleaning, waste disposal and reference ABNT when applicable
-      const improved = await improveScopeText({
+      const result = await improveScopeText({
         text: scopeDescription,
         context: `${scopeContext} \nInstruções de estilo: escreva o texto direcionado ao executor/fornecedor em voz imperativa ou frases curtas indicativas. Evite primeira pessoa; não comece com "Como engenheiro". Seja objetivo e inclua limpeza e destinação de resíduos, além de referência às normas ABNT quando aplicável.`,
         tone,
         preferenceText,
       });
-      setScopeDescription(improved);
+      setScopeDescription(result.improved);
+      setScopeNorms(Array.isArray(result.norms) ? result.norms : []);
       setScopeImproved(true);
       toast({ title: 'Descrição aprimorada', description: 'A IA revisou o texto por você.' });
     } catch (error) {
@@ -654,23 +683,43 @@ export default function EscoposPageClient() {
 
         const attWrap = document.createElement('div');
         attWrap.style.display = 'flex';
-        attWrap.style.gap = '8px';
-        attWrap.style.flexWrap = 'wrap';
-        attachments.forEach(a => {
+        attWrap.style.flexDirection = 'column';
+        attWrap.style.gap = '16px';
+        attWrap.style.alignItems = 'center';
+
+        // Convert attachments' File objects to data URIs to avoid blob: fetch/load issues
+        const fileToDataUrl = (file: File) => new Promise<string | null>((resolve) => {
+          try {
+            const reader = new FileReader();
+            reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(file);
+          } catch (e) { resolve(null); }
+        });
+
+        const dataUrls = await Promise.all(attachments.map(a => fileToDataUrl(a.file)));
+
+        // Create image elements stacked vertically, larger for clearer photos
+        const loadPromises: Promise<void>[] = [];
+        attachments.forEach((a, idx) => {
+          const dataUrl = dataUrls[idx];
+          if (!dataUrl) return;
           try {
             const holder = document.createElement('div');
             holder.style.display = 'flex';
             holder.style.flexDirection = 'column';
             holder.style.alignItems = 'center';
-            holder.style.width = '140px';
+            holder.style.width = '100%';
 
             const img = document.createElement('img');
-            img.src = a.url;
-            img.style.width = '120px';
-            img.style.height = '120px';
-            img.style.objectFit = 'cover';
+            img.src = dataUrl;
+            img.style.width = '100%';
+            img.style.maxWidth = '820px';
+            img.style.height = 'auto';
+            img.style.objectFit = 'contain';
             img.style.border = '1px solid #eee';
             img.style.borderRadius = '6px';
+            img.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
             holder.appendChild(img);
 
             const label = document.createElement('div');
@@ -678,37 +727,179 @@ export default function EscoposPageClient() {
             label.style.fontSize = '11px';
             label.style.marginTop = '6px';
             label.style.textAlign = 'center';
-            label.style.maxWidth = '120px';
+            label.style.maxWidth = '820px';
             label.style.overflow = 'hidden';
             label.style.textOverflow = 'ellipsis';
             label.style.whiteSpace = 'nowrap';
             holder.appendChild(label);
 
             attWrap.appendChild(holder);
+
+            // wait for image to load before capturing
+            const p = new Promise<void>((res) => {
+              if (img.complete && img.naturalWidth !== 0) return res();
+              img.addEventListener('load', () => res());
+              img.addEventListener('error', () => res());
+            });
+            loadPromises.push(p);
           } catch (e) {}
         });
+
         container.appendChild(attWrap);
+
+        // Wait for all images to load (or error) to avoid missing or partial images in canvas
+        try { await Promise.all(loadPromises); } catch (e) {}
       }
 
       container.style.position = 'fixed';
       container.style.left = '-9999px';
       document.body.appendChild(container);
 
-      const canvas = await html2canvas(container as any, { scale: 2 });
-      const imgData = canvas.toDataURL('image/png');
+      // Capture the top part (header + metadata + table) separately and then capture
+      // each attachment holder individually so images are not split between pages.
       const jsPDFCtor = jspdfModule?.jsPDF ?? jspdfModule?.default ?? jspdfModule;
       const pdf = new (jsPDFCtor as any)({ unit: 'mm', format: 'a4', orientation: 'portrait' });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 10;
-      const imgWidth = pageWidth - margin * 2;
-      const imgHeight = (canvas.height / canvas.width) * imgWidth;
-      const totalPages = Math.ceil(imgHeight / (pageHeight - margin * 2));
 
-      for (let i = 0; i < totalPages; i++) {
-        const y = - (pageHeight - margin * 2) * i + margin;
-        pdf.addImage(imgData, 'PNG', margin, y, imgWidth, imgHeight);
-        if (i < totalPages - 1) pdf.addPage();
+      // Create a lightweight clone containing only header/meta/table for a clean capture
+      const topCapture = document.createElement('div');
+      topCapture.style.width = container.style.width;
+      topCapture.style.padding = container.style.padding;
+      topCapture.style.background = container.style.background;
+      topCapture.style.color = container.style.color;
+      topCapture.appendChild(headerRow.cloneNode(true));
+      topCapture.appendChild(metaTable.cloneNode(true));
+      topCapture.appendChild(tbl.cloneNode(true));
+
+      // If the IA identified norms, include them in the top capture so they appear in the PDF
+      if (scopeNorms) {
+        const normsBlock = document.createElement('div');
+        normsBlock.style.marginTop = '8px';
+        normsBlock.style.padding = '6px';
+        normsBlock.style.border = '1px solid #e5e7eb';
+        normsBlock.style.borderRadius = '6px';
+        const normsTitle = document.createElement('div');
+        normsTitle.style.fontWeight = '700';
+        normsTitle.style.marginBottom = '6px';
+        normsTitle.innerText = 'Normas aplicáveis (IA)';
+        const normsContent = document.createElement('div');
+        normsContent.style.whiteSpace = 'pre-wrap';
+        normsContent.style.fontSize = '12px';
+        normsContent.innerText = scopeNorms;
+        normsBlock.appendChild(normsTitle);
+        normsBlock.appendChild(normsContent);
+        topCapture.appendChild(normsBlock);
+      }
+
+      // html2canvas may require the element to be present in the document (it clones into an iframe).
+      // Append off-screen before rendering and remove afterwards to avoid "Unable to find element in cloned iframe".
+      topCapture.style.position = 'fixed';
+      topCapture.style.left = '-9999px';
+      document.body.appendChild(topCapture);
+      let topCanvas: HTMLCanvasElement;
+      try {
+        topCanvas = await html2canvas(topCapture as any, { scale: 2 });
+      } finally {
+        try { document.body.removeChild(topCapture); } catch (e) {}
+      }
+      const topData = topCanvas.toDataURL('image/png');
+
+      // Helper to add a canvas image to PDF, scaling to fit width and avoid splitting images
+      const addCanvasToPdf = (canvasEl: HTMLCanvasElement, addNewPageIfNeeded = true) => {
+        const imgWidth = pageWidth - margin * 2;
+        let imgHeight = (canvasEl.height / canvasEl.width) * imgWidth;
+        // If image taller than available page height, scale it down to fit a single page
+        const maxHeight = pageHeight - margin * 2;
+        let scale = 1;
+        if (imgHeight > maxHeight) {
+          scale = maxHeight / imgHeight;
+          imgHeight = imgHeight * scale;
+        }
+        const x = margin;
+        const y = margin;
+        pdf.addImage(canvasEl.toDataURL('image/png'), 'PNG', x, y, imgWidth * scale, imgHeight);
+        if (addNewPageIfNeeded) pdf.addPage();
+      };
+
+      // Add top content (may span multiple pages if very tall)
+      // Use same slicing approach for top canvas
+      const topImgWidth = pageWidth - margin * 2;
+      const topImgHeight = (topCanvas.height / topCanvas.width) * topImgWidth;
+      const topMaxHeight = pageHeight - margin * 2;
+      if (topImgHeight <= topMaxHeight) {
+        pdf.addImage(topData, 'PNG', margin, margin, topImgWidth, topImgHeight);
+        // only add a new page if there will be attachments following
+        if (attachments && attachments.length) pdf.addPage();
+      } else {
+        // slice vertically into pages to preserve content (header/table may be long)
+        const totalPages = Math.ceil(topImgHeight / topMaxHeight);
+        for (let i = 0; i < totalPages; i++) {
+          const dy = (i * topMaxHeight) / topImgHeight * topCanvas.height;
+          const h = Math.min(topCanvas.height - dy, (topMaxHeight / topImgHeight) * topCanvas.height);
+          const sliceCanvas = document.createElement('canvas');
+          sliceCanvas.width = topCanvas.width;
+          sliceCanvas.height = Math.round(h);
+          const ctx = sliceCanvas.getContext('2d');
+          if (ctx) ctx.drawImage(topCanvas, 0, dy, topCanvas.width, h, 0, 0, sliceCanvas.width, sliceCanvas.height);
+          const sliceImg = sliceCanvas.toDataURL('image/png');
+          const sliceImgHeight = (sliceCanvas.height / sliceCanvas.width) * topImgWidth;
+          pdf.addImage(sliceImg, 'PNG', margin, margin, topImgWidth, sliceImgHeight);
+          if (i < totalPages - 1 || (attachments && attachments.length)) pdf.addPage();
+        }
+      }
+
+      // Now capture each attachment holder individually and add to PDF as full pages
+      const attHolders = Array.from(container.querySelectorAll('div')).filter(n => n && n.textContent && n.textContent.includes('Anexos e fotos'));
+      // Instead of querying, we will use the attWrap we appended earlier: it's the last child
+      const possibleAttWrap = container.lastElementChild as HTMLElement | null;
+      let holders: HTMLElement[] = [];
+      if (possibleAttWrap) {
+        holders = Array.from(possibleAttWrap.querySelectorAll('div')).filter(d => d.querySelector('img')) as HTMLElement[];
+      }
+
+      // Capture all holders into canvases first
+      const canvases: HTMLCanvasElement[] = [];
+      for (let i = 0; i < holders.length; i++) {
+        try {
+          const canvasImg = await html2canvas(holders[i] as any, { scale: 2 });
+          canvases.push(canvasImg);
+        } catch (e) {
+          // skip
+        }
+      }
+
+      // Render 2 images per page (side-by-side) when possible
+      const gapMM = 6; // mm gap between images
+      for (let i = 0; i < canvases.length; i += 2) {
+        const left = canvases[i];
+        const right = canvases[i + 1];
+        const availableWidth = pageWidth - margin * 2 - gapMM;
+        const imgWidth = availableWidth / 2;
+        // compute heights in mm
+        const leftH = left ? (left.height / left.width) * imgWidth : 0;
+        const rightH = right ? (right.height / right.width) * imgWidth : 0;
+        const maxH = pageHeight - margin * 2;
+        let scale = 1;
+        const maxImgH = Math.max(leftH, rightH);
+        if (maxImgH > maxH) {
+          scale = maxH / maxImgH;
+        }
+
+        const leftWmm = imgWidth * scale;
+        const leftHmm = leftH * scale;
+        const rightWmm = imgWidth * scale;
+        const rightHmm = rightH * scale;
+
+        const xLeft = margin;
+        const xRight = margin + leftWmm + gapMM;
+        const y = margin;
+
+        if (left) pdf.addImage(left.toDataURL('image/png'), 'PNG', xLeft, y, leftWmm, leftHmm);
+        if (right) pdf.addImage(right.toDataURL('image/png'), 'PNG', xRight, y, rightWmm, rightHmm);
+
+        if (i + 2 < canvases.length) pdf.addPage();
       }
 
       const filename = (scopeName.trim() || 'escopo').replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.pdf';
@@ -797,14 +988,29 @@ export default function EscoposPageClient() {
               onChange={event => setScopeDescription(event.target.value)}
               placeholder="Detalhe o objetivo, os limites e o resultado esperado do escopo."
             />
+            {scopeNorms && scopeNorms.length ? (
+              <div className="mt-3 p-3 rounded border bg-muted-foreground/5">
+                <p className="text-xs font-semibold">Normas aplicáveis identificadas pela IA</p>
+                <ul className="text-sm mt-1 list-disc list-inside">
+                  {scopeNorms.map((n, idx) => (
+                    <li key={idx} className="whitespace-pre-wrap">
+                      {n.code ? `${n.code} - ${n.name}` : n.name} {n.area ? `(${n.area})` : ''}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             <div className="mt-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Anexar fotos (opcional)</p>
+              <label htmlFor="attachments" className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Anexar fotos (opcional)</label>
               <input
+                id="attachments"
                 type="file"
                 accept="image/*"
                 multiple
                 onChange={handleAddAttachments}
                 className="mt-1"
+                aria-label="Anexar fotos"
+                title="Anexar fotos (opcional)"
               />
               <div className="mt-2 flex gap-2 flex-wrap">
                 {attachments.map(a => (

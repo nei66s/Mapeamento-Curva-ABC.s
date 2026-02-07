@@ -23,7 +23,8 @@ async function buildFlow() {
   });
 
   const ScopeTextImprovementOutputSchema = z.object({
-    improved: z.string().describe('Texto reescrito com clareza e linguagem profissional.')
+    improved: z.string().describe('Texto reescrito com clareza e linguagem profissional.'),
+    norms: z.array(z.object({ code: z.string().optional(), name: z.string(), area: z.string().optional() })).optional().describe('Array estruturado de normas aplicáveis, cada item com código, nome e área.')
   });
 
   const prompt = ai.definePrompt({
@@ -45,6 +46,22 @@ async function buildFlow() {
 
   Texto reescrito:`
   });
+
+  // Enhance the prompt: ask the model to list applicable technical standards (normas) after the rewritten text,
+  // prioritizing norms by technical area to make it easier to review (e.g., Metalurgia/Soldagem, Estruturas Metálicas, Pintura/Proteção).
+  // Request a predictable, parsable format so the frontend can display it directly.
+  // Request a machine-readable JSON block after the rewritten text so the flow can return structured norms.
+  prompt.prompt = prompt.prompt + `
+
+  Em seguida, adicione uma seção iniciada por "Normas Aplicáveis:" com uma lista legível, e logo após isso inclua UMA LINHA EXATA: NORMAS_JSON: seguida de um JSON array contendo objetos com os campos {"code","name","area"}.
+  Exemplo (após a seção legível):
+  NORMAS_JSON: [{"code":"NBR 8800","name":"Projeto de estruturas de aço","area":"Estruturas Metálicas"}, {"code":"NBR 6492","name":"Representação de projetos de arquitetura","area":"Desenho Técnico"}]
+
+  - Se não houver normas específicas, depois de NORMAS_JSON coloque um array vazio: NORMAS_JSON: []
+  - O JSON deve estar em uma única linha exatamente após o prefixo 'NORMAS_JSON:' para facilitar parse.
+  - Não inclua comentários ou texto adicional após o JSON.
+  - Mantenha a seção legível e sucinta; o JSON é apenas para uso programático.
+  Isso garante que a saída possa ser convertida em um array estruturado sem parsing frágil.`;
 
   const flow = ai.defineFlow(
     {
