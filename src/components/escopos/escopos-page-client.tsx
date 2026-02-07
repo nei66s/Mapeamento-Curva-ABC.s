@@ -60,11 +60,11 @@ export default function EscoposPageClient() {
   const [requester, setRequester] = useState('');
   const { user: currentUser } = useCurrentUser();
   const [items, setItems] = useState<ScopeItem[]>([createEmptyItem()]);
-  const [listImport, setListImport] = useState('');
+  const [attachments, setAttachments] = useState<{ id: string; file: File; url: string }[]>([]);
   const [improvingItemId, setImprovingItemId] = useState<string | null>(null);
   const [improvingScope, setImprovingScope] = useState(false);
   const [scopeImproved, setScopeImproved] = useState(false);
-  const [aiPreference, setAiPreference] = useState<'detail' | 'supplier'>('detail');
+  // A geração pela IA deve sempre aplicar as normas ABNT
   const [isExporting, setIsExporting] = useState(false);
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState('');
@@ -121,11 +121,7 @@ export default function EscoposPageClient() {
     return `Escopo: ${scopeName || 'Novo escopo'} • Loja: ${storeLabel} • Solicitante: ${requesterLabel}`;
   }, [scopeName, selectedStoreId, requester, selectedStoreName]);
 
-  const preferenceText = useMemo(() => {
-    return aiPreference === 'detail'
-      ? 'O autor solicita que a descrição detalhe os serviços e materiais necessários.'
-      : 'Deixar a critério do fornecedor: usar normas e especificações aplicáveis ao serviço.';
-  }, [aiPreference]);
+  const preferenceText = 'Aplicar normas ABNT onde aplicável.';
 
   const updateItem = (id: string, changes: Partial<ScopeItem>) => {
     setItems(prev => prev.map(item => (item.id === id ? { ...item, ...changes } : item)));
@@ -173,9 +169,14 @@ export default function EscoposPageClient() {
     }
     setImprovingScope(true);
     try {
+      // Request the improved scope written objectively for the contractor:
+      // - Use concise, directive language (imperative or short indicative sentences)
+      // - Don't write from the engineer's perspective (no "Como engenheiro...")
+      // - Keep it focused on the service the third party must execute
+      // - Mention cleaning, waste disposal and reference ABNT when applicable
       const improved = await improveScopeText({
         text: scopeDescription,
-        context: scopeContext,
+        context: `${scopeContext} \nInstruções de estilo: escreva o texto direcionado ao executor/fornecedor em voz imperativa ou frases curtas indicativas. Evite primeira pessoa; não comece com "Como engenheiro". Seja objetivo e inclua limpeza e destinação de resíduos, além de referência às normas ABNT quando aplicável.`,
         tone,
         preferenceText,
       });
@@ -204,7 +205,7 @@ export default function EscoposPageClient() {
         messages: [
           {
             role: 'user',
-            content: `Você é um assistente técnico. A partir da descrição do escopo abaixo, gere SOMENTE uma lista numerada de etapas/itens para executar o escopo. Regras estritas:\n- Responda apenas com a lista numerada (uma linha por item).\n- Cada item: título conciso (verbo no infinitivo + complemento), até 6 palavras.\n- Não escreva parágrafos, explicações, perguntas ou observações extras.\n- Não repita a descrição do escopo.\n- Gere entre 3 e 12 itens, priorizando ações executáveis.\n\nPreferência: ${preferenceText}\n\nDescrição do escopo:\n${scopeDescription}`,
+            content: `Você é um assistente técnico. A partir da descrição do escopo abaixo, gere SOMENTE uma lista numerada de itens de alto nível para o escopo. Regras estritas:\n- Responda apenas com a lista numerada (uma linha por item).\n- Cada item: título conciso (verbo no infinitivo + complemento), até 5 palavras.\n- Seja o mais resumido possível, agrupe subatividades em descrições de item em vez de criar itens separados.\n- Não escreva parágrafos, explicações, perguntas ou observações extras.\n- Não repita a descrição do escopo.\n- Gere entre 2 e 6 itens, priorizando agrupamento e clareza (ex.: fabricação, desmontagem, montagem).\n\nPreferência: ${preferenceText} (incluir referência às normas ABNT quando aplicável)\n\nDescrição do escopo:\n${scopeDescription}`,
           },
         ],
       };
@@ -290,10 +291,19 @@ export default function EscoposPageClient() {
       // Fallback heuristic for very short titles to avoid schema validation errors
       return `${t} — descrição técnica a ser detalhada pelo fornecedor.`;
     }
+    // Request a concise, action-oriented description for the supplier:
+    // - Prefer imperative or short indicative sentences
+    // - Include recommended materials, basic test/acceptance, limpeza e destinação de resíduos
+    // - Cite normas ABNT aplicáveis quando relevantes
     const response = await fetch('/api/ai/generate-scope-item-description', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: t, context: scopeContext, tone, preferenceText }),
+      body: JSON.stringify({
+        title: t,
+        context: `${scopeContext} \nInstruções: gere uma descrição curta e direta, em voz imperativa (ex.: "Fabricar portas corta-fogo...", "Desmontar a porta existente..."). Inclua materiais recomendados, procedimentos de limpeza e destinação de resíduos, e referências às normas ABNT quando aplicável. Agrupe subatividades na descrição, não crie itens separados para cada detalhe.`,
+        tone,
+        preferenceText,
+      }),
     });
     const data = await response.json();
     if (!response.ok || typeof data?.description !== 'string') {
@@ -330,34 +340,31 @@ export default function EscoposPageClient() {
     }
   };
 
-  const importItemsFromList = async () => {
-    const entries = listImport
-      .split('\n')
-      .map(line => line.trim())
-      .filter(Boolean);
-    if (!entries.length) {
-      toast({ title: 'Cole uma lista antes de importar', variant: 'destructive' });
-      return;
-    }
-    const newItems = entries.map(line => ({ ...createEmptyItem(), title: line }));
-    setItems(prev => {
-      const isOnlyEmptyItem =
-        prev.length === 1 &&
-        prev[0].title.trim() === '' &&
-        prev[0].description.trim() === '' &&
-        prev[0].checklist.length === 0;
-      return isOnlyEmptyItem ? newItems : [...prev, ...newItems];
-    });
-    setListImport('');
-    toast({ title: `${newItems.length} item(s) adicionados da lista.` });
-    const wantsAIHelp =
-      typeof window !== 'undefined'
-        ? window.confirm('Deseja que a IA sugira descrições para os itens importados?')
-        : false;
-    if (wantsAIHelp) {
-      await generateDescriptionsForImportedItems(newItems);
-    }
+  const handleAddAttachments = (event: any) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    const newAtt = files.map(f => ({ id: createId(), file: f, url: URL.createObjectURL(f) }));
+    setAttachments(prev => [...prev, ...newAtt]);
   };
+
+  const removeAttachment = (id: string) => {
+    setAttachments(prev => {
+      const found = prev.find(a => a.id === id);
+      if (found) {
+        try { URL.revokeObjectURL(found.url); } catch (e) {}
+      }
+      return prev.filter(a => a.id !== id);
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      attachments.forEach(a => {
+        try { URL.revokeObjectURL(a.url); } catch (e) {}
+      });
+    };
+    // We intentionally include attachments so cleanup runs on unmount and when attachments change
+  }, [attachments]);
 
   const exportToExcel = async () => {
     if (!requester.trim()) {
@@ -381,7 +388,7 @@ export default function EscoposPageClient() {
         ['Loja', selectedStore?.name ?? '—', '', 'Descrição do Escopo', scopeDescription || '—'],
         [],
       ];
-      const companyName = 'Sua Empresa';
+      const companyName = 'Supermercados Pague Menos';
       const now = new Date();
       const titleRow = [`${companyName} — ${now.toLocaleString()}`];
 
@@ -395,7 +402,16 @@ export default function EscoposPageClient() {
           '',
         ]),
       ];
-      const sheetRows = [titleRow, ...metadataRows, ...tableRows];
+      const attachmentRows: any[] = [];
+      if (attachments && attachments.length) {
+        attachmentRows.push([]);
+        attachmentRows.push(['Anexos e fotos']);
+        attachments.forEach(a => {
+          attachmentRows.push([a.file?.name || 'Anexo']);
+        });
+      }
+
+      const sheetRows = [titleRow, ...metadataRows, ...tableRows, ...attachmentRows];
       const worksheet = utils.aoa_to_sheet(sheetRows);
 
       worksheet['!cols'] = [
@@ -552,11 +568,28 @@ export default function EscoposPageClient() {
       container.style.background = '#ffffff';
       container.style.color = '#111827';
 
+      // Header with logo and title
+      const headerRow = document.createElement('div');
+      headerRow.style.display = 'flex';
+      headerRow.style.alignItems = 'center';
+      headerRow.style.gap = '12px';
+      headerRow.style.marginBottom = '8px';
+
+      const logoImg = document.createElement('img');
+      logoImg.src = '/logo.png';
+      logoImg.style.width = '90px';
+      logoImg.style.height = 'auto';
+      logoImg.style.objectFit = 'contain';
+      headerRow.appendChild(logoImg);
+
       const title = document.createElement('h2');
-      title.innerText = 'Sua Empresa — ' + new Date().toLocaleString();
-      title.style.margin = '0 0 8px 0';
-      title.style.fontSize = '18px';
-      container.appendChild(title);
+      title.innerText = 'Supermercados Pague Menos — ' + new Date().toLocaleString();
+      title.style.margin = '0';
+      title.style.fontSize = '20px';
+      title.style.fontWeight = '700';
+      title.style.textTransform = 'capitalize';
+      headerRow.appendChild(title);
+      container.appendChild(headerRow);
 
       const metaTable = document.createElement('table');
       metaTable.style.width = '100%';
@@ -584,13 +617,14 @@ export default function EscoposPageClient() {
       ['Item nº', 'Título', 'Descrição do item', 'Checklist', 'Valor fornecedor'].forEach((h) => {
         const th = document.createElement('th');
         th.innerText = h;
-        th.style.background = '#1F2937';
+        th.style.background = '#FF7A00';
         th.style.color = '#fff';
         th.style.padding = '8px';
         th.style.border = '1px solid #ddd';
         th.style.textAlign = 'left';
         hrow.appendChild(th);
       });
+      // attachments will be rendered after the table in a dedicated section
       const tbody = tbl.createTBody();
       items.forEach((item, idx) => {
         const row = tbody.insertRow();
@@ -608,6 +642,53 @@ export default function EscoposPageClient() {
       const t4 = totRow.insertCell(); t4.innerText = 'R$ 0,00'; t4.style.fontWeight = '700'; t4.style.padding = '6px'; t4.style.border = '1px solid #eee';
 
       container.appendChild(tbl);
+
+      // Append attachments in a dedicated "Anexos e fotos" section at the end
+      if (attachments && attachments.length) {
+        const annexTitle = document.createElement('h3');
+        annexTitle.innerText = 'Anexos e fotos';
+        annexTitle.style.margin = '12px 0 8px 0';
+        annexTitle.style.fontSize = '14px';
+        annexTitle.style.fontWeight = '700';
+        container.appendChild(annexTitle);
+
+        const attWrap = document.createElement('div');
+        attWrap.style.display = 'flex';
+        attWrap.style.gap = '8px';
+        attWrap.style.flexWrap = 'wrap';
+        attachments.forEach(a => {
+          try {
+            const holder = document.createElement('div');
+            holder.style.display = 'flex';
+            holder.style.flexDirection = 'column';
+            holder.style.alignItems = 'center';
+            holder.style.width = '140px';
+
+            const img = document.createElement('img');
+            img.src = a.url;
+            img.style.width = '120px';
+            img.style.height = '120px';
+            img.style.objectFit = 'cover';
+            img.style.border = '1px solid #eee';
+            img.style.borderRadius = '6px';
+            holder.appendChild(img);
+
+            const label = document.createElement('div');
+            label.innerText = a.file?.name || '';
+            label.style.fontSize = '11px';
+            label.style.marginTop = '6px';
+            label.style.textAlign = 'center';
+            label.style.maxWidth = '120px';
+            label.style.overflow = 'hidden';
+            label.style.textOverflow = 'ellipsis';
+            label.style.whiteSpace = 'nowrap';
+            holder.appendChild(label);
+
+            attWrap.appendChild(holder);
+          } catch (e) {}
+        });
+        container.appendChild(attWrap);
+      }
 
       container.style.position = 'fixed';
       container.style.left = '-9999px';
@@ -717,20 +798,49 @@ export default function EscoposPageClient() {
               placeholder="Detalhe o objetivo, os limites e o resultado esperado do escopo."
             />
             <div className="mt-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Preferência de geração pela IA</p>
-              <select
-                value={aiPreference}
-                onChange={e => setAiPreference(e.target.value as 'detail' | 'supplier')}
-                aria-label="Preferência de geração pela IA"
-                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-base text-foreground"
-              >
-                <option value="detail">Detalhar serviço e materiais</option>
-                <option value="supplier">Deixar a critério do fornecedor (usar normas)</option>
-              </select>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Anexar fotos (opcional)</p>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleAddAttachments}
+                className="mt-1"
+              />
+              <div className="mt-2 flex gap-2 flex-wrap">
+                {attachments.map(a => (
+                  <div key={a.id} className="relative">
+                    <img src={a.url} alt="anexo" className="h-24 w-24 object-cover rounded-md border" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeAttachment(a.id)}
+                      aria-label="Remover anexo"
+                      className="absolute -top-2 -right-2"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold">Exportar</p>
+            <p className="text-xs text-muted-foreground">Gere uma planilha ou PDF com o escopo atual.</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="default" onClick={exportToExcel} disabled={isExporting}>
+              {isExporting ? 'Gerando planilha…' : 'Exportar para Excel'}
+            </Button>
+            <Button variant="outline" onClick={exportToPdf} disabled={isExporting}>
+              {isExporting ? 'Gerando PDF…' : 'Exportar para PDF'}
+            </Button>
+          </div>
+        </div>
 
       <Card>
         <CardHeader>
@@ -816,58 +926,26 @@ export default function EscoposPageClient() {
           ))}
         </CardContent>
         <CardFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Button variant="secondary" onClick={() => setItems(prev => [...prev, createEmptyItem()])}>
-            Adicionar item
-          </Button>
-          <p className="text-sm text-muted-foreground">Você pode importar uma lista de tarefas ao lado para ganhar velocidade.</p>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setItems(prev => [...prev, createEmptyItem()])}>
+              Adicionar item
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                const wants = typeof window !== 'undefined' ? window.confirm('Remover todos os itens do escopo?') : false;
+                if (wants) setItems([createEmptyItem()]);
+              }}
+            >
+              Remover todos
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">Use "Adicionar item" para inserir tarefas ou gere itens a partir da descrição com IA.</p>
         </CardFooter>
       </Card>
+ 
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Importar lista de itens</CardTitle>
-          <CardDescription>
-            Cole linhas separadas por enter e cada linha vira um item do escopo. Depois da importação
-            perguntamos se você quer que a IA crie descrições iniciais para cada tarefa.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Textarea
-            value={listImport}
-            onChange={event => setListImport(event.target.value)}
-            placeholder={"1. Verificar bombas\n2. Atualizar filtros\n3. Validar registros"}
-            className="min-h-[140px]"
-          />
-          <Button
-            variant="outline"
-            onClick={() => void importItemsFromList()}
-            className="w-full sm:w-auto"
-            disabled={bulkImproving}
-          >
-            Transformar em itens
-          </Button>
-          {bulkImproving && bulkTotal > 0 && (
-            <p className="text-xs text-muted-foreground">
-              IA sugerindo descrições ({bulkProgress}/{bulkTotal})
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold">Exportar</p>
-          <p className="text-xs text-muted-foreground">Gere uma planilha compatível com Excel com o escopo criado.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="default" onClick={exportToExcel} disabled={isExporting}>
-            {isExporting ? 'Gerando planilha…' : 'Exportar para Excel'}
-          </Button>
-          <Button variant="outline" onClick={exportToPdf} disabled={isExporting}>
-            {isExporting ? 'Gerando PDF…' : 'Exportar para PDF'}
-          </Button>
-        </div>
-      </div>
+      
     </div>
   );
 }
