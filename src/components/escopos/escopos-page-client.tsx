@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -57,10 +58,12 @@ export default function EscoposPageClient() {
   const [scopeDescription, setScopeDescription] = useState('');
   const tone = 'Técnico e engenheiro';
   const [requester, setRequester] = useState('');
+  const { user: currentUser } = useCurrentUser();
   const [items, setItems] = useState<ScopeItem[]>([createEmptyItem()]);
   const [listImport, setListImport] = useState('');
   const [improvingItemId, setImprovingItemId] = useState<string | null>(null);
   const [improvingScope, setImprovingScope] = useState(false);
+  const [scopeImproved, setScopeImproved] = useState(false);
   const [aiPreference, setAiPreference] = useState<'detail' | 'supplier'>('detail');
   const [isExporting, setIsExporting] = useState(false);
   const [stores, setStores] = useState<Store[]>([]);
@@ -69,6 +72,7 @@ export default function EscoposPageClient() {
   const [bulkImproving, setBulkImproving] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(0);
   const [bulkTotal, setBulkTotal] = useState(0);
+  const [generatingItems, setGeneratingItems] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -97,6 +101,12 @@ export default function EscoposPageClient() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    // Populate requester with logged user's name only if the field is empty
+    setRequester(prev => (prev && prev.trim()) ? prev : (currentUser.name || ''));
+  }, [currentUser]);
 
   const selectedStore = useMemo(
     () => stores.find(store => store.id === selectedStoreId) ?? null,
@@ -170,6 +180,7 @@ export default function EscoposPageClient() {
         preferenceText,
       });
       setScopeDescription(improved);
+      setScopeImproved(true);
       toast({ title: 'Descrição aprimorada', description: 'A IA revisou o texto por você.' });
     } catch (error) {
       toast({
@@ -179,6 +190,71 @@ export default function EscoposPageClient() {
       });
     } finally {
       setImprovingScope(false);
+    }
+  };
+
+  const generateItemsFromScope = async () => {
+    if (!scopeDescription.trim()) {
+      toast({ title: 'Descrição vazia', description: 'Melhore a descrição com IA antes de gerar itens.', variant: 'destructive' });
+      return;
+    }
+    setGeneratingItems(true);
+    try {
+      const payload = {
+        messages: [
+          {
+            role: 'user',
+            content: `Você é um assistente técnico. A partir da descrição do escopo abaixo, gere SOMENTE uma lista numerada de etapas/itens para executar o escopo. Regras estritas:\n- Responda apenas com a lista numerada (uma linha por item).\n- Cada item: título conciso (verbo no infinitivo + complemento), até 6 palavras.\n- Não escreva parágrafos, explicações, perguntas ou observações extras.\n- Não repita a descrição do escopo.\n- Gere entre 3 e 12 itens, priorizando ações executáveis.\n\nPreferência: ${preferenceText}\n\nDescrição do escopo:\n${scopeDescription}`,
+          },
+        ],
+      };
+      const res = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) throw new Error(data?.error || 'Erro ao gerar itens');
+      const text = String(data.result || data?.result || data?.text || '').trim();
+      if (!text) throw new Error('Resposta vazia do AI');
+      let lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      // If AI returned a single long paragraph, attempt to split into sentences/clauses
+      if (lines.length === 1 && lines[0].length > 120) {
+        const trySplit = lines[0].split(/[\.;]\s+|\n+/).map(s => s.trim()).filter(Boolean);
+        if (trySplit.length > 1 && trySplit.every(s => s.length < 200)) {
+          lines = trySplit;
+        }
+      }
+      const cleaned = lines
+        .map(l => {
+          let t = l.replace(/^\s*\d+[\)\.\-\s]*/, '').replace(/^[\-\*\u2022]\s*/, '').trim();
+          if (/^\d+$/.test(t)) return '';
+          return t;
+        })
+        .map(s => s.trim())
+        .filter(Boolean);
+      const entries = cleaned.map(title => ({ ...createEmptyItem(), title }));
+      setItems(prev => {
+        const isOnlyEmptyItem = prev.length === 1 && prev[0].title.trim() === '' && prev[0].description.trim() === '' && prev[0].checklist.length === 0;
+        return isOnlyEmptyItem ? entries : [...prev, ...entries];
+      });
+      // Generate descriptions for the created entries (same behavior as import + IA)
+      // Filter out titles that are too short before requesting descriptions
+      const validEntries = entries.filter(e => (e.title || '').trim().length >= 3);
+      if (validEntries.length > 0) {
+        try {
+          await generateDescriptionsForImportedItems(validEntries);
+          toast({ title: 'Itens gerados', description: `${entries.length} item(s) adicionados com descrições (alguns podem ter sido ignorados).` });
+        } catch (e) {
+          toast({ title: 'Itens gerados', description: `${entries.length} item(s) adicionados (sem descrições).` });
+        }
+      } else {
+        toast({ title: 'Itens gerados', description: `${entries.length} item(s) adicionados (nenhum título válido para gerar descrições).` });
+      }
+    } catch (err: any) {
+      toast({ title: 'Erro ao gerar itens', description: String(err?.message || err), variant: 'destructive' });
+    } finally {
+      setGeneratingItems(false);
     }
   };
 
@@ -209,10 +285,15 @@ export default function EscoposPageClient() {
   };
 
   const generateItemDescription = async (title: string) => {
+    const t = (title || '').trim();
+    if (t.length < 3) {
+      // Fallback heuristic for very short titles to avoid schema validation errors
+      return `${t} — descrição técnica a ser detalhada pelo fornecedor.`;
+    }
     const response = await fetch('/api/ai/generate-scope-item-description', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, context: scopeContext, tone, preferenceText }),
+      body: JSON.stringify({ title: t, context: scopeContext, tone, preferenceText }),
     });
     const data = await response.json();
     if (!response.ok || typeof data?.description !== 'string') {
@@ -611,14 +692,24 @@ export default function EscoposPageClient() {
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Descrição do escopo</p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleImproveScope}
-                disabled={!scopeDescription.trim() || improvingScope}
-              >
-                {improvingScope ? 'Melhorando…' : 'Melhorar com IA'}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleImproveScope}
+                  disabled={!scopeDescription.trim() || improvingScope}
+                >
+                  {improvingScope ? 'Melhorando…' : 'Melhorar com IA'}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={generateItemsFromScope}
+                  disabled={!scopeImproved || improvingScope || generatingItems}
+                >
+                  {generatingItems ? 'Gerando itens…' : 'Gerar itens'}
+                </Button>
+              </div>
             </div>
             <Textarea
               value={scopeDescription}
