@@ -259,7 +259,14 @@ export default function EscoposPageClient() {
       return;
     }
     const newItems = entries.map(line => ({ ...createEmptyItem(), title: line }));
-    setItems(prev => [...prev, ...newItems]);
+    setItems(prev => {
+      const isOnlyEmptyItem =
+        prev.length === 1 &&
+        prev[0].title.trim() === '' &&
+        prev[0].description.trim() === '' &&
+        prev[0].checklist.length === 0;
+      return isOnlyEmptyItem ? newItems : [...prev, ...newItems];
+    });
     setListImport('');
     toast({ title: `${newItems.length} item(s) adicionados da lista.` });
     const wantsAIHelp =
