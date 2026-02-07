@@ -1,0 +1,52 @@
+# pack-refs with: peeled fully-peeled sorted 
+0b6d6f1a15ad1e2d728a48e54eba35eeecec02ec refs/heads/1.0.0
+e4f552e81b322d8abfd46249664ce24458f84de1 refs/heads/audit-fix-force
+798c690d162aaa96623b903e08d70285d78d6774 refs/heads/backup-before-revert-20260207132723
+d0255c6dd364c574e5c39ce4c94717176b48bf37 refs/heads/chore/compliance-errors-fix
+7acb501a21115ab0a5c1d8dc65917ae4c865e8f8 refs/heads/chore/new-branch-via-copilot
+f91869bae9683b03e79208b6ed339dfb11fe0c16 refs/heads/ci/supabase-deploy
+941e522de1bd860512c28de1d5ce67fe4d32c38d refs/heads/ci/vercel-token-only
+3e0ccdaa9f31d3e04070d664a8041ff2abdecc94 refs/heads/consolidate-packagejson
+c88399bb11049a896bdb7e942a3de40f455ff95e refs/heads/deploy/vercel-setup
+3707bcf7a9cc3a81be86d60dbc4b58b2ee2fa071 refs/heads/feat/admin-module-cache
+bc8230cb9d4e984ebe70562534298840e1f9ba14 refs/heads/feat/ci-workflow
+55a08410eafc5adab74dfda8bac1aac0fc9f4146 refs/heads/feature/improve-pdf-photos-norms
+6c0b8d5b8dfbbd38a2bb8eaa305bc2e13e718ed9 refs/heads/feature/seed-admin-modules
+fcc166ada4cc78133289149f78bd5ade0ee29c00 refs/heads/feature/unify-users
+768387504b354faec9cb2947a8cc1cb9ce608c01 refs/heads/fix/comment-tls-node22
+028d5bd5783ce4cebd0e5c057dff60d87845bcae refs/heads/fix/edge-redirect
+97ca7e0f95bc3445b87e899bf1dbef2bf6a3c198 refs/heads/fix/floating-chat-overflow-2
+07fb69a6ebc363636c8b939f6ebcd05292c64b49 refs/heads/fix/pgssmode-prefer
+0b1c9eb582038632f3d3e27aec3621693df1683d refs/heads/fix/prestart-manifest
+768387504b354faec9cb2947a8cc1cb9ce608c01 refs/heads/fix/remove-avatar-rewrite
+09bc50c9c6165f5ac978c8fde69f3e9c1c7a57e5 refs/heads/fix/remove-avatar-rewrite-clean
+e8f9a6c48c402464d454aeb0e26c5bc23d5f142b refs/heads/fix/remove-duplicate-analytics-page-20251220
+50363baf3a4cc03b03fef1e29fc1daf376cab284 refs/heads/main
+2674fe493a258f6ebec4a64ad5465bd0dd495c92 refs/heads/new-revision-version
+d0255c6dd364c574e5c39ce4c94717176b48bf37 refs/heads/pm2-nssm-setup
+68203ab44286b2b74f00cf10b0559b1d722438dd refs/heads/realease
+656febd3803170df9bad06e2d2856e3216512d15 refs/heads/release/1.0.13
+eddefb10284d991c7c79cc0bcfe4d63a52c2915e refs/heads/restore-10.0.12
+0b6d6f1a15ad1e2d728a48e54eba35eeecec02ec refs/heads/scripts/safe-drop-audit
+7de4b27739be8a07ed6133c5a428578890d0836c refs/heads/ui/cleanup-minor
+3e0ccdaa9f31d3e04070d664a8041ff2abdecc94 refs/pull/1/head
+028d5bd5783ce4cebd0e5c057dff60d87845bcae refs/pull/10/head
+bc8230cb9d4e984ebe70562534298840e1f9ba14 refs/pull/11/head
+f00bbfda86081c79c036262eed31c97690041270 refs/pull/12/head
+97ca7e0f95bc3445b87e899bf1dbef2bf6a3c198 refs/pull/13/head
+c88399bb11049a896bdb7e942a3de40f455ff95e refs/pull/2/head
+2674fe493a258f6ebec4a64ad5465bd0dd495c92 refs/pull/3/head
+7de4b27739be8a07ed6133c5a428578890d0836c refs/pull/4/head
+634b9a70bc847aedcf23df279f8b8cda83ce314d refs/pull/4/merge
+3707bcf7a9cc3a81be86d60dbc4b58b2ee2fa071 refs/pull/6/head
+9d37061023f282b2a31b57957248087a88136cc6 refs/pull/6/merge
+fcc166ada4cc78133289149f78bd5ade0ee29c00 refs/pull/7/head
+941e522de1bd860512c28de1d5ce67fe4d32c38d refs/pull/8/head
+f1cc01a5d44c7245f4a5152db105a793ebea2280 refs/pull/8/merge
+656febd3803170df9bad06e2d2856e3216512d15 refs/pull/9/head
+7f4d72bb2f48d5f9aa308ebd646f2edd1b819bd3 refs/tags/1.0.13
+^cf4902e9ed842763688bfc320e70bdfb09cac4d2
+36f6fa82e001c7b0391fc15c9afd5b3fbd0b71ad refs/tags/10.0.12
+^e244b5bc48bfe0b227c84e84c1c3fa215493f5c8
+67eee2361e8a390d08823c75dad6ff6f1e5cde26 refs/tags/v1.0.22
+^3625bd6f26ed0d1bac3a4aa110655e19b6180793
