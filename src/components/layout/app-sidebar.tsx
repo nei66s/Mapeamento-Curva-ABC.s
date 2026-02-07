@@ -94,7 +94,6 @@ const observabilityLinks = [
 ];
 
 const secondaryLinks = [
-  { href: '/price-simulator', icon: Calculator, label: 'Simulador de Preços' },
   { href: '/vacations', icon: CalendarDays, label: 'Gestão de Férias', moduleId: 'vacations' },
   { href: '/activity-feed', icon: Activity, label: 'Atividade' },
   { href: '/components-demo', icon: Grid3x3, label: 'Demonstração de Componentes' },

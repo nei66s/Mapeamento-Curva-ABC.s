@@ -391,11 +391,22 @@ export default function IndicatorsPage() {
     : 'Resumo atualizado da matriz de itens.';
 
   const allMonths = useMemo(() => {
-    return indicators.map(d => ({
+    const months = indicators.map(d => ({
       value: d.mes,
       label: new Date(`${d.mes}-02`).toLocaleString('default', { month: 'long', year: 'numeric' })
     })).sort((a,b) => new Date(b.value).getTime() - new Date(a.value).getTime());
-  }, [indicators]);
+
+    // Ensure the current year-month is always available as an option so the
+    // selector can display the current month even when there is no data yet.
+    if (!months.find(m => m.value === currentYm)) {
+      months.unshift({
+        value: currentYm,
+        label: new Date(`${currentYm}-02`).toLocaleString('default', { month: 'long', year: 'numeric' })
+      });
+    }
+
+    return months;
+  }, [indicators, currentYm]);
 
   const selectedMonthLabel = useMemo(() => {
     return (
