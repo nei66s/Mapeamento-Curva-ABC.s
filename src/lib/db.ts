@@ -91,14 +91,26 @@ const poolConfig = (() => {
     throw new Error('DATABASE_URL is missing a hostname portion.');
   }
 
-  const resolved = resolveHostname(hostname);
-  // Only log hostname resolution when explicitly requested. Use `DB_LOG_QUERIES`
-  // to enable query timing logs or `SHOW_DB_RESOLVE=true` to enable this message.
-  if (process.env.DB_LOG_QUERIES === 'true' || process.env.SHOW_DB_RESOLVE === 'true') {
-    console.info('[db] DATABASE_URL host resolved', {
+  // Attempt to resolve the hostname for diagnostics, but do NOT fail startup
+  // if DNS lookup is unavailable in the environment (some serverless
+  // environments restrict child_process). Fall back to using the original
+  // hostname so the Pool can still attempt to connect.
+  let resolved: DnsLookupResult = { address: hostname, family: 0 };
+  try {
+    resolved = resolveHostname(hostname);
+    if (process.env.DB_LOG_QUERIES === 'true' || process.env.SHOW_DB_RESOLVE === 'true') {
+      console.info('[db] DATABASE_URL host resolved', {
+        hostname,
+        resolvedAddress: resolved.address,
+        resolvedFamily: resolved.family,
+      });
+    }
+  } catch (err: any) {
+    // Log a non-fatal warning and continue; the Pool will still use
+    // `DATABASE_URL` and may succeed in environments where exec is blocked.
+    console.warn('[db] hostname resolution failed, proceeding without resolved address', {
       hostname,
-      resolvedAddress: resolved.address,
-      resolvedFamily: resolved.family,
+      error: err?.message || String(err),
     });
   }
 

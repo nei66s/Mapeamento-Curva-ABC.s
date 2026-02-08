@@ -84,6 +84,9 @@ async function ensureTable() {
 
 export async function GET() {
   try {
+    if (!process.env.DATABASE_URL) {
+      console.warn('[api/indicators] DATABASE_URL not set');
+    }
     await ensureTable();
     const res = await pool.query('SELECT data FROM indicators ORDER BY mes');
     const rows = res.rows.map(r => r.data);
