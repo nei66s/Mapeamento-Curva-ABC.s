@@ -27,6 +27,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       persistSessionUser(me);
       return me;
     } catch (e) {
+      console.debug('[auth-store] bootstrap failed: ', (e as any)?.message ?? e);
+      // Keep behavior: mark unauthenticated so RequirePermission can redirect.
       set({ user: null, status: 'unauthenticated' });
       return null;
     }

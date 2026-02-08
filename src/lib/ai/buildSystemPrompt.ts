@@ -10,5 +10,12 @@ const behaviorGuards = [
 ];
 
 export function buildSystemPrompt(profile: AiProfile) {
-  return [profile.systemPrompt.trim(), behaviorGuards.join(" ")].join("\n\n");
+  // Add guidance for route suggestions: when user asks to open a page,
+  // include the exact internal route (starting with "/") inline in the
+  // assistant response so the client can detect it and render a clickable
+  // button. Keep responses concise.
+  const routeGuidance =
+    "Se o usuario pedir para acessar uma pagina, inclua a rota interna exata iniciando com / (por exemplo: /escopos). Responda concisamente.";
+
+  return [profile.systemPrompt.trim(), behaviorGuards.join(" "), routeGuidance].join("\n\n");
 }

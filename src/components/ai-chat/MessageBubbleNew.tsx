@@ -1,8 +1,9 @@
 "use client";
-
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import styles from './MessageBubble.module.css';
+import { normalizeRoute } from '@/lib/ai/route-mapping';
 
 type MessageBubbleProps = {
   role: "user" | "assistant";
@@ -17,21 +18,19 @@ export function MessageBubble({ role, content, isLoading = false, avatarUrl, ass
   const isAssistant = role === "assistant";
 
   const bubble = (
-    <div
-      className={cn(
-        "max-w-[75%] text-sm",
-        isAssistant
-          ? "bg-white text-slate-900 border border-gray-200 rounded-[16px] rounded-bl-[6px] shadow-sm"
-          : "bg-[#dcf8c6] text-slate-900 border border-[#c7eecb] rounded-[16px] rounded-br-[6px] shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
-      )}
-      style={{ padding: '12px 14px', lineHeight: 1.5, wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}
-    >
+    <div className={cn(
+      "max-w-[75%] text-sm",
+      isAssistant
+        ? "bg-white text-slate-900 border border-gray-200 rounded-[16px] rounded-bl-[6px] shadow-sm"
+        : "bg-[#dcf8c6] text-slate-900 border border-[#c7eecb] rounded-[16px] rounded-br-[6px] shadow-[0_1px_2px_rgba(0,0,0,0.08)]",
+      styles.bubbleContent
+    )}>
       {isLoading && isAssistant ? (
         <div className="flex items-center">
           <div className="h-8 w-16 rounded-full bg-gray-100 px-3 py-1 flex items-center justify-center">
-            <span className="inline-block h-2 w-2 rounded-full bg-slate-400 animate-pulse" style={{ animationDelay: '0s' }} />
-            <span className="inline-block h-2 w-2 rounded-full bg-slate-400 ml-2 animate-pulse" style={{ animationDelay: '150ms' }} />
-            <span className="inline-block h-2 w-2 rounded-full bg-slate-400 ml-2 animate-pulse" style={{ animationDelay: '300ms' }} />
+            <span className={cn("inline-block h-2 w-2 rounded-full bg-slate-400 animate-pulse", styles.delay0)} />
+            <span className={cn("inline-block h-2 w-2 rounded-full bg-slate-400 ml-2 animate-pulse", styles.delay150)} />
+            <span className={cn("inline-block h-2 w-2 rounded-full bg-slate-400 ml-2 animate-pulse", styles.delay300)} />
           </div>
         </div>
       ) : (
@@ -57,7 +56,10 @@ export function MessageBubble({ role, content, isLoading = false, avatarUrl, ass
 
   // detect all internal route patterns like /dashboard/profile
   const matches = Array.from(content.matchAll(/(\/[^\s]+)/ig)).map((m) => m[1]);
-  const uniqueRoutes = Array.from(new Set(matches));
+  const uniqueRoutesRaw = Array.from(new Set(matches));
+  const uniqueRoutes = uniqueRoutesRaw
+    .map((r) => normalizeRoute(r))
+    .filter((x): x is string => Boolean(x));
 
   const handleOpenRoute = async (route: string) => {
     try {

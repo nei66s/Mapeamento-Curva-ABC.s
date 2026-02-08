@@ -1,6 +1,7 @@
 import type { AiProfile } from "./ai-profiles";
 import { responseStructure } from "./ai-profiles";
 import { buildConversationPrompt } from "./buildConversationPrompt";
+import { routeMap, findRouteForKeyword } from './route-mapping';
 import { buildSystemPrompt } from "./buildSystemPrompt";
 
 type ConversationMessage = {
@@ -52,6 +53,17 @@ const pickFollowUp = (profileId: string) => {
 const buildChatReply = (profile: AiProfile, userPrompt: string) => {
   if (isGreeting(userPrompt)) {
     return greetings[profile.profileId] ?? greetings["senior-tech"];
+  }
+
+  // Simple navigation intent detection for mock responses: if the user asks
+  // to access a page, return a concise reply including the internal route
+  // (starting with /) so the client can render a clickable button.
+  const navMatch = userPrompt.toLowerCase().match(/(?:acessar|abrir|ir para|vai para)\s+([\w-ãáéíóúç-]+)/i);
+  if (navMatch) {
+    const target = navMatch[1];
+    const mapped = findRouteForKeyword(target) ?? routeMap[target.toLowerCase()];
+    const route = mapped ?? `/${target}`;
+    return `Claro — vou te levar para a página solicitada: ${route}`;
   }
 
   const opener =

@@ -1,0 +1,19 @@
+.bubbleContent {
+  padding: 12px 14px;
+  line-height: 1.5;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.delay0 {
+  animation-delay: 0s;
+}
+
+.delay150 {
+  animation-delay: 150ms;
+}
+
+.delay300 {
+  animation-delay: 300ms;
+}

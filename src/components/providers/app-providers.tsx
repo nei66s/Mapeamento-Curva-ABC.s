@@ -9,7 +9,10 @@ import { useAuthStore } from '@/lib/auth/store';
 function AuthBootstrapper() {
   const bootstrap = useAuthStore((state) => state.bootstrap);
   useEffect(() => {
-    bootstrap().catch(() => {});
+    console.debug('[AuthBootstrapper] starting bootstrap');
+    bootstrap()
+      .then(() => console.debug('[AuthBootstrapper] bootstrap finished'))
+      .catch((e) => console.debug('[AuthBootstrapper] bootstrap failed', e));
   }, [bootstrap]);
   return null;
 }

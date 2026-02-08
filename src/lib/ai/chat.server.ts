@@ -17,7 +17,19 @@ async function query(sql: string, params: any[] = []) {
   return res.rows;
 }
 
-export async function createConversation(userId: string, opts?: { profileId?: string; title?: string; metadata?: any }) {
+export async function createConversation(userId: string, opts?: { id?: string; profileId?: string; title?: string; metadata?: any }) {
+  // Allow caller to provide a deterministic conversation id to avoid duplicate
+  // conversation rows when multiple clients/requests race to create the same
+  // session. Only use provided id when it looks like a UUID.
+  const providedId = isUuid(opts?.id) ? opts?.id : null;
+  if (providedId) {
+    const rows = await query(
+      `INSERT INTO ai_conversations(id, user_id, profile_id, title, metadata) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [providedId, userId, opts?.profileId ?? null, opts?.title ?? null, opts?.metadata ?? null]
+    );
+    return rows?.[0] ?? null;
+  }
+
   const rows = await query(
     `INSERT INTO ai_conversations(user_id, profile_id, title, metadata) VALUES ($1,$2,$3,$4) RETURNING *`,
     [userId, opts?.profileId ?? null, opts?.title ?? null, opts?.metadata ?? null]
@@ -45,7 +57,7 @@ export async function saveConversation(userId: string, messages: ChatMessage[], 
     conversation = res?.[0] ?? null;
   }
   if (!conversation) {
-    conversation = await createConversation(userId, { profileId: opts?.profileId, title: opts?.title });
+    conversation = await createConversation(userId, { id: opts?.conversationId, profileId: opts?.profileId, title: opts?.title });
   }
 
   const inserted: any[] = [];

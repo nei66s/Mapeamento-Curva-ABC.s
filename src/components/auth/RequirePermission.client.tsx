@@ -62,6 +62,7 @@ export default function RequirePermission({ children }: { children: React.ReactN
   // Always register the redirect effect in the same hook order.
   // Effect will early-return when not applicable to avoid changing behavior.
   useEffect(() => {
+    console.debug('[RequirePermission] effect start', { loading, authStatus, sessionLoading, sessionError, moduleId, user: user ? { id: user.id, role: user.role } : null });
     if (loading) return; // wait for localStorage user
     // also wait while global auth bootstrap is running (server-side cookie check)
     if (authStatus === 'authenticating' || authStatus === 'idle') return;
@@ -72,6 +73,7 @@ export default function RequirePermission({ children }: { children: React.ReactN
     if (typeof window !== 'undefined' && (window as any).__pm_logging_out) return;
     // if no user, force login
     if (!user) {
+      console.debug('[RequirePermission] no user -> redirecting to login', { pathname });
       if (!pathname || pathname === '/login') return;
       // include returnTo so user can be redirected back after successful login
       try {

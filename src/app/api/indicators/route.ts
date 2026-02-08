@@ -136,8 +136,13 @@ export async function GET() {
       console.error('Failed to aggregate indicadores_lancamentos', err);
       return NextResponse.json(rows);
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('GET /api/indicators error', err);
+    const message = err?.message || String(err);
+    const stack = err?.stack;
+    if (process.env.NODE_ENV !== 'production') {
+      return NextResponse.json({ error: 'Failed to load indicators', details: message, stack }, { status: 500 });
+    }
     return NextResponse.json({ error: 'Failed to load indicators' }, { status: 500 });
   }
 }

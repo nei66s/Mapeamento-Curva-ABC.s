@@ -42,13 +42,27 @@ async function refreshAccessToken() {
       return data.accessToken as string;
     }
   } catch (e) {
+    console.debug('[api-client] refreshAccessToken error', (e as any)?.message ?? e);
     return null;
   }
   return null;
 }
 
 function buildUrl(path: string, query?: Record<string, string | number | boolean | undefined>) {
-  const base = path.startsWith('http') ? path : `${appConfig.apiBaseUrl}${path}`;
+  let base = path.startsWith('http') ? path : `${appConfig.apiBaseUrl}${path}`;
+  // If apiBaseUrl is an absolute URL that matches the current origin,
+  // convert it to a relative path to ensure cookies are sent by the browser
+  // as same-site requests (avoids cross-origin cookie issues in dev).
+  try {
+    if (typeof window !== 'undefined' && base.startsWith('http')) {
+      const baseUrl = new URL(base, window.location.href);
+      if (baseUrl.origin === window.location.origin) {
+        base = base.replace(window.location.origin, '') || '/';
+      }
+    }
+  } catch (e) {
+    // ignore URL parsing errors and fall back to original base
+  }
   if (!query) return base;
   const params = new URLSearchParams();
   Object.entries(query).forEach(([key, value]) => {
@@ -107,6 +121,7 @@ export async function apiFetch<TResponse, TBody = unknown>(path: string, opts: R
       mergedHeaders.Authorization = `Bearer ${refreshed}`;
       response = await fetch(url, { ...requestInit, headers: mergedHeaders });
     } else {
+      console.debug('[api-client] 401 and refresh failed — clearing tokens');
       clearTokens();
     }
   }

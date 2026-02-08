@@ -11,6 +11,7 @@ import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
 import { aiProfiles, getProfileById } from "@/lib/ai/ai-profiles";
 import { createMockResponse } from "@/lib/ai/mock-response";
+import { appRoutes } from '@/lib/ai/route-mapping';
 import { MessageBubble } from "./MessageBubble";
 import { ProfileSelector } from "./ProfileSelector";
 import { ReportButton } from "./ReportButton";
@@ -215,6 +216,14 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
       content: trimmed,
     };
 
+    // Ensure we have a stable conversation id before persisting so the server
+    // can create/update a single conversation row instead of creating
+    // duplicates when multiple requests race.
+    if (!conversationId) {
+      const newConv = createId();
+      setConversationId(newConv);
+    }
+
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
@@ -226,7 +235,7 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
       // Prefer server AI endpoint (which uses Genkit/GenAI) if available
       const appContext = {
         url: typeof window !== 'undefined' ? window.location.href : undefined,
-        routes: ['/', '/ai-assistant', '/dashboard', '/assets', '/categories', '/admin-panel'],
+        routes: appRoutes,
         name: 'Aplicacao',
       };
 
@@ -271,7 +280,7 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
     try {
       const appContext = {
         url: typeof window !== 'undefined' ? window.location.href : undefined,
-        routes: ['/', '/ai-assistant', '/dashboard', '/assets', '/categories', '/admin-panel'],
+        routes: appRoutes,
         name: 'Aplicacao',
       };
 

@@ -7,10 +7,12 @@ import { verifyAccessToken } from '@/lib/auth/jwt';
 export async function GET(request: NextRequest) {
   try {
     const cookieToken = request.cookies.get('pm_access_token')?.value;
+    const cookiePmUser = request.cookies.get('pm_user')?.value;
     const headerToken = request.headers.get('authorization')?.replace('Bearer ', '') || null;
+    const hasCookieHeader = Boolean(request.headers.get('cookie'));
     const token = cookieToken || headerToken;
     if (!token) {
-      console.debug('[auth/me] missing token; cookiePresent=', !!cookieToken, 'authHeaderPresent=', !!headerToken);
+      console.debug('[auth/me] missing token; cookiePresent=', !!cookieToken, 'pm_userCookie=', !!cookiePmUser, 'authHeaderPresent=', !!headerToken, 'cookieHeaderPresent=', hasCookieHeader);
       return NextResponse.json({ message: 'unauthorized' }, { status: 401 });
     }
     const verified = verifyAccessToken(token);

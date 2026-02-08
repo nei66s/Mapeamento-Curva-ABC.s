@@ -213,30 +213,30 @@ export default function AppSidebar({ visible, onRequestClose, onMouseEnter, onMo
   const renderedGroups = [...visibleGroups, ...(adminGroup.links.length ? [adminGroup] : [])].filter(group => group.links.length > 0);
 
   const sidebarClasses = cn(
-    'fixed inset-y-0 left-0 z-50 w-72 md:w-80 bg-slate-950/85 border-r border-white/10 text-foreground shadow-[0_35px_90px_rgba(2,6,23,0.7)] backdrop-blur-3xl transition-transform duration-300',
+    'fixed inset-y-0 left-0 z-50 w-72 md:w-80 bg-white border-r border-slate-200 text-slate-900 shadow-sm transition-transform duration-300',
     // avoid SSR/client class mismatch by applying translate only after hydration
     hydrated ? (visible ? 'translate-x-0' : '-translate-x-full') : '-translate-x-full'
   );
 
   const navLinkClasses = (active: boolean) =>
     cn(
-      'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500/60',
+      'flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold leading-tight transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-orange-500/60',
       active
-        ? 'bg-gradient-to-r from-indigo-500/70 to-slate-900/60 text-white shadow-[0_12px_35px_rgba(15,23,42,0.45)]'
-        : 'text-slate-300 hover:text-white hover:bg-white/10'
+        ? 'w-full bg-gradient-to-r from-[#ff8200]/80 to-[#b24700]/70 text-white shadow-sm'
+        : 'text-slate-700 hover:text-white hover:bg-white/10'
     );
 
   const bottomLinkClasses = (active: boolean) =>
     cn(
-      'flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.4em] transition-colors duration-200',
-      active ? 'text-white' : 'text-slate-400 hover:text-white'
+      'flex items-center gap-1 text-[0.65rem] uppercase tracking-[0.4em] transition-colors duration-200',
+      active ? 'text-white' : 'text-slate-600 hover:text-white'
     );
 
   const inner = (
     <div className="flex h-full flex-col">
-      <div className="border-b border-white/10 px-6 py-6 space-y-3">
-        <div className="flex items-center gap-4">
-          <Link href="/indicators" className="flex items-center gap-3 text-foreground">
+      <div className="border-b border-white/10 px-4 py-4 space-y-1">
+        <div className="flex items-center gap-3">
+            <Link href="/indicators" className="flex items-center gap-3 text-foreground">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/50 bg-white text-base font-semibold tracking-wider text-slate-900">
               <LogoImage className="h-8 w-8" />
             </div>
@@ -250,43 +250,43 @@ export default function AppSidebar({ visible, onRequestClose, onMouseEnter, onMo
               variant="ghost"
               size="icon"
               onClick={onRequestClose}
-              className="ml-auto text-muted-foreground hover:text-white"
+              className="ml-auto text-slate-700 hover:text-slate-900"
               aria-label="Ocultar painel lateral"
             >
               <X className="h-4 w-4" />
             </Button>
           )}
         </div>
-        <div className="space-y-1">
+        <div className="space-y-0">
           <p className="text-base font-semibold text-foreground">
             {user?.name ?? (loading ? 'Carregando perfil...' : 'Equipe de Manutenção')}
           </p>
-          <p className="text-[0.65rem] uppercase tracking-[0.4em] text-slate-400">
+          <p className="text-[0.65rem] uppercase tracking-[0.4em] text-slate-600">
             {loading ? 'Verificando usuário...' : user?.role ? `Perfil ${user.role}` : 'Operador ativo'}
           </p>
         </div>
       </div>
       <ScrollArea className="flex-1 overflow-hidden">
-        <div className="px-5 py-6 space-y-5">
+        <div className="px-4 py-4 space-y-3">
           {renderedGroups.map(group => (
             <section
               key={group.title}
-              className="rounded-3xl border border-white/10 bg-slate-900/60 p-4 shadow-[0_20px_60px_rgba(2,6,23,0.45)]"
+              className="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm"
             >
               <div className="flex items-center justify-between">
-                <p className="text-[0.65rem] uppercase tracking-[0.4em] text-slate-400">{group.title}</p>
+                <p className="text-[0.65rem] uppercase tracking-[0.4em] text-slate-600">{group.title}</p>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => toggleGroup(group.title)}
                   aria-expanded={!collapsedGroups?.[group.title]}
-                  className="text-slate-400 hover:text-white"
+                  className="text-slate-600 hover:text-slate-900"
                 >
                   {collapsedGroups?.[group.title] ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </Button>
               </div>
               {!collapsedGroups?.[group.title] && (
-                <div className="mt-4 space-y-2">
+                <div className="mt-3 space-y-1">
                   {group.links.map(link => (
                     <Link
                       key={link.href}
@@ -302,13 +302,13 @@ export default function AppSidebar({ visible, onRequestClose, onMouseEnter, onMo
             </section>
           ))}
           <div className="h-px w-full bg-white/5" />
-          <div className="space-y-3">
+          <div className="space-y-2">
             <SidebarSeasonCard />
             <SidebarDemandCard />
           </div>
         </div>
       </ScrollArea>
-      <div className="border-t border-white/10 px-6 py-5">
+      <div className="border-t border-white/10 px-4 py-3">
         <div className="space-y-2">
           {bottomLinks.map(link => canAccess(link.moduleId) && (
             <Link

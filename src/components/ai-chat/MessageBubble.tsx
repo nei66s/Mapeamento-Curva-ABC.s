@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import styles from './MessageBubble.module.css';
 
 type MessageBubbleProps = {
   role: "user" | "assistant";
@@ -28,9 +29,9 @@ export function MessageBubble({ role, content, isLoading = false, avatarUrl, ass
       {isLoading && isAssistant ? (
         <div className="flex items-center">
           <div className="h-8 w-16 rounded-full bg-slate-700/40 px-3 py-1 flex items-center justify-center">
-            <span className="inline-block h-2 w-2 rounded-full bg-white/80 animate-pulse" style={{ animationDelay: '0s' }} />
-            <span className="inline-block h-2 w-2 rounded-full bg-white/80 ml-2 animate-pulse" style={{ animationDelay: '150ms' }} />
-            <span className="inline-block h-2 w-2 rounded-full bg-white/80 ml-2 animate-pulse" style={{ animationDelay: '300ms' }} />
+            <span className={cn("inline-block h-2 w-2 rounded-full bg-white/80 animate-pulse", styles.delay0)} />
+            <span className={cn("inline-block h-2 w-2 rounded-full bg-white/80 ml-2 animate-pulse", styles.delay150)} />
+            <span className={cn("inline-block h-2 w-2 rounded-full bg-white/80 ml-2 animate-pulse", styles.delay300)} />
           </div>
         </div>
       ) : (

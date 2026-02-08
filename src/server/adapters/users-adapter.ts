@@ -556,3 +556,34 @@ export async function updateUserProfilePreferences(userId: string, updates: User
   values.push(String(userId));
   await pool.query(query, values);
 }
+
+// Per-user dashboard widgets stored under user_profile.extra -> dashboard_widgets
+export async function getUserDashboardWidgets(userId: string) {
+  const meta = await ensureUserProfileMetadata();
+  if (!meta.exists || !meta.hasExtra) return null;
+  try {
+    const res = await pool.query("select extra from user_profile where user_id = $1 limit 1", [String(userId)]);
+    if (!res.rowCount) return null;
+    const extra = res.rows[0].extra;
+    if (!extra) return null;
+    return extra.dashboard_widgets ?? null;
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function setUserDashboardWidgets(userId: string, widgets: Record<string, any>) {
+  if (!widgets || typeof widgets !== 'object') return;
+  const meta = await ensureUserProfileMetadata();
+  if (!meta.exists) return;
+  // merge dashboard_widgets into extra JSONB
+  try {
+    await pool.query(
+      `INSERT INTO user_profile (user_id, extra) VALUES ($1, $2::jsonb)
+       ON CONFLICT (user_id) DO UPDATE SET extra = COALESCE(user_profile.extra, '{}'::jsonb) || $2::jsonb`,
+      [String(userId), JSON.stringify({ dashboard_widgets: widgets })]
+    );
+  } catch (e) {
+    // ignore
+  }
+}
