@@ -28,14 +28,12 @@ type ScopeItem = {
   id: string;
   title: string;
   description: string;
-  checklist: string[];
 };
 
 const createEmptyItem = (): ScopeItem => ({
   id: createId(),
   title: '',
   description: '',
-  checklist: [],
 });
 
 // Note: this is a client page moved to components — server wrapper ensures auth.
@@ -154,37 +152,7 @@ export default function EscoposPageClient() {
   const updateItem = (id: string, changes: Partial<ScopeItem>) => {
     setItems(prev => prev.map(item => (item.id === id ? { ...item, ...changes } : item)));
   };
-
-  const addChecklistEntry = (itemId: string) => {
-    setItems(prev =>
-      prev.map(item =>
-        item.id === itemId
-          ? { ...item, checklist: [...item.checklist, ''] }
-          : item
-      )
-    );
-  };
-
-  const updateChecklistEntry = (itemId: string, index: number, value: string) => {
-    setItems(prev =>
-      prev.map(item => {
-        if (item.id !== itemId) return item;
-        const checklist = [...item.checklist];
-        checklist[index] = value;
-        return { ...item, checklist };
-      })
-    );
-  };
-
-  const removeChecklistEntry = (itemId: string, index: number) => {
-    setItems(prev =>
-      prev.map(item => {
-        if (item.id !== itemId) return item;
-        const checklist = item.checklist.filter((_, idx) => idx !== index);
-        return { ...item, checklist };
-      })
-    );
-  };
+  // Checklist removed: Scope items now only have `title` and `description`.
 
   const removeItem = (id: string) => {
     setItems(prev => prev.filter(item => item.id !== id));
@@ -265,8 +233,8 @@ export default function EscoposPageClient() {
         .filter(Boolean);
       const entries = cleaned.map(title => ({ ...createEmptyItem(), title }));
       setItems(prev => {
-        const isOnlyEmptyItem = prev.length === 1 && prev[0].title.trim() === '' && prev[0].description.trim() === '' && prev[0].checklist.length === 0;
-        return isOnlyEmptyItem ? entries : [...prev, ...entries];
+        const isOnlyEmptyItem = prev.length === 1 && prev[0].title.trim() === '' && prev[0].description.trim() === '';
+          return isOnlyEmptyItem ? entries : [...prev, ...entries];
       });
       // Generate descriptions for the created entries (same behavior as import + IA)
       // Filter out titles that are too short before requesting descriptions
@@ -411,7 +379,7 @@ export default function EscoposPageClient() {
     setIsExporting(true);
     try {
       const { utils, write } = await import('xlsx');
-      const headerRow = ['Item nº', 'Título', 'Descrição do item', 'Checklist', 'Valor fornecedor'];
+      const headerRow = ['Item nº', 'Título', 'Descrição do item', 'Valor fornecedor'];
       const metadataRows = [
         ['Escopo', scopeName || '—', '', 'Solicitante', requester || '—'],
         ['Loja', selectedStore?.name ?? '—', '', 'Descrição do Escopo', scopeDescription || '—'],
@@ -427,7 +395,6 @@ export default function EscoposPageClient() {
           index + 1,
           item.title,
           item.description,
-          item.checklist.filter(Boolean).join('\n'),
           '',
         ]),
       ];
@@ -446,8 +413,7 @@ export default function EscoposPageClient() {
       worksheet['!cols'] = [
         { wch: 8 },
         { wch: 30 },
-        { wch: 50 },
-        { wch: 35 },
+        { wch: 60 },
         { wch: 20 },
       ];
 
@@ -508,12 +474,7 @@ export default function EscoposPageClient() {
           descCell.s = descCell.s || {};
           descCell.s.alignment = { wrapText: true, vertical: 'top' };
         }
-        const checklistCell = worksheet[utils.encode_cell({ r, c: 3 })];
-        if (checklistCell) {
-          checklistCell.s = checklistCell.s || {};
-          checklistCell.s.alignment = { wrapText: true, vertical: 'top' };
-        }
-        const valorRef = utils.encode_cell({ r, c: 4 });
+        const valorRef = utils.encode_cell({ r, c: 3 });
         const valorCell = worksheet[valorRef];
         if (valorCell) {
           if (valorCell.v === '' || valorCell.v == null) {
@@ -533,8 +494,8 @@ export default function EscoposPageClient() {
       const totalRow = endDataRow + 1;
       const totalLabelCellRef = utils.encode_cell({ r: totalRow, c: 3 });
       worksheet[totalLabelCellRef] = { t: 's', v: 'Total', s: { font: { bold: true } } } as any;
-      const sumFormula = `SUM(E${startDataRow + 1}:E${endDataRow + 1})`;
-      const totalValueCellRef = utils.encode_cell({ r: totalRow, c: 4 });
+      const sumFormula = `SUM(D${startDataRow + 1}:D${endDataRow + 1})`;
+      const totalValueCellRef = utils.encode_cell({ r: totalRow, c: 3 });
       worksheet[totalValueCellRef] = { t: 'n', f: sumFormula, z: 'R$#,##0.00' } as any;
 
       const workbook = utils.book_new();
@@ -643,7 +604,7 @@ export default function EscoposPageClient() {
       tbl.style.fontSize = '12px';
       const thead = tbl.createTHead();
       const hrow = thead.insertRow();
-      ['Item nº', 'Título', 'Descrição do item', 'Checklist', 'Valor fornecedor'].forEach((h) => {
+      ['Item nº', 'Título', 'Descrição do item', 'Valor fornecedor'].forEach((h) => {
         const th = document.createElement('th');
         th.innerText = h;
         th.style.background = '#FF7A00';
@@ -660,8 +621,7 @@ export default function EscoposPageClient() {
         const c0 = row.insertCell(); c0.innerText = String(idx + 1); c0.style.padding = '6px'; c0.style.border = '1px solid #eee';
         const c1 = row.insertCell(); c1.innerText = item.title; c1.style.padding = '6px'; c1.style.border = '1px solid #eee';
         const c2 = row.insertCell(); c2.innerText = item.description; c2.style.padding = '6px'; c2.style.border = '1px solid #eee';
-        const c3 = row.insertCell(); c3.innerText = item.checklist.filter(Boolean).join('\n'); c3.style.padding = '6px'; c3.style.border = '1px solid #eee';
-        const c4 = row.insertCell(); c4.innerText = 'R$ 0,00'; c4.style.padding = '6px'; c4.style.border = '1px solid #eee';
+        const c3 = row.insertCell(); c3.innerText = 'R$ 0,00'; c3.style.padding = '6px'; c3.style.border = '1px solid #eee';
       });
       const totRow = tbody.insertRow();
       const t0 = totRow.insertCell(); t0.innerText = ''; t0.style.border = 'none';
@@ -1053,7 +1013,7 @@ export default function EscoposPageClient() {
       <Card>
         <CardHeader>
           <CardTitle>Itens do escopo</CardTitle>
-          <CardDescription>Dê nome aos itens, descreva o que precisa ser feito e adicione checklists para garantir cobertura.</CardDescription>
+          <CardDescription>Dê nome aos itens e descreva o que precisa ser feito (mantenha conciso).</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {items.map((item, index) => (
@@ -1097,39 +1057,7 @@ export default function EscoposPageClient() {
                   placeholder="Conte o que precisa ser feito, o padrão mínimo e possíveis riscos."
                 />
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Checklist</p>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => addChecklistEntry(item.id)}
-                    aria-label="Adicionar atividade ao checklist"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  {item.checklist.map((entry, idx) => (
-                    <div key={`${item.id}-checklist-${idx}`} className="flex items-center gap-2">
-                      <Input
-                        className="flex-1"
-                        placeholder={`Atividade ${idx + 1}`}
-                        value={entry}
-                        onChange={event => updateChecklistEntry(item.id, idx, event.target.value)}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeChecklistEntry(item.id, idx)}
-                        aria-label="Remover entrada do checklist"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* Checklist removed from item UI; items contain only title + description. */}
             </div>
           ))}
         </CardContent>

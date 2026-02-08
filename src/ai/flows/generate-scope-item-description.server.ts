@@ -44,9 +44,12 @@ async function buildFlow() {
     name: 'scopeItemDescriptionPrompt',
     input: { schema: ScopeItemDescriptionInputSchema },
     output: { schema: ScopeItemDescriptionOutputSchema },
-    prompt: `Você é um engenheiro de manutenção responsável por descrever atividades técnicas com clareza e foco em resultados.
+    prompt: `Você é um engenheiro de manutenção. A partir do Título e Contexto, gere UMA descrição curta e completa, direcionada ao fornecedor, com as seguintes regras estritas:
 
-Dado o título abaixo e o contexto geral, escreva um parágrafo curto que explique o que precisa ser feito, os critérios mínimos de qualidade e as evidências esperadas.
+- Mantenha 1 a 2 frases objetivas (máx. 45 palavras preferencialmente).
+- Inclua materiais recomendados/resumo do método quando relevante, um critério mínimo de aceitação/teste e instrução sobre limpeza/destinação de resíduos.
+- Não faça listas numeradas, nem etapas passo-a-passo; agrupe subatividades em uma frase sucinta.
+- Evite termos vagos e não peça ao leitor para tomar decisões (ex.: "avaliar se..."), seja objetivo sobre o resultado esperado.
 
 Título do item: {{{title}}}
 Contexto: {{{context}}}
@@ -54,7 +57,8 @@ Tom desejado: {{{tone}}}
 
 Preferência: {{{preferenceText}}}
 
-Descrição:`,
+Resposta: devolva apenas a descrição final (campo "description" no JSON), sem explicações extras.
+`,
   });
 
   const flow = ai.defineFlow(
@@ -64,11 +68,24 @@ Descrição:`,
       outputSchema: ScopeItemDescriptionOutputSchema,
     },
     async (input: ScopeItemDescriptionInput) => {
+      const truncateDescription = (s: string, maxWords = 45) => {
+        if (!s) return s;
+        const cleaned = s.replace(/\s+/g, ' ').trim();
+        const sentences = cleaned.match(/[^.!?]+[.!?]?/g) || [cleaned];
+        // Prefer up to two sentences
+        let candidate = sentences.slice(0, 2).join(' ').trim();
+        const words = candidate.split(/\s+/);
+        if (words.length <= maxWords) return candidate.replace(/[\s\n]+/g, ' ').trim();
+        return words.slice(0, maxWords).join(' ').trim() + '...';
+      };
+
       const { callWithRetries } = await import('@/ai/callWithRetries');
       try {
         const { output } = await callWithRetries(() => prompt(input as any));
         if (output && output.description) {
-          return { ...output, generatedBy: 'ai' } as any;
+          const desc = String(output.description || '').trim();
+          const finalDesc = truncateDescription(desc, 45);
+          return { ...output, description: finalDesc, generatedBy: 'ai' } as any;
         }
       } catch (err: any) {
         console.warn(
@@ -90,8 +107,8 @@ Descrição:`,
         if (lines.length > 0) bodyParts.push(lines.join(' '));
         if (preference) bodyParts.push(preference);
         if (tone) bodyParts.push(tone);
-        const description = (bodyParts.join(' ').trim() || `${title} — descrição técnica a ser detalhada pelo fornecedor.`).replace(/\n+/g, ' ');
-        return { description, generatedBy: 'heuristic', aiMeta } as any;
+        const raw = (bodyParts.join(' ').trim() || `${title} — descrição técnica a ser detalhada pelo fornecedor.`).replace(/\n+/g, ' ');
+        return { description: truncateDescription(raw, 45), generatedBy: 'heuristic', aiMeta } as any;
       }
 
       // If AI returned no description for some reason, fall back to a lightweight heuristic (no error meta)
@@ -109,8 +126,8 @@ Descrição:`,
       if (lines.length > 0) bodyParts.push(lines.join(' '));
       if (preference) bodyParts.push(preference);
       if (tone) bodyParts.push(tone);
-      const description = (bodyParts.join(' ').trim() || `${title} — descrição técnica a ser detalhada pelo fornecedor.`).replace(/\n+/g, ' ');
-      return { description, generatedBy: 'heuristic' } as any;
+      const raw = (bodyParts.join(' ').trim() || `${title} — descrição técnica a ser detalhada pelo fornecedor.`).replace(/\n+/g, ' ');
+      return { description: truncateDescription(raw, 45), generatedBy: 'heuristic' } as any;
     }
   );
 
