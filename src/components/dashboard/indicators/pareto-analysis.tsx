@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ParetoChart } from './pareto-chart';
+import { summarizePareto } from '@/ai/flows/summarize-pareto-flow';
 import { Switch } from '@/components/ui/switch';
 
 interface ParetoAnalysisProps {
@@ -24,6 +25,8 @@ export function ParetoAnalysis({ incidents }: ParetoAnalysisProps) {
   const [matrixItems, setMatrixItems] = useState<string[] | null>(null);
   const [loadingItems, setLoadingItems] = useState(false);
   const [restrictByMatrix, setRestrictByMatrix] = useState(true);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const fetchAnalysis = useCallback(async (currentIncidents: Incident[]) => {
     setLoading(true);
@@ -35,6 +38,33 @@ export function ParetoAnalysis({ incidents }: ParetoAnalysisProps) {
       if (currentIncidents.length > 0) {
         const local = aggregateIncidentsLocally(currentIncidents);
         setAnalysis(local);
+        // Kick off AI analysis for the currently computed Pareto slice
+        try {
+          const cacheKey = `pareto-analysis:${(new Date()).toISOString().slice(0,7)}`;
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed && parsed.summary && parsed.ts) {
+              const age = Date.now() - parsed.ts;
+              if (age < 1000 * 60 * 60 * 24) { // 24h
+                setAiSummary(parsed.summary);
+              } else {
+                setAiSummary(null);
+              }
+            }
+          }
+          if (!aiSummary) {
+            setAiLoading(true);
+            const flowInput = { mes: null, slice: local.map(it => ({ category: it.category, count: it.count })) };
+            const res = await summarizePareto(flowInput as any);
+            setAiSummary(res.summary);
+            try { sessionStorage.setItem(cacheKey, JSON.stringify({ summary: res.summary, ts: Date.now() })); } catch(e){}
+          }
+        } catch (e) {
+          console.error('Pareto AI analysis failed', e);
+        } finally {
+          setAiLoading(false);
+        }
       } else {
         setAnalysis([]);
       }
@@ -183,6 +213,12 @@ function aggregateIncidentsLocally(incidents: Incident[]) {
           <span>{analysis ? `Top ${analysis.length}` : 'Nenhum top ainda'}</span>
         </div>
         {renderContent()}
+        {aiLoading && <div className="text-sm text-muted-foreground mt-2">Gerando análise da IA...</div>}
+        {aiSummary && (
+          <div className="mt-4 border bg-muted/30 p-4 rounded-lg text-sm text-muted-foreground whitespace-pre-wrap">
+            {aiSummary}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

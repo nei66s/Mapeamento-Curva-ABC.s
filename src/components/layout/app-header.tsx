@@ -168,13 +168,7 @@ export default function AppHeader({ onToggleSidebar, sidebarVisible, sidebarMode
                   <Users className="h-4 w-4" />
                   Fornecedores
                 </Link>
-                 <Link
-                  href="/warranty"
-                  className="flex items-center gap-3 px-2.5 text-sm text-muted-foreground transition hover:text-foreground"
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  Garantias
-                </Link>
+                {/* Garantias page removed */}
                 <Link
                   href="/tools"
                   className="flex items-center gap-3 px-2.5 text-sm text-muted-foreground transition hover:text-foreground"

@@ -41,15 +41,21 @@ export function KpiAnalysis({ indicator }: KpiAnalysisProps) {
         }
       }
 
-      const response = await summarizeKpi({
-        mes: currentIndicator.mes,
-        sla_mensal: currentIndicator.sla_mensal,
-        meta_sla: currentIndicator.meta_sla,
-        crescimento_mensal_sla: currentIndicator.crescimento_mensal_sla,
-        chamados_abertos: currentIndicator.chamados_abertos,
-        chamados_solucionados: currentIndicator.chamados_solucionados,
-        backlog: currentIndicator.backlog,
-      });
+      // Ensure we always call the AI using available data.
+      // Coerce missing numeric fields to 0 so the server-side schema validation
+      // receives numbers and the model can still generate a summary based
+      // on partial information.
+      const payload = {
+        mes: currentIndicator.mes ?? currentYm,
+        sla_mensal: Number(currentIndicator.sla_mensal ?? 0),
+        meta_sla: Number(currentIndicator.meta_sla ?? 0),
+        crescimento_mensal_sla: Number(currentIndicator.crescimento_mensal_sla ?? 0),
+        chamados_abertos: Number(currentIndicator.chamados_abertos ?? 0),
+        chamados_solucionados: Number(currentIndicator.chamados_solucionados ?? 0),
+        backlog: Number(currentIndicator.backlog ?? 0),
+      };
+
+      const response = await summarizeKpi(payload as any);
       setSummary(response.summary);
       // store in session cache
       try {

@@ -29,11 +29,7 @@ export function ActivityHistoryPanel() {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button aria-label="Histórico de uso" variant="ghost" size="icon">
-          <History className="h-5 w-5" />
-        </Button>
-      </SheetTrigger>
+      
       <SheetContent className="max-w-md">
         <div className="flex items-center justify-between gap-2">
           <div>

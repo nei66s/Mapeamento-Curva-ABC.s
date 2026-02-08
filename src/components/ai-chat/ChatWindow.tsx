@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import styles from './ChatWindow.module.css';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import type { KeyboardEventHandler } from "react";
 import { Button } from "@/components/ui/button";
@@ -225,7 +226,7 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
       // Prefer server AI endpoint (which uses Genkit/GenAI) if available
       const appContext = {
         url: typeof window !== 'undefined' ? window.location.href : undefined,
-        routes: ['/', '/ai-chat', '/ai-assistant', '/ai-insights', '/dashboard', '/assets', '/categories', '/admin-panel'],
+        routes: ['/', '/ai-assistant', '/dashboard', '/assets', '/categories', '/admin-panel'],
         name: 'Aplicacao',
       };
 
@@ -270,7 +271,7 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
     try {
       const appContext = {
         url: typeof window !== 'undefined' ? window.location.href : undefined,
-        routes: ['/', '/ai-chat', '/ai-assistant', '/ai-insights', '/dashboard', '/assets', '/categories', '/admin-panel'],
+        routes: ['/', '/ai-assistant', '/dashboard', '/assets', '/categories', '/admin-panel'],
         name: 'Aplicacao',
       };
 
@@ -326,8 +327,7 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
     return (
       <div className="flex flex-col overflow-hidden h-full">
         <div
-          className="rounded-2xl bg-white border border-gray-200 flex flex-col overflow-hidden"
-          style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.08)', width: 360, height: '100%' }}
+          className={"rounded-2xl bg-white border border-gray-200 flex flex-col overflow-hidden " + styles.chatBox + " " + styles.chatCompact}
         >
           <ChatHeader name="Zeca" status={activeProfile ? 'online' : 'offline'} avatarUrl={'/ai-avatar.png'} onNewChat={clearChat} onHistory={() => {}} />
           <ChatMessages
@@ -359,10 +359,9 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
   }
 
   return (
-    <div className="flex flex-col h-full max-h-full min-h-0 overflow-hidden">
+      <div className="flex flex-col h-full max-h-full min-h-0 overflow-hidden">
       <div
-        className="bg-white border border-gray-200 rounded-[14px] w-full max-w-[480px] flex flex-col overflow-hidden"
-        style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.08)', height: '600px' }}
+        className={"bg-white border border-gray-200 rounded-[14px] w-full max-w-[480px] flex flex-col overflow-hidden " + styles.chatBox + " " + styles.chatDefaultHeight}
       >
         <ChatHeader name="Zeca" status={activeProfile ? 'online' : 'offline'} avatarUrl={'/ai-avatar.png'} onNewChat={clearChat} onHistory={() => {}} />
         <ChatMessages

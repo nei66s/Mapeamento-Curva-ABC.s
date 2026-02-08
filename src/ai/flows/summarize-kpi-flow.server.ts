@@ -64,9 +64,15 @@ async function buildFlow() {
     },
     async (input: KpiSummaryInput) => {
       try {
-        const { callWithRetries } = await import('@/ai/callWithRetries');
-        const { output } = await callWithRetries(() => kpiSummaryPrompt(input as any), 3, 300);
-        return output!;
+          const { callWithRetries } = await import('@/ai/callWithRetries');
+          const { output } = await callWithRetries(() => kpiSummaryPrompt(input as any), 3, 300);
+          // Normalize various provider output shapes into `{ summary: string }` so
+          // callers can consistently read `response.summary` regardless of the
+          // underlying AI client implementation.
+          const text = String(
+            output?.summary ?? output?.text ?? output?.result ?? output?.description ?? output?.improved ?? ''
+          ).trim();
+          return { summary: text };
       } catch (err: any) {
         console.error('Error running kpiSummaryPrompt:', err);
         // If the error indicates missing AI credentials, return a graceful

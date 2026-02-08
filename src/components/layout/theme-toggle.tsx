@@ -29,6 +29,12 @@ export function ThemeToggle() {
     document.documentElement.setAttribute('data-theme', theme);
     try {
       localStorage.setItem('theme', theme);
+      // Also write a cookie so the theme can be read early by the inline script
+      try {
+        document.cookie = `theme=${theme}; path=/; max-age=31536000; SameSite=Lax`;
+      } catch (e) {
+        // ignore cookie write errors
+      }
     } catch (err) {
       // ignore storage issues
     }

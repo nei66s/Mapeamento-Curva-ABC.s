@@ -1,0 +1,12 @@
+.chatBox {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.chatDefaultHeight {
+  height: 600px;
+}
+
+.chatCompact {
+  width: 360px;
+  height: 100%;
+}

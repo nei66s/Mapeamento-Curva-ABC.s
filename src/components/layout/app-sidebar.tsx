@@ -15,7 +15,6 @@ import {
   Grid3x3,
   ClipboardCheck,
   Users,
-  ShieldCheck,
   Construction,
   Handshake,
   ArchiveX,
@@ -32,19 +31,16 @@ import {
   Shield,
   Plug,
   Radar,
-  ClipboardList,
-  Bot,
   Cloud,
   Wrench,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-// logo removed per UI request
+import { LogoImage } from '@/components/icons/logo-image';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { cloneDefaultPermissions } from '@/lib/permissions-config';
 import { useAdminSession } from '@/hooks/use-admin-session';
-// logo removed per UI request
 import { usePathname } from 'next/navigation';
 import { SidebarDemandCard } from '@/components/layout/sidebar-demand-card';
 import { SidebarSeasonCard } from '@/components/layout/sidebar-season-card';
@@ -79,7 +75,6 @@ const assetsLinks = [
 const resourcesLinks = [
   { href: '/stores', icon: MapPin, label: 'Lojas' },
   { href: '/suppliers', icon: Users, label: 'Fornecedores', moduleId: 'suppliers' },
-  { href: '/warranty', icon: ShieldCheck, label: 'Garantias', moduleId: 'warranty' },
   { href: '/tools', icon: Construction, label: 'Almoxarifado', moduleId: 'tools' },
   { href: '/settlement', icon: Handshake, label: 'Quitação', moduleId: 'settlement' },
   { href: '/unsalvageable', icon: ArchiveX, label: 'Itens Inservíveis' },
@@ -87,9 +82,6 @@ const resourcesLinks = [
 
 const observabilityLinks = [
   { href: '/data-quality', icon: Radar, label: 'Qualidade dos Dados', moduleId: 'dataQuality' },
-  { href: '/action-board', icon: ClipboardList, label: 'Quadro de Ações', moduleId: 'actionBoard' },
-  { href: '/ai-chat', icon: Bot, label: 'Chat IA', moduleId: 'aiChat' },
-  { href: '/ai-insights', icon: Bot, label: 'Insights AI', moduleId: 'aiInsights' },
   { href: '/integrations', icon: Cloud, label: 'Integrações', moduleId: 'integrations' },
 ];
 
@@ -102,9 +94,9 @@ const secondaryLinks = [
 const linkGroups = [
   { title: 'Principais', links: mainLinks },
   { title: 'Execução', links: executionLinks },
+  { title: 'Preventivas', links: preventiveLinks },
   { title: 'Mapeamento', links: mappingLinks },
   { title: 'Ativos', links: assetsLinks },
-  { title: 'Preventivas', links: preventiveLinks },
   { title: 'Recursos', links: resourcesLinks },
   { title: 'Observatórios', links: observabilityLinks },
   { title: 'Utilitários', links: secondaryLinks },
@@ -245,8 +237,8 @@ export default function AppSidebar({ visible, onRequestClose, onMouseEnter, onMo
       <div className="border-b border-white/10 px-6 py-6 space-y-3">
         <div className="flex items-center gap-4">
           <Link href="/indicators" className="flex items-center gap-3 text-foreground">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/15 bg-white/5 text-base font-semibold tracking-wider text-white">
-              F
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/50 bg-white text-base font-semibold tracking-wider text-slate-900">
+              <LogoImage className="h-8 w-8" />
             </div>
             <div>
               <p className="text-sm font-semibold tracking-[0.3em] uppercase text-muted-foreground">Fixly</p>

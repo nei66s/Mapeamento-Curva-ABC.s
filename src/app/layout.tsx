@@ -53,8 +53,8 @@ export default async function RootLayout({
       }
     : null;
 
-  // Inline script will prefer server-provided settings when available, otherwise fall back to localStorage.
-  const inlineScript = `(function(){try{var server=${JSON.stringify(ss)};var stored=localStorage.getItem('theme')||'light';var prefer=(server&&server.theme)||stored;document.documentElement.classList.toggle('dark', prefer==='dark');document.documentElement.setAttribute('data-theme', prefer);localStorage.setItem('theme', prefer);}catch(e){}})();`;
+  // Inline script will prefer server-provided settings when available, otherwise fall back to localStorage or cookie.
+  const inlineScript = `(function(){try{var server=${JSON.stringify(ss)};function readCookie(k){var m=document.cookie.match('(^|;)\\s*'+k+'=([^;]+)');return m?m[2]:null;}var cookieTheme=readCookie('theme');var stored=(typeof localStorage!=='undefined' && localStorage.getItem('theme'))||cookieTheme||'light';var prefer=(server&&server.theme)||stored;document.documentElement.classList.toggle('dark', prefer==='dark');document.documentElement.setAttribute('data-theme', prefer);try{localStorage.setItem('theme', prefer);}catch(e){}try{document.cookie='theme='+prefer+'; path=/; max-age=31536000; SameSite=Lax';}catch(e){} }catch(e){}})();`;
 
   return (
     <html lang="pt-BR" suppressHydrationWarning data-theme="light" className={inter.className}>

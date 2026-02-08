@@ -7,11 +7,13 @@ import { cloneDefaultPermissions } from '@/lib/permissions-config';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAdminSession } from '@/hooks/use-admin-session';
+import { useAuthStore } from '@/lib/auth/store';
 
 export default function RequirePermission({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading } = useCurrentUser();
+  const authStatus = useAuthStore((s) => s.status);
   const { data: session, isLoading: sessionLoading, isError: sessionError } = useAdminSession();
 
   // derive moduleId from pathname
@@ -60,7 +62,9 @@ export default function RequirePermission({ children }: { children: React.ReactN
   // Always register the redirect effect in the same hook order.
   // Effect will early-return when not applicable to avoid changing behavior.
   useEffect(() => {
-    if (loading) return; // wait for user
+    if (loading) return; // wait for localStorage user
+    // also wait while global auth bootstrap is running (server-side cookie check)
+    if (authStatus === 'authenticating' || authStatus === 'idle') return;
     if (sessionError && isAdminModule) return; // avoid redirect while showing error state
     if (!moduleId) return; // no module mapping, allow access
     if (isAdminModule && sessionLoading) return; // wait module status for admin areas
