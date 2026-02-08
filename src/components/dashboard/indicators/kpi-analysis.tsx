@@ -46,7 +46,7 @@ export function KpiAnalysis({ indicator }: KpiAnalysisProps) {
       // receives numbers and the model can still generate a summary based
       // on partial information.
       const payload = {
-        mes: currentIndicator.mes ?? currentYm,
+        mes: currentIndicator.mes ?? indicator?.mes ?? '',
         sla_mensal: Number(currentIndicator.sla_mensal ?? 0),
         meta_sla: Number(currentIndicator.meta_sla ?? 0),
         crescimento_mensal_sla: Number(currentIndicator.crescimento_mensal_sla ?? 0),
@@ -69,7 +69,7 @@ export function KpiAnalysis({ indicator }: KpiAnalysisProps) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [indicator]);
 
   useEffect(() => {
     if (indicator) {
