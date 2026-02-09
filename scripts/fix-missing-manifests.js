@@ -2,7 +2,19 @@ const fs = require('fs');
 const path = require('path');
 
 const root = process.cwd();
-const serverAppDir = path.join(root, '.next', 'server', 'app');
+const serverAppDirCandidates = [
+  path.join(root, '.next', 'server', 'app'),
+  path.join(root, 'build', 'server', 'app'),
+];
+
+function findServerAppDir() {
+  for (const d of serverAppDirCandidates) {
+    if (fs.existsSync(d)) return d;
+  }
+  return null;
+}
+
+const serverAppDir = findServerAppDir();
 
 function findNftFiles(dir) {
   const res = [];
@@ -25,8 +37,8 @@ function ensureStub(manifestPath) {
   return true;
 }
 
-if (!fs.existsSync(serverAppDir)) {
-  console.error('No .next/server/app directory found. Run `npm run build` first.');
+if (!serverAppDir) {
+  console.error('No server app directory found (.next/server/app or build/server/app). Run `npm run build` first.');
   process.exit(2);
 }
 
@@ -56,22 +68,52 @@ console.log(`Done. Created ${created} stub manifest(s).`);
 
 // Patch compiled page routes to use fallback manifest
 function patchCompiledRoutes() {
-  const pagePath = path.join(root, '.next', 'server', 'app', '(app-shell)', 'page.js');
-  if (!fs.existsSync(pagePath)) return 0;
-  
-  let content = fs.readFileSync(pagePath, 'utf8');
+  const candidates = [
+    path.join(root, '.next', 'server', 'app', '(app-shell)', 'page.js'),
+    path.join(root, 'build', 'server', 'app', '(app-shell)', 'page.js'),
+  ];
+  let totalPatched = 0;
   const before = 'serverActionsManifest:X,clientReferenceManifest:Y,setIsrStatus:';
   const after = 'serverActionsManifest:X,clientReferenceManifest:Y??{clientModules:{},edgeRscModuleMapping:{},rscModuleMapping:{}},setIsrStatus:';
-  
-  if (content.includes(before) && !content.includes(after)) {
-    content = content.replace(before, after);
-    fs.writeFileSync(pagePath, content, 'utf8');
-    console.log('Patched app-shell page.js with manifest fallback');
-    return 1;
+
+  for (const pagePath of candidates) {
+    if (!fs.existsSync(pagePath)) continue;
+    let content = fs.readFileSync(pagePath, 'utf8');
+    if (content.includes(before) && !content.includes(after)) {
+      content = content.replace(before, after);
+      fs.writeFileSync(pagePath, content, 'utf8');
+      console.log('Patched', path.relative(root, pagePath), 'with manifest fallback');
+      totalPatched++;
+    }
   }
-  return 0;
+  return totalPatched;
 }
 
 const patched = patchCompiledRoutes();
 console.log(`Patched ${patched} route(s).`);
+// Ensure top-level build routes manifest exists for runtimes expecting `build/`
+try {
+  const buildRoutes = path.join(root, 'build', 'routes-manifest.json');
+  if (!fs.existsSync(buildRoutes)) {
+    fs.writeFileSync(buildRoutes, JSON.stringify({}, null, 2), 'utf8');
+    console.log('Created fallback:', path.relative(root, buildRoutes));
+  }
+} catch (e) {
+  // ignore
+}
+
+// Ensure a minimal pages/_document.js exists in build if some runtime expects it
+try {
+  const docDir = path.join(root, 'build', 'server', 'pages');
+  const docPath = path.join(docDir, '_document.js');
+  if (!fs.existsSync(docPath)) {
+    if (!fs.existsSync(docDir)) fs.mkdirSync(docDir, { recursive: true });
+    const content = "module.exports = function Document() { return null; };\n";
+    fs.writeFileSync(docPath, content, 'utf8');
+    console.log('Created fallback stub:', path.relative(root, docPath));
+  }
+} catch (e) {
+  // ignore
+}
+
 process.exit(0);

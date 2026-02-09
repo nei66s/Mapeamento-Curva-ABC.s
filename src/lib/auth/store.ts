@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { SessionUser } from '@/types/admin';
 import { AuthService } from '@/services/auth-service';
-import { clearTokens, getRefreshToken, setTokens, persistSessionUser } from './tokens';
+import { clearTokens, getRefreshToken, getAccessToken, setTokens, persistSessionUser } from './tokens';
 
 type AuthStatus = 'idle' | 'authenticating' | 'authenticated' | 'unauthenticated';
 
@@ -20,7 +20,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   status: 'idle',
   async bootstrap() {
     if (get().status !== 'idle') return get().user;
+    // If running in the browser, try to hydrate user from localStorage first
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('pm_user');
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw as string);
+            set({ user: parsed });
+          } catch (e) {
+            // ignore parse errors
+          }
+        }
+      } catch (e) {
+        // ignore localStorage access errors
+      }
+    }
     set({ status: 'authenticating' });
+    try {
+      // log client-visible tokens for debugging (note: HttpOnly cookies won't be visible here)
+      console.debug('[auth-store] bootstrap start, client tokens:', { accessTokenClient: getAccessToken?.() ?? null, refreshTokenClient: getRefreshToken?.() ?? null });
+    } catch (e) {
+      // ignore logging errors
+    }
     try {
       const me = await AuthService.me();
       set({ user: me, status: 'authenticated' });
@@ -28,6 +50,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return me;
     } catch (e) {
       console.debug('[auth-store] bootstrap failed: ', (e as any)?.message ?? e);
+      // If initial /me check fails, try to refresh tokens before giving up.
+      try {
+        const refreshed = await get().refresh();
+        if (refreshed) {
+          const me2 = await AuthService.me();
+          set({ user: me2, status: 'authenticated' });
+          persistSessionUser(me2);
+          return me2;
+        }
+      } catch (e2) {
+        console.debug('[auth-store] bootstrap refresh failed: ', (e2 as any)?.message ?? e2);
+      }
       // Keep behavior: mark unauthenticated so RequirePermission can redirect.
       set({ user: null, status: 'unauthenticated' });
       return null;

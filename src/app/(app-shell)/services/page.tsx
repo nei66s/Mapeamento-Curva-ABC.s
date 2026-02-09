@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/shared/page-header';
 import { Progress } from '@/components/ui/progress';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   Select,
@@ -27,6 +28,10 @@ interface ServiceItem {
   statusReason: string;
   owner: string;
   dependency: Dependency;
+  regional?: string;
+  unit?: string;
+  stores?: string[];
+  category?: string;
   nextAction: string;
   nextFollowupDate: string;
   statusSince: string;
@@ -55,6 +60,8 @@ interface ChecklistItem {
 const statusOptions: ServiceStatus[] = ['Em andamento', 'Travado', 'Critico', 'Concluido'];
 const dependencyOptions: Dependency[] = ['Compras', 'Fornecedor', 'Loja', 'Interno', 'Terceiros'];
 const blockedThresholdDays = 3;
+// Units to exclude from area/unit dropdowns (sometimes present in data but not desired here)
+const excludedUnits = new Set(['refrigeração', 'refrigeracao']);
 
 const initialServices: ServiceItem[] = [
   {
@@ -162,6 +169,8 @@ const daysSince = (dateISO?: string) => {
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 };
 
+import styles from './page.module.css';
+
 export default function ServicesPage() {
   const [services, setServices] = useState<ServiceItem[]>(initialServices);
   const [events, setEvents] = useState<AgendaEvent[]>(initialEvents);
@@ -182,9 +191,16 @@ export default function ServicesPage() {
     statusSince: activeDate,
     lastUpdate: activeDate,
     unlockWhat: '',
+    regional: '',
+    unit: '',
+    stores: [],
+    category: '',
   });
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [serviceError, setServiceError] = useState('');
+  const [allStores, setAllStores] = useState<{ id: string; name: string; location?: string }[]>([]);
+  const [loadingStores, setLoadingStores] = useState(false);
+  const [tempStoreSelection, setTempStoreSelection] = useState<Record<string, boolean>>({});
 
   const [eventDraft, setEventDraft] = useState<AgendaEvent>({
     id: '',
@@ -205,6 +221,10 @@ export default function ServicesPage() {
     serviceId: 'none',
   });
   const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [filterArea, setFilterArea] = useState<string>('all');
+  const [filterUnit, setFilterUnit] = useState<string>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
 
   const serviceMap = useMemo(() => {
     return services.reduce<Record<string, ServiceItem>>((acc, service) => {
@@ -212,6 +232,50 @@ export default function ServicesPage() {
       return acc;
     }, {});
   }, [services]);
+
+  const filteredServices = useMemo(() => {
+    return services.filter(s => {
+      // filterArea can be a Regional (e.g., 'Regional 01') or 'Unidades Estratégicas'
+      if (filterArea !== 'all') {
+        if (filterArea.startsWith('Regional')) {
+          if ((s.regional || '') !== filterArea) return false;
+        } else if (filterArea === 'Unidades Estratégicas') {
+          if (filterUnit !== 'all' && (s.unit || '') !== filterUnit) return false;
+        } else {
+          if ((s.unit || '') !== filterArea) return false;
+        }
+      }
+      if (filterCategory !== 'all') {
+        const u = (s.unit || '').toLowerCase();
+        if (!u.includes(filterCategory.toLowerCase())) return false;
+      }
+      return true;
+    });
+  }, [services, filterArea, filterCategory]);
+
+  const normalizeDbService = (row: any): ServiceItem => {
+    return {
+      id: row.id,
+      title: row.title || '',
+      location: row.location || '',
+      status: (row.status as ServiceStatus) || 'Em andamento',
+      statusReason: row.status_reason || row.statusReason || '',
+      owner: row.owner || '',
+      dependency: row.dependency || 'Interno',
+      regional: row.regional || row.regional || '',
+      unit: row.unit || row.unit || '',
+      stores: Array.isArray(row.stores) ? row.stores : [],
+      nextAction: row.next_action || row.nextAction || '',
+      nextFollowupDate: row.next_followup_date
+        ? new Date(row.next_followup_date).toISOString().slice(0, 10)
+        : row.nextFollowupDate || activeDate,
+      statusSince: row.status_since
+        ? new Date(row.status_since).toISOString().slice(0, 10)
+        : row.statusSince || activeDate,
+      lastUpdate: row.last_update ? new Date(row.last_update).toISOString().slice(0, 10) : row.lastUpdate || activeDate,
+      unlockWhat: row.unlock_what || row.unlockWhat || '',
+    };
+  };
 
   const actionableMetrics = useMemo(() => {
     const criticalNoAction = services.filter(
@@ -222,9 +286,9 @@ export default function ServicesPage() {
       if (!service.nextFollowupDate) return false;
       return service.nextFollowupDate === activeDate && service.status !== 'Concluido';
     }).length;
-    return [
-      { label: 'Criticos sem proxima acao', value: criticalNoAction },
-      { label: 'Servicos travados', value: blocked },
+      return [
+      { label: 'Críticos sem próxima ação', value: criticalNoAction },
+      { label: 'Serviços travados', value: blocked },
       { label: 'Follow-ups vencidos hoje', value: followupsDue },
     ];
   }, [services, activeDate]);
@@ -264,33 +328,84 @@ export default function ServicesPage() {
       statusSince: activeDate,
       lastUpdate: activeDate,
       unlockWhat: '',
+      regional: '',
+      unit: '',
+      stores: [],
+      category: '',
     });
     setEditingServiceId(null);
     setServiceError('');
   };
 
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoadingStores(true);
+      try {
+        const res = await fetch('/api/stores');
+        if (!res.ok) return setAllStores([]);
+        const data = await res.json();
+        if (!mounted) return;
+        setAllStores(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('load stores', err);
+        setAllStores([]);
+      } finally {
+        if (mounted) setLoadingStores(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
   const saveService = () => {
-    if (!serviceDraft.title.trim()) return setServiceError('Servico obrigatorio.');
-    if (!serviceDraft.location.trim()) return setServiceError('Local ou loja obrigatorio.');
-    if (!serviceDraft.statusReason.trim()) return setServiceError('Motivo do status obrigatorio.');
-    if (!serviceDraft.owner.trim()) return setServiceError('Responsavel obrigatorio.');
-    if (!serviceDraft.nextAction.trim()) return setServiceError('Proxima acao obrigatoria.');
-    if (!serviceDraft.nextFollowupDate.trim()) return setServiceError('Data de cobranca obrigatoria.');
+    if (!serviceDraft.title.trim()) return setServiceError('Serviço obrigatório.');
+    if (!serviceDraft.location.trim()) return setServiceError('Local ou loja obrigatório.');
+    if (!serviceDraft.owner.trim()) return setServiceError('Responsável obrigatório.');
 
-    const draft = {
-      ...serviceDraft,
-      lastUpdate: todayISO(),
-    };
+    (async () => {
+      const payload: any = {
+        ...serviceDraft,
+        lastUpdate: todayISO(),
+        areaType: null,
+        areaValue: null,
+        category: serviceDraft.category || null,
+        stores: serviceDraft.stores || [],
+      };
 
-    if (editingServiceId) {
-      setServices(prev => prev.map(service => (service.id === editingServiceId ? draft : service)));
-    } else {
-      setServices(prev => [
-        { ...draft, id: `srv-${Date.now()}` },
-        ...prev,
-      ]);
-    }
-    resetServiceDraft();
+      if (serviceDraft.regional && serviceDraft.regional.startsWith('Regional')) {
+        payload.areaType = 'regional';
+        payload.areaValue = serviceDraft.regional;
+      } else if (serviceDraft.regional === 'Unidades Estratégicas' || serviceDraft.unit) {
+        payload.areaType = 'unit';
+        payload.areaValue = serviceDraft.unit || null;
+      }
+
+      try {
+        if (editingServiceId) {
+          const res = await fetch(`/api/services/${editingServiceId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const json = await res.json();
+          if (!res.ok || !json.ok) return setServiceError(json.error || 'Erro ao atualizar');
+          setServices(prev => prev.map(service => (service.id === editingServiceId ? normalizeDbService(json.result) : service)));
+        } else {
+          const res = await fetch('/api/services', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const json = await res.json();
+          if (!res.ok || !json.ok) return setServiceError(json.error || 'Erro ao criar');
+          setServices(prev => [normalizeDbService(json.result), ...prev]);
+        }
+        resetServiceDraft();
+      } catch (err) {
+        console.error(err);
+        setServiceError('Falha de rede ao salvar.');
+      }
+    })();
   };
 
   const editService = (service: ServiceItem) => {
@@ -300,9 +415,41 @@ export default function ServicesPage() {
   };
 
   const deleteService = (id: string) => {
-    setServices(prev => prev.filter(service => service.id !== id));
-    if (editingServiceId === id) resetServiceDraft();
+    (async () => {
+      try {
+        const res = await fetch(`/api/services/${id}`, { method: 'DELETE' });
+        const json = await res.json();
+        if (!res.ok || !json.ok) return;
+        setServices(prev => prev.filter(service => service.id !== id));
+        if (editingServiceId === id) resetServiceDraft();
+      } catch (err) {
+        console.error('deleteService', err);
+      }
+    })();
   };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/services');
+        const text = await res.text();
+        let json: any = null;
+        try {
+          json = text ? JSON.parse(text) : null;
+        } catch (parseErr) {
+          console.error('Failed to parse /api/services response as JSON', parseErr, text);
+        }
+
+        if (res.ok && json?.ok && Array.isArray(json.result)) {
+          setServices(json.result.map((r: any) => normalizeDbService(r)));
+        } else if (!res.ok) {
+          console.error('/api/services returned', res.status, res.statusText);
+        }
+      } catch (err) {
+        console.error('load services', err);
+      }
+    })();
+  }, []);
 
   const resetEventDraft = () => {
     setEventDraft({
@@ -375,18 +522,18 @@ export default function ServicesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className={`${styles.root} space-y-6`}>
       <PageHeader
-        title="Gestao de Servicos"
-        description="Controle manual para destravar pendencias e tomar decisao diaria sem depender do SAP."
+        title="Serviços"
+        description="Painel leve para destravar pendências e priorizar ações do dia."
       />
 
       <div className="grid gap-4 md:grid-cols-3">
         {actionableMetrics.map(metric => (
-          <Card key={metric.label} className="bg-slate-900/60">
+          <Card key={metric.label} className="bg-card/70 border border-surface-border">
             <CardHeader className="space-y-3">
               <CardTitle className="text-3xl">{metric.value}</CardTitle>
-              <CardDescription className="text-xs uppercase tracking-[0.3em] text-slate-400">
+              <CardDescription className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
                 {metric.label}
               </CardDescription>
             </CardHeader>
@@ -394,17 +541,78 @@ export default function ServicesPage() {
         ))}
       </div>
 
-      <Card className="bg-slate-950/50">
-        <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex gap-3 items-center">
+        <div className="w-56">
+          <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Área</label>
+          <Select value={filterArea} onValueChange={setFilterArea}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="Regional 01">Regional 01</SelectItem>
+              <SelectItem value="Regional 02">Regional 02</SelectItem>
+              <SelectItem value="Regional 03">Regional 03</SelectItem>
+              <SelectItem value="Regional 04">Regional 04</SelectItem>
+              <SelectItem value="Unidades Estratégicas">Unidades Estratégicas</SelectItem>
+              {Array.from(new Set(services.map(s => s.unit || '')))
+                .filter(Boolean)
+                .filter(u => !excludedUnits.has(u.toLowerCase()))
+                .map(u => (
+                  <SelectItem key={u} value={u}>
+                    {u}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {filterArea === 'Unidades Estratégicas' && (
+          <div className="w-56">
+            <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Unidade</label>
+            <Select value={filterUnit} onValueChange={setFilterUnit}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {Array.from(new Set(services.map(s => s.unit || '')))
+                  .filter(Boolean)
+                  .filter(u => !excludedUnits.has(u.toLowerCase()))
+                  .map(u => (
+                    <SelectItem key={u} value={u}>
+                      {u}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div className="w-56">
+          <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Categoria</label>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="Manutenção">Manutenção</SelectItem>
+              <SelectItem value="Refrigeração">Refrigeração</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <Card className="bg-card/60 border border-surface-border">
+          <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <CardTitle>Servicos em execucao</CardTitle>
-            <CardDescription>
-              Controle manual com foco em proxima acao, bloqueios e cobranca ativa.
-            </CardDescription>
+            <CardTitle>Serviços em execução</CardTitle>
+              <CardDescription>
+                Controle focado em próxima ação, bloqueios e cobranças pendentes.
+              </CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="secondary" onClick={resetServiceDraft}>
-              Novo servico
+              <Button variant="secondary" onClick={resetServiceDraft}>
+              Novo serviço
             </Button>
             <Input
               type="date"
@@ -414,162 +622,202 @@ export default function ServicesPage() {
             />
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 md:grid-cols-2 lg:grid-cols-3">
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.3em] text-slate-500">Servico</label>
-              <Input
-                value={serviceDraft.title}
-                onChange={event => setServiceDraft({ ...serviceDraft, title: event.target.value })}
-                placeholder="Ex: Troca de compressor"
-              />
+          <CardContent className="space-y-4">
+          <div className="rounded-2xl border border-surface-border bg-card/5 p-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:items-end">
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Serviço</label>
+                <Input
+                  value={serviceDraft.title}
+                  onChange={event => setServiceDraft({ ...serviceDraft, title: event.target.value })}
+                  placeholder="Ex: Troca de compressor"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Responsável</label>
+                <Input
+                  value={serviceDraft.owner}
+                  onChange={event => setServiceDraft({ ...serviceDraft, owner: event.target.value })}
+                  placeholder="Equipe / Pessoa"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Área</label>
+                <Select value={serviceDraft.regional || ''} onValueChange={value => setServiceDraft({ ...serviceDraft, regional: value === 'none' ? '' : value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem regional</SelectItem>
+                    <SelectItem value="Regional 01">Regional 01</SelectItem>
+                    <SelectItem value="Regional 02">Regional 02</SelectItem>
+                    <SelectItem value="Regional 03">Regional 03</SelectItem>
+                    <SelectItem value="Regional 04">Regional 04</SelectItem>
+                    <SelectItem value="Unidades Estratégicas">Unidades Estratégicas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Categoria</label>
+                <Select value={serviceDraft.category || ''} onValueChange={value => setServiceDraft({ ...serviceDraft, category: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Manutenção">Manutenção</SelectItem>
+                    <SelectItem value="Refrigeração">Refrigeração</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Próxima ação</label>
+                <Input
+                  value={serviceDraft.nextAction}
+                  onChange={event => setServiceDraft({ ...serviceDraft, nextAction: event.target.value })}
+                  placeholder="Ex: cobrar compras"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Lojas</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full text-left">
+                      {(serviceDraft.stores || []).length > 0
+                        ? (serviceDraft.stores || []).slice(0, 2).join(', ') + ((serviceDraft.stores || []).length > 2 ? ` +${(serviceDraft.stores || []).length - 2}` : '')
+                        : (loadingStores ? 'Carregando lojas…' : 'Selecionar lojas')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-2">
+                    <div className="max-h-56 overflow-y-auto">
+                      {loadingStores && <div className="text-sm text-muted-foreground p-2">Carregando...</div>}
+                      {!loadingStores && allStores.map(store => {
+                        const checked = !!tempStoreSelection[store.name] || (serviceDraft.stores || []).includes(store.name);
+                        return (
+                          <label key={store.id} className="flex items-center gap-2 p-2 hover:bg-muted rounded">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                setTempStoreSelection(prev => ({ ...prev, [store.name]: !checked }));
+                              }}
+                            />
+                            <div className="text-sm">{store.name}</div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-2 flex justify-end gap-2">
+                      <Button variant="ghost" onClick={() => { setTempStoreSelection({}); setServiceDraft({ ...serviceDraft, stores: [] }); }}>
+                        Limpar
+                      </Button>
+                      <Button onClick={() => {
+                        const selected = new Set<string>(serviceDraft.stores || []);
+                        Object.keys(tempStoreSelection).forEach(name => {
+                          if (tempStoreSelection[name]) selected.add(name); else selected.delete(name);
+                        });
+                        setServiceDraft({ ...serviceDraft, stores: Array.from(selected) });
+                        setTempStoreSelection({});
+                      }}>
+                        Aplicar
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Data</label>
+                <Input
+                  type="date"
+                  value={serviceDraft.nextFollowupDate}
+                  onChange={event => setServiceDraft({ ...serviceDraft, nextFollowupDate: event.target.value })}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.3em] text-slate-500">Loja ou local</label>
-              <Input
-                value={serviceDraft.location}
-                onChange={event => setServiceDraft({ ...serviceDraft, location: event.target.value })}
-                placeholder="Ex: Loja 08"
-              />
+            <div className="mt-3 flex items-center gap-2">
+              <Button onClick={saveService}>{editingServiceId ? 'Salvar' : 'Adicionar'}</Button>
+              <Button variant="ghost" onClick={() => setShowAdvanced(v => !v)}>
+                {showAdvanced ? 'Esconder campos' : 'Mais campos'}
+              </Button>
+              {editingServiceId && (
+                <Button variant="ghost" onClick={resetServiceDraft}>
+                  Cancelar
+                </Button>
+              )}
             </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.3em] text-slate-500">Status manual</label>
-              <Select
-                value={serviceDraft.status}
-                onValueChange={value =>
-                  setServiceDraft({ ...serviceDraft, status: value as ServiceStatus })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map(option => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.3em] text-slate-500">Motivo do status</label>
-              <Input
-                value={serviceDraft.statusReason}
-                onChange={event => setServiceDraft({ ...serviceDraft, statusReason: event.target.value })}
-                placeholder="Ex: aguardando liberacao"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.3em] text-slate-500">Responsavel atual</label>
-              <Input
-                value={serviceDraft.owner}
-                onChange={event => setServiceDraft({ ...serviceDraft, owner: event.target.value })}
-                placeholder="Equipe / pessoa"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.3em] text-slate-500">Dependencia</label>
-              <Select
-                value={serviceDraft.dependency}
-                onValueChange={value =>
-                  setServiceDraft({ ...serviceDraft, dependency: value as Dependency })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {dependencyOptions.map(option => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2 lg:col-span-2">
-              <label className="text-xs uppercase tracking-[0.3em] text-slate-500">Proxima acao</label>
-              <Input
-                value={serviceDraft.nextAction}
-                onChange={event => setServiceDraft({ ...serviceDraft, nextAction: event.target.value })}
-                placeholder="Ex: cobrar compras ate 15h"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.3em] text-slate-500">Data da cobranca</label>
-              <Input
-                type="date"
-                value={serviceDraft.nextFollowupDate}
-                onChange={event =>
-                  setServiceDraft({ ...serviceDraft, nextFollowupDate: event.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.3em] text-slate-500">Status desde</label>
-              <Input
-                type="date"
-                value={serviceDraft.statusSince}
-                onChange={event =>
-                  setServiceDraft({ ...serviceDraft, statusSince: event.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-2 lg:col-span-2">
-              <label className="text-xs uppercase tracking-[0.3em] text-slate-500">O que falta para destravar</label>
-              <Input
-                value={serviceDraft.unlockWhat}
-                onChange={event => setServiceDraft({ ...serviceDraft, unlockWhat: event.target.value })}
-                placeholder="Ex: liberacao da loja, entrega de material"
-              />
-            </div>
+
+            {showAdvanced && (
+              <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Status manual</label>
+                  <Select
+                    value={serviceDraft.status}
+                    onValueChange={value => setServiceDraft({ ...serviceDraft, status: value as ServiceStatus })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map(option => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Motivo</label>
+                  <Input value={serviceDraft.statusReason} onChange={e => setServiceDraft({ ...serviceDraft, statusReason: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">O que falta</label>
+                  <Input value={serviceDraft.unlockWhat} onChange={e => setServiceDraft({ ...serviceDraft, unlockWhat: e.target.value })} />
+                </div>
+                {(showAdvanced || serviceDraft.regional === 'Unidades Estratégicas') && (
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Unidade estratégica</label>
+                    <Input value={serviceDraft.unit} onChange={e => setServiceDraft({ ...serviceDraft, unit: e.target.value })} placeholder="Ex: Refrigeracao" />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           {serviceError && (
             <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-3 text-sm text-rose-100">
               {serviceError}
             </div>
           )}
-          <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={saveService}>
-              {editingServiceId ? 'Salvar atualizacao' : 'Registrar servico'}
-            </Button>
-            {editingServiceId && (
-              <Button variant="ghost" onClick={resetServiceDraft}>
-                Cancelar
-              </Button>
-            )}
-          </div>
+          {/* primary actions are shown above the advanced section to keep the form compact */}
 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Servico</TableHead>
+                <TableHead>Serviço</TableHead>
                 <TableHead>Local</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Motivo</TableHead>
-                <TableHead>Responsavel</TableHead>
-                <TableHead>Proxima acao</TableHead>
-                <TableHead>Cobranca</TableHead>
+                <TableHead>Responsável</TableHead>
+                <TableHead>Próxima ação</TableHead>
+                <TableHead>Data</TableHead>
                 <TableHead>Acoes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {services.map(service => {
-                const noNextAction = !service.nextAction.trim();
+              {filteredServices.map(service => {
+                const noNextAction = !(service.nextAction || '').trim();
                 const blockedTooLong =
                   service.status === 'Travado' && daysSince(service.statusSince) > blockedThresholdDays;
                 return (
                   <TableRow
                     key={service.id}
-                    className={`border-white/5 ${noNextAction ? 'bg-rose-500/10' : ''}`}
+                    className={`border-surface-border ${noNextAction ? 'bg-rose-500/10' : ''}`}
                   >
                     <TableCell>
                       <div className="space-y-1">
                         <p className="font-semibold">{service.title}</p>
-                        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                          {service.dependency}
-                        </p>
+                        {/* dependency intentionally hidden to reduce visual noise */}
                       </div>
                     </TableCell>
                     <TableCell>{service.location}</TableCell>
@@ -582,14 +830,13 @@ export default function ServicesPage() {
                           </Badge>
                         )}
                         {noNextAction && (
-                          <Badge variant="destructive">Sem proxima acao</Badge>
+                          <Badge variant="destructive">Sem próxima ação</Badge>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{service.statusReason}</TableCell>
                     <TableCell>{service.owner}</TableCell>
                     <TableCell>
-                      <p className="text-sm">{service.nextAction || 'Definir proxima acao'}</p>
+                      <p className="text-sm">{service.nextAction || 'Definir próxima ação'}</p>
                     </TableCell>
                     <TableCell>
                       <p className="text-sm">{service.nextFollowupDate}</p>
@@ -612,38 +859,38 @@ export default function ServicesPage() {
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-950/50">
+      <Card className="bg-card/60 border border-surface-border">
         <CardHeader>
-          <CardTitle>Servicos travados (visao dedicada)</CardTitle>
+          <CardTitle>Serviços travados (visão dedicada)</CardTitle>
           <CardDescription>Separado por motivo do bloqueio com foco em destravar.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {Object.keys(blockedGroups).length === 0 && (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-muted-foreground">
-              Nenhum servico travado no momento.
+            <div className="rounded-2xl border border-surface-border bg-card/5 p-4 text-sm text-muted-foreground">
+              Nenhum serviço travado no momento.
             </div>
           )}
           {Object.entries(blockedGroups).map(([reason, items]) => (
-            <div key={reason} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div key={reason} className="rounded-2xl border border-surface-border bg-card/5 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm uppercase tracking-[0.3em] text-slate-400">{reason}</p>
-                <Badge variant="secondary">{items.length} servicos</Badge>
+                <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">{reason}</p>
+                <Badge variant="secondary">{items.length} serviços</Badge>
               </div>
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
                 {items.map(service => (
-                  <div key={service.id} className="rounded-2xl border border-white/10 bg-slate-950/60 p-3">
-                    <div className="flex items-center justify-between text-sm text-slate-300">
+                  <div key={service.id} className="rounded-2xl border border-surface-border bg-card/60 p-3">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
                       <span>{service.title}</span>
-                      <span className="text-xs uppercase tracking-[0.3em] text-slate-500">
+                      <span className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
                         {service.location}
                       </span>
                     </div>
-                    <p className="mt-2 text-xs uppercase tracking-[0.3em] text-slate-500">
+                    <p className="mt-2 text-xs uppercase tracking-[0.3em] text-muted-foreground">
                       O que falta: {service.unlockWhat || 'Definir destrave'}
                     </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span>Desde {service.statusSince}</span>
-                      <span>Responsavel: {service.owner}</span>
+                      <span>Responsável: {service.owner}</span>
                       <Button size="sm" variant="ghost" onClick={() => editService(service)}>
                         Atualizar
                       </Button>
@@ -657,11 +904,11 @@ export default function ServicesPage() {
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <Card className="bg-slate-950/50">
+        <Card className="bg-card/60 border border-surface-border">
           <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <CardTitle>Agenda do turno</CardTitle>
-              <CardDescription>Eventos vinculados aos servicos para evitar esquecimento.</CardDescription>
+              <CardDescription>Eventos vinculados aos serviços para evitar esquecimento.</CardDescription>
             </div>
             <Input
               type="date"
@@ -671,9 +918,9 @@ export default function ServicesPage() {
             />
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 md:grid-cols-2">
+            <div className="grid gap-3 rounded-2xl border border-surface-border bg-card/5 p-4 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.3em] text-slate-500">Horario</label>
+                <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Horario</label>
                 <Input
                   type="time"
                   value={eventDraft.time}
@@ -681,13 +928,13 @@ export default function ServicesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.3em] text-slate-500">Servico relacionado</label>
+                <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Serviço relacionado</label>
                 <Select
                   value={eventDraft.serviceId}
                   onValueChange={value => setEventDraft({ ...eventDraft, serviceId: value })}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Vincular servico" />
+                    <SelectTrigger>
+                    <SelectValue placeholder="Vincular serviço" />
                   </SelectTrigger>
                   <SelectContent>
                     {services.map(service => (
@@ -699,7 +946,7 @@ export default function ServicesPage() {
                 </Select>
               </div>
               <div className="space-y-2 md:col-span-2">
-                <label className="text-xs uppercase tracking-[0.3em] text-slate-500">Evento</label>
+                <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Evento</label>
                 <Input
                   value={eventDraft.title}
                   onChange={event => setEventDraft({ ...eventDraft, title: event.target.value })}
@@ -707,7 +954,7 @@ export default function ServicesPage() {
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <label className="text-xs uppercase tracking-[0.3em] text-slate-500">Impacto no servico</label>
+                <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Impacto no serviço</label>
                 <Input
                   value={eventDraft.impact}
                   onChange={event => setEventDraft({ ...eventDraft, impact: event.target.value })}
@@ -724,7 +971,7 @@ export default function ServicesPage() {
               )}
             </div>
             {agendaForDay.length === 0 && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-muted-foreground">
+              <div className="rounded-2xl border border-surface-border bg-card/5 p-3 text-sm text-muted-foreground">
                 Nenhum evento para este dia.
               </div>
             )}
@@ -738,13 +985,13 @@ export default function ServicesPage() {
                 return (
                   <div
                     key={event.id}
-                    className={`rounded-2xl border border-white/10 p-4 ${
-                      isLate ? 'bg-rose-500/10' : 'bg-white/5'
+                    className={`rounded-2xl border border-surface-border p-4 ${
+                      isLate ? 'bg-rose-500/10' : 'bg-card/5'
                     }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-3 text-sm text-slate-300">
-                        <span className="text-xs uppercase tracking-[0.3em] text-slate-500">
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <span className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
                           {event.time}
                         </span>
                         <span>{event.title}</span>
@@ -759,15 +1006,15 @@ export default function ServicesPage() {
                         </Button>
                       </div>
                     </div>
-                    <p className="mt-2 text-sm text-slate-400">{event.impact}</p>
+                    <p className="mt-2 text-sm text-muted-foreground">{event.impact}</p>
                     {service && (
-                      <div className="mt-3 rounded-xl border border-white/10 bg-slate-950/60 p-3 text-sm">
-                        <div className="flex items-center justify-between">
+                      <div className="mt-3 rounded-xl border border-surface-border bg-card/60 p-3 text-sm">
+                        <div className="flex items-center justify-between text-surface-foreground">
                           <span>{service.title}</span>
                           <Badge variant={statusVariant(service.status)}>{service.status}</Badge>
                         </div>
-                        <div className="mt-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500">
-                          <span>Proxima acao</span>
+                        <div className="mt-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-muted-foreground">
+                          <span>Próxima ação</span>
                           <span>{service.nextAction || 'Definir'}</span>
                         </div>
                         <Progress value={service.nextAction ? 70 : 20} className="mt-2 h-2" />
@@ -780,11 +1027,11 @@ export default function ServicesPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-950/50">
+        <Card className="bg-card/60 border border-surface-border">
           <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <CardTitle>Checklist operacional</CardTitle>
-              <CardDescription>Checklist editavel por dia e turno, com vinculo ao servico.</CardDescription>
+              <CardDescription>Checklist editável por dia e turno, com vínculo ao serviço.</CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
               <Input
@@ -808,9 +1055,9 @@ export default function ServicesPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="grid gap-3 rounded-2xl border border-surface-border bg-card/5 p-4">
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.3em] text-slate-500">Item do checklist</label>
+                <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Item do checklist</label>
                 <Input
                   value={checklistDraft.title}
                   onChange={event => setChecklistDraft({ ...checklistDraft, title: event.target.value })}
@@ -818,7 +1065,7 @@ export default function ServicesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.3em] text-slate-500">Servico vinculado</label>
+                <label className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Serviço vinculado</label>
                 <Select
                   value={checklistDraft.serviceId}
                   onValueChange={value => setChecklistDraft({ ...checklistDraft, serviceId: value })}
@@ -827,7 +1074,7 @@ export default function ServicesPage() {
                     <SelectValue placeholder="Opcional" />
                   </SelectTrigger>
                   <SelectContent>
-                  <SelectItem value="none">Sem servico</SelectItem>
+                  <SelectItem value="none">Sem serviço</SelectItem>
                     {services.map(service => (
                       <SelectItem key={service.id} value={service.id}>
                         {service.title}
@@ -848,7 +1095,7 @@ export default function ServicesPage() {
               )}
             </div>
             {checklistForShift.length === 0 && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-muted-foreground">
+              <div className="rounded-2xl border border-surface-border bg-card/5 p-3 text-sm text-muted-foreground">
                 Nenhum item para este turno.
               </div>
             )}
@@ -857,33 +1104,33 @@ export default function ServicesPage() {
                 const service = serviceMap[item.serviceId];
                 return (
                   <div
-                    key={item.id}
-                    className="rounded-2xl border border-white/10 bg-white/5 p-3"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <p className={`text-sm ${item.done ? 'line-through text-slate-500' : 'text-slate-200'}`}>
-                          {item.title}
-                        </p>
-                        {service && (
-                          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
-                            {service.title}
+                      key={item.id}
+                      className="rounded-2xl border border-surface-border bg-card/5 p-3"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className={`text-sm ${item.done ? 'line-through text-muted-foreground' : 'text-surface-foreground'}`}>
+                            {item.title}
                           </p>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="secondary" onClick={() => toggleChecklistDone(item.id)}>
-                          {item.done ? 'Reabrir' : 'Concluir'}
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => editChecklistItem(item)}>
-                          Editar
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => deleteChecklistItem(item.id)}>
-                          Remover
-                        </Button>
+                          {service && (
+                            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+                              {service.title}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="secondary" onClick={() => toggleChecklistDone(item.id)}>
+                            {item.done ? 'Reabrir' : 'Concluir'}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => editChecklistItem(item)}>
+                            Editar
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => deleteChecklistItem(item.id)}>
+                            Remover
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
                 );
               })}
             </div>

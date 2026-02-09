@@ -12,7 +12,10 @@ import { useAuthStore } from '@/lib/auth/store';
 export default function RequirePermission({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading } = useCurrentUser();
+  // Prefer auth store as single source of truth to avoid reload races
+  const user = useAuthStore((s) => s.user);
+  // Keep waiting behavior from CurrentUserProvider to avoid redirect while localStorage is read
+  const { loading } = useCurrentUser();
   const authStatus = useAuthStore((s) => s.status);
   const { data: session, isLoading: sessionLoading, isError: sessionError } = useAdminSession();
 

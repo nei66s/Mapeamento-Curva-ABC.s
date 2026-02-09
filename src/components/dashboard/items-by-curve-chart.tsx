@@ -88,8 +88,8 @@ export function ItemsByCurveChart() {
         <CardDescription>Distribuição dos itens por classificação.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[250px] w-full">
-          <ChartContainer config={chartConfig}>
+        <div className="h-[250px] w-full overflow-hidden">
+          <ChartContainer config={chartConfig} aspect={false} className="h-full w-full">
             <BarChart 
                 data={data}
                 margin={{ top: 20, right: 20, left: 0, bottom: 0 }}

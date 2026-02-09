@@ -27,6 +27,8 @@ import { ItemsByCurveChart } from '@/components/dashboard/items-by-curve-chart';
 import { Separator } from '@/components/ui/separator';
 import { AgingChart } from '@/components/dashboard/indicators/aging-chart';
 
+import styles from './page.module.css';
+
 export default function IndicatorsPage() {
   const [indicators, setIndicators] = useState<MaintenanceIndicator[]>([]);
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -155,15 +157,7 @@ export default function IndicatorsPage() {
   }, [selectedMonth, incidents]);
 
   return (
-    <div
-      className="flex flex-col gap-8"
-      style={{
-        ['--primary' as any]: '31 100% 50%',
-        ['--primary-foreground' as any]: '0 0% 100%',
-        ['--accent' as any]: '31 100% 50%',
-        ['--accent-foreground' as any]: '0 0% 100%',
-      } as React.CSSProperties}
-    >
+    <div className={`${styles.root} flex flex-col gap-8`}>
       <PageHeader
         title="Painel de Indicadores"
         description="Análise consolidada dos principais indicadores de desempenho da manutenção."

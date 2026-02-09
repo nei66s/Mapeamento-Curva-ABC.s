@@ -19,6 +19,7 @@ function useCurrentUserInternal(): CurrentUserContextType {
     try {
       if (typeof window === 'undefined') return;
       const raw = localStorage.getItem('pm_user');
+      console.debug('[useCurrentUser] localStorage pm_user present=', !!raw);
       if (raw) {
         try {
           setUserState(JSON.parse(raw));

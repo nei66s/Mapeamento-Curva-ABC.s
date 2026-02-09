@@ -50,8 +50,13 @@ function GanttDemo() {
         return (
           <div key={t.id}>
             <div className="text-sm font-medium">{t.title}</div>
-            <div className="h-6 bg-gray-100 rounded relative">
-              <div className="absolute h-6 bg-indigo-500 rounded" style={{ left: `${left}%`, width: `${w}%` }} />
+            <div className="h-6 bg-gray-100 rounded overflow-hidden">
+              {(() => {
+                const cols = Math.min(12, Math.max(1, Math.round(w / 100 * 12)));
+                const widthClasses = ['w-1/12','w-2/12','w-3/12','w-4/12','w-5/12','w-6/12','w-7/12','w-8/12','w-9/12','w-10/12','w-11/12','w-full'];
+                const wClass = widthClasses[cols - 1] || 'w-full';
+                return <div className={`h-6 bg-indigo-500 rounded ${wClass}`} />;
+              })()}
             </div>
           </div>
         );
@@ -137,7 +142,11 @@ function HeatmapDemo() {
   const max = Math.max(...vals, 1);
   return (
     <div className="grid grid-cols-5 gap-1">
-      {vals.map((v,i)=>(<div key={i} className="h-12 flex items-center justify-center text-white rounded" style={{background:`rgb(${Math.round(255*(v/max))},${Math.round(200*(1-v/max))},100)`}}>{v}</div>))}
+      {vals.map((v,i)=>{
+        const ratio = v / Math.max(max, 1);
+        const cls = ratio > 0.75 ? 'bg-red-600' : ratio > 0.5 ? 'bg-orange-500' : ratio > 0.25 ? 'bg-yellow-400' : 'bg-green-400';
+        return (<div key={i} className={`h-12 flex items-center justify-center text-white rounded ${cls}`}>{v}</div>);
+      })}
     </div>
   );
 }

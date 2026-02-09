@@ -10,6 +10,9 @@ export default async function EscoposLayout({ children }: { children: React.Reac
         var path = location.pathname || '/';
         var publicPaths = ['/login','/request-account','/forgot-password','/signup','/reset-password','/auth'];
         for (var i=0;i<publicPaths.length;i++) if (path.startsWith(publicPaths[i])) return;
+        var hasLocalUser = false;
+        try { hasLocalUser = !!localStorage.getItem('pm_user'); } catch (e) {}
+        if (hasLocalUser) return;
         var cookies = document.cookie || '';
         if (!cookies.match(/(^|; )pm_user=|(^|; )pm_access_token=|next-auth.session-token=/)) {
           var url = '/login';

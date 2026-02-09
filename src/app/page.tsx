@@ -6,6 +6,10 @@ export default async function Page() {
   // The login route sets `pm_user` (httpOnly) with basic user info. Use it
   // as the signal that the user is authenticated. Fall back to access token.
   const pmUserRaw = cookieStore.get('pm_user')?.value;
+  console.debug('[page] cookies present', {
+    pm_user: Boolean(pmUserRaw),
+    pm_access_token: Boolean(cookieStore.get('pm_access_token')?.value),
+  });
   let userId: string | undefined = undefined;
   if (pmUserRaw) {
     try {

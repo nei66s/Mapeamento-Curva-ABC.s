@@ -1,0 +1,6 @@
+.root {
+  --primary: 31 100% 50%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 31 100% 50%;
+  --accent-foreground: 0 0% 100%;
+}

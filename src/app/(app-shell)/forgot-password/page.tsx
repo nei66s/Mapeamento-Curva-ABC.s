@@ -6,7 +6,7 @@ export const metadata = {
 
 export default function Page() {
   return (
-    <main style={{ padding: 24 }}>
+    <main className="p-6">
       <h1>Esqueci a senha</h1>
       <p>Informe o e-mail associado à sua conta para receber instruções.</p>
       <ForgotPasswordForm />
