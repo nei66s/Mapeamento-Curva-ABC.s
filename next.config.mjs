@@ -57,7 +57,7 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
-      
+
     ],
   },
   // serverExternalPackages is not supported in Next.js 14; remove it to avoid invalid config
