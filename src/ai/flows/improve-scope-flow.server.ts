@@ -1,4 +1,5 @@
 import { getAi } from '@/ai/genkit';
+import { z } from 'zod';
 
 export type ScopeTextImprovementInput = {
   text: string;
@@ -12,7 +13,7 @@ export type ScopeTextImprovementOutput = {
 };
 
 async function buildFlow() {
-  const { z } = await import('genkit');
+  const { z: _z } = { z };
   const ai = await getAi();
 
   const ScopeTextImprovementInputSchema = z.object({

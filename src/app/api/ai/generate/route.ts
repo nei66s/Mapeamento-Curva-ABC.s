@@ -2,6 +2,7 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { getAi } from '@/ai/genkit';
+import { z } from 'zod';
 import { callWithRetries } from '@/ai/callWithRetries';
 import { buildSystemPrompt } from '@/lib/ai/buildSystemPrompt';
 import { buildConversationPrompt } from '@/lib/ai/buildConversationPrompt';
@@ -39,8 +40,6 @@ export async function POST(req: Request) {
 
     // Use Genkit runtime to call model
     const ai = await getAi();
-
-    const { z } = await import('genkit');
 
     const InputSchema = z.object({ prompt: z.string() });
     const OutputSchema = z.object({ text: z.string() });

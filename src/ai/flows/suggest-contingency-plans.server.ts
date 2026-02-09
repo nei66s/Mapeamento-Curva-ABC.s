@@ -1,5 +1,6 @@
 "use server";
 import { getAi } from '@/ai/genkit';
+import { z } from 'zod';
 
 export type SuggestContingencyPlansInput = {
   incidentDescription: string;
@@ -11,7 +12,6 @@ export type SuggestContingencyPlansInput = {
 export type SuggestContingencyPlansOutput = { suggestedPlans: string[] };
 
 async function buildFlow() {
-  const { z } = await import('genkit');
   const ai = await getAi();
 
   const SuggestContingencyPlansInputSchema = z.object({

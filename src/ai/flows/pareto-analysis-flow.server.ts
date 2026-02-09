@@ -6,13 +6,14 @@
  */
 
 import { getAi } from '@/ai/genkit';
+import { z } from 'zod';
 
 export type ParetoAnalysisInput = { incidents: string[] };
 export type ParetoAnalysisOutput = { analysis: { category: string; count: number }[] };
 
 async function buildFlow() {
   // Dynamic import of `z` so we only load it on the server at runtime.
-  const { z } = await import('genkit');
+  const { z: _z } = { z };
   const ai = await getAi();
 
   const ParetoAnalysisInputSchema = z.object({

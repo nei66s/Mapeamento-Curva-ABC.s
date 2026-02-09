@@ -2,6 +2,7 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server'
 import { getAi } from '@/ai/genkit'
+import { z } from 'zod'
 import { callWithRetries } from '@/ai/callWithRetries'
 import { normalizeIncoming } from '../utils'
 
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
 
     // Try AI-generated questions when Genkit is available
     try {
-      const { z } = await import('genkit')
+      const { z: _z } = { z }
       const ai = await getAi({ modelOptions: { temperature: 0 } })
 
       // define simple prompt: output an array of question objects

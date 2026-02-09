@@ -1,5 +1,6 @@
 "use server";
 import { getAi } from '@/ai/genkit';
+import { z } from 'zod';
 
 export type IncidentSummaryInput = {
   incidentDetails: string;
@@ -11,7 +12,7 @@ export type IncidentSummaryInput = {
 export type IncidentSummaryOutput = { summary: string };
 
 async function buildFlow() {
-  const { z } = await import('genkit');
+  const { z: _z } = { z };
   const ai = await getAi();
 
   const IncidentSummaryInputSchema = z.object({

@@ -1,6 +1,6 @@
 "use server";
 import { getAi } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 // A simple list of Brazilian national holidays for demonstration purposes.
 // In a real-world scenario, this would come from an API or a more comprehensive library.

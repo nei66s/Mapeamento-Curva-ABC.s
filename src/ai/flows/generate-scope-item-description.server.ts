@@ -1,4 +1,5 @@
 import { getAi } from '@/ai/genkit';
+import { z } from 'zod';
 
 export type ScopeItemDescriptionInput = {
   title: string;
@@ -17,7 +18,6 @@ export type ScopeItemDescriptionOutput = {
 };
 
 async function buildFlow() {
-  const { z } = await import('genkit');
   const ai = await getAi();
 
   const ScopeItemDescriptionInputSchema = z.object({

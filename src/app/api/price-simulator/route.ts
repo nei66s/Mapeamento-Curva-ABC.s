@@ -2,6 +2,7 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server'
 import { getAi } from '@/ai/genkit'
+import { z } from 'zod'
 import { callWithRetries } from '@/ai/callWithRetries'
 import { logPriceSimulatorEvent } from '@/lib/price-simulator-logger'
 import { SimulatorInput, normalizeIncoming } from './utils'
@@ -76,7 +77,8 @@ export async function POST(request: Request) {
 
     // Try AI research flow if Genkit is configured; otherwise fallback to heuristic
     try {
-      const { z } = await import('genkit')
+      // Use zod directly instead of importing genkit to avoid loading genkit during build
+      const { z: _z } = { z }
       // Request the AI with deterministic settings (temperature=0) to reduce output variance
       const ai = await getAi({ modelOptions: { temperature: 0 } })
 
