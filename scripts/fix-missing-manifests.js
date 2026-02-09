@@ -98,6 +98,18 @@ try {
     fs.writeFileSync(buildRoutes, JSON.stringify({}, null, 2), 'utf8');
     console.log('Created fallback:', path.relative(root, buildRoutes));
   }
+  // Also create .next/routes-manifest.json as some runtimes (Vercel) expect it
+  try {
+    const nextRoutes = path.join(root, '.next', 'routes-manifest.json');
+    if (!fs.existsSync(nextRoutes)) {
+      const nextDir = path.dirname(nextRoutes);
+      if (!fs.existsSync(nextDir)) fs.mkdirSync(nextDir, { recursive: true });
+      fs.writeFileSync(nextRoutes, JSON.stringify({}, null, 2), 'utf8');
+      console.log('Created fallback:', path.relative(root, nextRoutes));
+    }
+  } catch (e) {
+    // ignore
+  }
 } catch (e) {
   // ignore
 }
