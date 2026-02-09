@@ -8,5 +8,11 @@
       "permanent": true
     }
   ],
-  "buildCommand": "npm run build"
+  "buildCommand": "npm run build",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next@canary"
+    }
+  ]
 }
