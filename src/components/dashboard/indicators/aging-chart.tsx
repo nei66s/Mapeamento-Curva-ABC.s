@@ -1,6 +1,7 @@
 
 "use client";
 
+import React from 'react';
 import { Bar, BarChart, CartesianGrid, ComposedChart, LabelList, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ReferenceArea } from 'recharts';
 import {
@@ -26,6 +27,9 @@ const chartConfig = {
 };
 
 export function AgingChart({ data }: AgingChartProps) {
+    const [visible, setVisible] = React.useState({ baixa: true, media: true, alta: true, muitoAlta: true });
+
+    const toggle = (k: keyof typeof visible) => setVisible(v => ({ ...v, [k]: !v[k] }));
     
     const agingRanges = [
         { key: 'inferior_30', label: 'Inferior a 30 dias' },
@@ -80,8 +84,41 @@ export function AgingChart({ data }: AgingChartProps) {
         <CardDescription>Análise do backlog de chamados por faixa de tempo e criticidade.</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[400px] w-full">
-            <ComposedChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: -10 }} barCategoryGap={20} barGap={6}>
+                <div className="mb-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                                <div className="text-sm text-muted-foreground">Faixas</div>
+                                {(['baixa','media','alta','muitoAlta'] as const).map(k => (
+                                        <button key={k} onClick={() => toggle(k)} className="flex items-center gap-2 rounded px-2 py-1 text-sm" aria-pressed={!visible[k]}>
+                                                <div style={{ width: 12, height: 12, backgroundColor: chartConfig[k].color }} className={visible[k] ? 'rounded' : 'rounded opacity-30'} />
+                                                <span className={visible[k] ? 'text-foreground' : 'text-muted-foreground'}>{chartConfig[k].label}</span>
+                                        </button>
+                                ))}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Total: {totalChamados}</div>
+                </div>
+
+                <ChartContainer config={chartConfig} className="h-[400px] w-full">
+                        <ComposedChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: -10 }} barCategoryGap={18} barGap={6}>
+                                <defs>
+                                    <linearGradient id="grad-baixa" x1="0" x2="0" y1="0" y2="1">
+                                        <stop offset="0%" stopColor="var(--color-baixa)" stopOpacity="0.32" />
+                                        <stop offset="100%" stopColor="var(--color-baixa)" stopOpacity="0.12" />
+                                    </linearGradient>
+                                    <linearGradient id="grad-media" x1="0" x2="0" y1="0" y2="1">
+                                        <stop offset="0%" stopColor="var(--color-media)" stopOpacity="0.32" />
+                                        <stop offset="100%" stopColor="var(--color-media)" stopOpacity="0.12" />
+                                    </linearGradient>
+                                    <linearGradient id="grad-alta" x1="0" x2="0" y1="0" y2="1">
+                                        <stop offset="0%" stopColor="var(--color-alta)" stopOpacity="0.32" />
+                                        <stop offset="100%" stopColor="var(--color-alta)" stopOpacity="0.12" />
+                                    </linearGradient>
+                                    <linearGradient id="grad-muitoAlta" x1="0" x2="0" y1="0" y2="1">
+                                        <stop offset="0%" stopColor="var(--color-muitoAlta)" stopOpacity="0.32" />
+                                        <stop offset="100%" stopColor="var(--color-muitoAlta)" stopOpacity="0.12" />
+                                    </linearGradient>
+                                </defs>
+                                {/* subtle grid and spacing */}
+                                <ReferenceArea strokeOpacity={0} />
                 {/* Highlight the first two ranges (inferior_30 and entre_30_60) */}
                 {chartData[0] && (
                     <ReferenceArea x1={chartData[0].name} x2={chartData[0].name} strokeOpacity={0} fill="rgba(59,130,246,0.06)" />
@@ -89,7 +126,7 @@ export function AgingChart({ data }: AgingChartProps) {
                 {chartData[1] && (
                     <ReferenceArea x1={chartData[1].name} x2={chartData[1].name} strokeOpacity={0} fill="rgba(234,88,12,0.06)" />
                 )}
-                <CartesianGrid vertical={false} />
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis 
                     dataKey="name"
                     tickLine={false}
@@ -114,39 +151,39 @@ export function AgingChart({ data }: AgingChartProps) {
                     axisLine={false}
                     tickFormatter={(value) => `${value.toFixed(0)}%`}
                 />
-                <Tooltip
-                    content={<ChartTooltipContent 
-                        formatter={(value, name) => {
-                            const key = name as keyof typeof chartConfig;
-                            const config = chartConfig[key];
-                            if (!config) return null;
-                            
-                            const displayValue = key === 'proporcao' ? `${Number(value).toFixed(2)}%` : value;
-
-                                     // Use Tailwind arbitrary value background to avoid inline styles
-                                     const bgClass = `bg-[${config.color}]`;
-                                     return (
-                                         <div className="flex items-center gap-2">
-                                                <div className={`w-2 h-2 rounded-full ${bgClass}`} />
-                                                <span>{config.label}: {displayValue}</span>
-                                         </div>
-                                     )
-                        }}
-                    />}
-                />
+                <Tooltip cursor={{ fill: 'hsl(var(--muted))' }} content={<ChartTooltipContent formatter={(value, name) => {
+                    const key = name as keyof typeof chartConfig;
+                    const config = chartConfig[key];
+                    if (!config) return null;
+                    const displayValue = key === 'proporcao' ? `${Number(value).toFixed(2)}%` : value;
+                    return (
+                      <div className="flex items-center gap-2">
+                        <div style={{ width: 10, height: 10, backgroundColor: config.color }} className="rounded-sm" />
+                        <span>{config.label}: {displayValue}</span>
+                      </div>
+                    )
+                }} />} />
                 <Legend />
-                <Bar yAxisId="left" dataKey="baixa" fill={chartConfig.baixa.color} name="Baixa" radius={[4, 4, 0, 0]}>
-                    <LabelList dataKey="baixa" position="top" className="fill-foreground font-mono font-medium text-xs" fontSize={12} />
-                </Bar>
-                <Bar yAxisId="left" dataKey="media" fill={chartConfig.media.color} name="Média" radius={[4, 4, 0, 0]}>
-                    <LabelList dataKey="media" position="top" className="fill-foreground font-mono font-medium text-xs" fontSize={12} />
-                </Bar>
-                <Bar yAxisId="left" dataKey="alta" fill={chartConfig.alta.color} name="Alta" radius={[4, 4, 0, 0]}>
-                    <LabelList dataKey="alta" position="top" className="fill-foreground font-mono font-medium text-xs" fontSize={12} />
-                </Bar>
-                <Bar yAxisId="left" dataKey="muitoAlta" fill={chartConfig.muitoAlta.color} name="Muito Alta" radius={[4, 4, 0, 0]}>
-                    <LabelList dataKey="muitoAlta" position="top" className="fill-foreground font-mono font-medium text-xs" fontSize={12} />
-                </Bar>
+                                {visible.baixa && (
+                                    <Bar yAxisId="left" dataKey="baixa" fill="url(#grad-baixa)" name="Baixa" radius={[6, 6, 0, 0]} animationDuration={600}>
+                                            <LabelList dataKey="baixa" position="top" className="fill-foreground font-mono font-medium text-xs" fontSize={12} />
+                                    </Bar>
+                                )}
+                                {visible.media && (
+                                    <Bar yAxisId="left" dataKey="media" fill="url(#grad-media)" name="Média" radius={[6, 6, 0, 0]} animationDuration={600}>
+                                            <LabelList dataKey="media" position="top" className="fill-foreground font-mono font-medium text-xs" fontSize={12} />
+                                    </Bar>
+                                )}
+                                {visible.alta && (
+                                    <Bar yAxisId="left" dataKey="alta" fill="url(#grad-alta)" name="Alta" radius={[6, 6, 0, 0]} animationDuration={600}>
+                                            <LabelList dataKey="alta" position="top" className="fill-foreground font-mono font-medium text-xs" fontSize={12} />
+                                    </Bar>
+                                )}
+                                {visible.muitoAlta && (
+                                    <Bar yAxisId="left" dataKey="muitoAlta" fill="url(#grad-muitoAlta)" name="Muito Alta" radius={[6, 6, 0, 0]} animationDuration={600}>
+                                            <LabelList dataKey="muitoAlta" position="top" className="fill-foreground font-mono font-medium text-xs" fontSize={12} />
+                                    </Bar>
+                                )}
                 <Line 
                     yAxisId="right" 
                     type="monotone" 

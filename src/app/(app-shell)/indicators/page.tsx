@@ -81,6 +81,7 @@ export default function IndicatorsPage() {
     callsChart: true,
     slaChart: true,
     agingChart: true,
+    
   } as const;
   const [visible, setVisible] = useState<Record<string, boolean>>(() => ({ ...widgetDefaults }));
 
@@ -157,7 +158,7 @@ export default function IndicatorsPage() {
   }, [selectedMonth, incidents]);
 
   return (
-    <div className={`${styles.root} flex flex-col gap-8`}>
+    <div id="indicators-root" className={`${styles.root} flex flex-col gap-8`}>
       <PageHeader
         title="Painel de Indicadores"
         description="Análise consolidada dos principais indicadores de desempenho da manutenção."
@@ -212,8 +213,39 @@ export default function IndicatorsPage() {
                   <DropdownMenuCheckboxItem checked={visible.agingChart} onCheckedChange={(v: any) => handleToggle('agingChart', Boolean(v))}>
                     Envelhecimento
                   </DropdownMenuCheckboxItem>
+                  
                 </DropdownMenuContent>
               </DropdownMenu>
+              <Button size="sm" variant="outline" className="ml-2" onClick={async () => {
+                try {
+                  const html2canvas = (await import('html2canvas')).default;
+                  const { jsPDF } = await import('jspdf');
+                  const el = document.getElementById('indicators-root');
+                  if (!el) throw new Error('Área de indicadores não encontrada');
+                  const canvas = await html2canvas(el as HTMLElement, { useCORS: true, scale: 2, backgroundColor: '#fff' });
+                  const imgData = canvas.toDataURL('image/png');
+                  const pdf = new jsPDF('landscape', 'pt', 'a4');
+                  const pdfWidth = pdf.internal.pageSize.getWidth();
+                  const pdfHeight = pdf.internal.pageSize.getHeight();
+                  const imgProps: any = pdf.getImageProperties(imgData);
+                  let imgWidth = pdfWidth;
+                  let imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                  if (imgHeight > pdfHeight) {
+                    imgHeight = pdfHeight;
+                    imgWidth = (imgProps.width * pdfHeight) / imgProps.height;
+                  }
+                  const x = (pdfWidth - imgWidth) / 2;
+                  const y = (pdfHeight - imgHeight) / 2;
+                  pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+                  pdf.save(`indicadores-${new Date().toISOString().slice(0,10)}.pdf`);
+                  toast({ title: 'PDF gerado', description: 'Download iniciado.' });
+                } catch (err: any) {
+                  console.error(err);
+                  toast({ variant: 'destructive', title: 'Falha ao gerar PDF', description: String(err?.message || err) });
+                }
+              }}>
+                Baixar PDF
+              </Button>
             </div>
         </div>
       </PageHeader>
@@ -309,8 +341,8 @@ export default function IndicatorsPage() {
             </Card>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8">
-              {visible.callsChart && <CallsChart data={indicators} />}
-              {visible.slaChart && <SlaChart data={indicatorsWithGoal} />}
+              {visible.callsChart && <CallsChart data={indicators} selectedMonth={selectedMonth} />}
+              {visible.slaChart && <SlaChart data={indicatorsWithGoal} selectedMonth={selectedMonth} />}
             </div>
 
             {visible.agingChart && (
@@ -318,6 +350,8 @@ export default function IndicatorsPage() {
                 <AgingChart data={selectedData.aging} />
               </div>
             )}
+
+            
             
         </section>
       )}
