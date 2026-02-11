@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import GestaoEscoposList from '@/components/escopos/GestaoEscoposList.client';
 
 type ServiceStatus = 'Em andamento' | 'Travado' | 'Critico' | 'Concluido';
 type Dependency = 'Compras' | 'Fornecedor' | 'Loja' | 'Interno' | 'Terceiros';
@@ -175,6 +176,8 @@ export default function ServicesPage() {
   const [services, setServices] = useState<ServiceItem[]>(initialServices);
   const [events, setEvents] = useState<AgendaEvent[]>(initialEvents);
   const [checklist, setChecklist] = useState<ChecklistItem[]>(initialChecklist);
+  const [escoposData, setEscoposData] = useState<any[]>([]);
+  const [escoposError, setEscoposError] = useState<string | null>(null);
   const [activeDate, setActiveDate] = useState(todayISO());
   const [activeShift, setActiveShift] = useState('Manha');
 
@@ -220,6 +223,32 @@ export default function ServicesPage() {
     done: false,
     serviceId: 'none',
   });
+  // fetch escopos from server API and show them in the Services page
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/escopos')
+      .then((r) => r.json())
+      .then((json) => {
+        if (!mounted) return;
+        console.debug('[services] /api/escopos response:', json);
+        if (json && json.ok && Array.isArray(json.result)) {
+          setEscoposData(json.result);
+          setEscoposError(null);
+        } else {
+          setEscoposData([]);
+          setEscoposError(json?.error ? String(json.error) : 'Resposta inesperada do servidor');
+          console.error('[services] /api/escopos error:', json);
+        }
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        console.error('[services] fetch /api/escopos failed', err);
+        setEscoposError(String(err?.message || err));
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
   const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [filterArea, setFilterArea] = useState<string>('all');
@@ -540,6 +569,20 @@ export default function ServicesPage() {
           </Card>
         ))}
       </div>
+
+      <Card className="bg-card/60 border border-surface-border">
+        <CardHeader>
+          <CardTitle>Escopos / Serviços</CardTitle>
+          <CardDescription>Escopos criados (visão integrada com Serviços)</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {escoposError ? (
+            <div className="p-4 text-sm text-destructive">Erro ao carregar escopos: {escoposError}</div>
+          ) : (
+            <GestaoEscoposList initialData={escoposData} />
+          )}
+        </CardContent>
+      </Card>
 
       <div className="flex gap-3 items-center">
         <div className="w-56">

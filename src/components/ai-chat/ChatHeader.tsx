@@ -16,7 +16,7 @@ export default function ChatHeader({ name = "Zeca", status = "online", avatarUrl
   return (
     <div className="w-full bg-white border-b border-gray-200 flex items-center justify-between px-4 flex-shrink-0" style={{ height: 56 }}>
       <div className="flex items-center">
-        <img src={avatarUrl ?? "/ai-avatar.png"} alt={name} className="h-9 w-9 rounded-full object-cover" />
+        <img src={avatarUrl ?? "/uploads/avatars/zeca.png"} alt={name} className="h-9 w-9 rounded-full object-cover" />
         <div className="flex flex-col ml-3 leading-tight">
           <div className="text-sm font-medium text-slate-900">{name}</div>
           <div className="text-xs text-emerald-600">{status}</div>

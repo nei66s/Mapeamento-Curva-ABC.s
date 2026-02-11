@@ -118,7 +118,7 @@ export default function FloatingChat() {
           aria-label={open ? "Fechar chat com Zeca" : "Abrir chat com Zeca"}
           className="cursor-pointer select-none flex flex-col items-center justify-center"
         >
-          <img src="/ai-avatar.png" alt="Zeca" className="h-12 w-12 rounded-full object-cover shadow-sm" />
+          <img src="/uploads/avatars/zeca.png" alt="Zeca" className="h-12 w-12 rounded-full object-cover shadow-sm" />
           <div className="text-[11px] mt-1 font-medium">Zeca</div>
         </div>
       </div>

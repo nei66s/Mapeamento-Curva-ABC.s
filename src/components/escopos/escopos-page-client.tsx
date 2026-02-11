@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { Button } from '@/components/ui/button';
 import {
@@ -86,12 +87,13 @@ export default function EscoposPageClient() {
   const [requester, setRequester] = useState('');
   const { user: currentUser } = useCurrentUser();
   const [items, setItems] = useState<ScopeItem[]>([createEmptyItem()]);
-  const [attachments, setAttachments] = useState<{ id: string; file: File; url: string }[]>([]);
+  const [attachments, setAttachments] = useState<{ id: string; file?: File | null; url: string }[]>([]);
   const [improvingItemId, setImprovingItemId] = useState<string | null>(null);
   const [improvingScope, setImprovingScope] = useState(false);
   const [scopeImproved, setScopeImproved] = useState(false);
   // A geração pela IA deve sempre aplicar as normas ABNT
   const [isExporting, setIsExporting] = useState(false);
+  const [isLaunching, setIsLaunching] = useState(false);
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState('');
   const [loadingStores, setLoadingStores] = useState(true);
@@ -133,6 +135,32 @@ export default function EscoposPageClient() {
     // Populate requester with logged user's name only if the field is empty
     setRequester(prev => (prev && prev.trim()) ? prev : (currentUser.name || ''));
   }, [currentUser]);
+
+  // Load escopo passed via sessionStorage (Reopen flow)
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const raw = sessionStorage.getItem('escopo_to_load');
+      if (!raw) return;
+      const obj = JSON.parse(raw);
+      sessionStorage.removeItem('escopo_to_load');
+      if (!obj) return;
+      setScopeName(obj.title || '');
+      setScopeDescription(obj.description || '');
+      setScopeNorms(Array.isArray(obj.norms) ? obj.norms : (obj.norms ? [obj.norms] : []));
+      setRequester(obj.requester || '');
+      setSelectedStoreId(obj.store_id || '');
+      if (Array.isArray(obj.items) && obj.items.length) {
+        setItems(obj.items.map((it: any) => ({ id: createId(), title: it.title || '', description: it.description || '' })));
+      }
+      if (Array.isArray(obj.attachments) && obj.attachments.length) {
+        const restored = obj.attachments.map((u: string) => ({ id: createId(), file: null, url: u }));
+        setAttachments(restored);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   const selectedStore = useMemo(
     () => stores.find(store => store.id === selectedStoreId) ?? null,
@@ -648,16 +676,31 @@ export default function EscoposPageClient() {
         attWrap.style.alignItems = 'center';
 
         // Convert attachments' File objects to data URIs to avoid blob: fetch/load issues
-        const fileToDataUrl = (file: File) => new Promise<string | null>((resolve) => {
+        const fileToDataUrl = (file: File | null, url?: string) => new Promise<string | null>(async (resolve) => {
           try {
-            const reader = new FileReader();
-            reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
-            reader.onerror = () => resolve(null);
-            reader.readAsDataURL(file);
+            if (file instanceof File) {
+              const reader = new FileReader();
+              reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+              reader.onerror = () => resolve(null);
+              reader.readAsDataURL(file);
+              return;
+            }
+            if (url) {
+              try {
+                const r = await fetch(url);
+                const b = await r.blob();
+                const reader = new FileReader();
+                reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(b as any);
+                return;
+              } catch (e) { return resolve(null); }
+            }
+            resolve(null);
           } catch (e) { resolve(null); }
         });
 
-        const dataUrls = await Promise.all(attachments.map(a => fileToDataUrl(a.file)));
+        const dataUrls = await Promise.all(attachments.map(a => fileToDataUrl(a.file ?? null, a.url)));
 
         // Create image elements stacked vertically, larger for clearer photos
         const loadPromises: Promise<void>[] = [];
@@ -876,6 +919,69 @@ export default function EscoposPageClient() {
     }
   };
 
+  const uploadAttachments = async (): Promise<string[]> => {
+    if (!attachments || !attachments.length) return [];
+    const uploaded: string[] = [];
+    for (const a of attachments) {
+      try {
+        if (!a.file) continue; // skip attachments that only have a URL
+        const fd = new FormData();
+        fd.append('file', a.file);
+        fd.append('dest', 'escopos');
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (res.ok && data?.imageUrl) uploaded.push(data.imageUrl);
+      } catch (e) {
+        // ignore single upload failures
+      }
+    }
+    return uploaded;
+  };
+
+  const router = useRouter();
+
+  const handleLaunch = async () => {
+    if (!requester.trim()) {
+      toast({ title: 'Informe o solicitante antes de lançar.', variant: 'destructive' });
+      return;
+    }
+    if (!selectedStoreId) {
+      toast({ title: 'Selecione uma loja antes de lançar.', variant: 'destructive' });
+      return;
+    }
+    if (!items.length) {
+      toast({ title: 'Adicione pelo menos um item antes de lançar.', variant: 'destructive' });
+      return;
+    }
+    setIsLaunching(true);
+    try {
+      const attUrls = await uploadAttachments();
+      const payload = {
+        title: scopeName,
+        description: scopeDescription,
+        norms: scopeNorms,
+        requester,
+        store_id: selectedStoreId,
+        items: items.map(i => ({ title: i.title, description: i.description })),
+        attachments: attUrls,
+      };
+      const res = await fetch('/api/escopos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) throw new Error(data?.error || 'Erro ao lançar escopo');
+      toast({ title: 'Escopo lançado', description: 'Escopo salvo com sucesso.' });
+      const go = confirm('Escopo lançado. Deseja ir para a gestão de escopos?');
+      if (go) router.push('/escopos');
+    } catch (err: any) {
+      toast({ title: 'Erro ao lançar', description: String(err?.message || err), variant: 'destructive' });
+    } finally {
+      setIsLaunching(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -1006,6 +1112,9 @@ export default function EscoposPageClient() {
             </Button>
             <Button variant="outline" onClick={exportToPdf} disabled={isExporting}>
               {isExporting ? 'Gerando PDF…' : 'Exportar para PDF'}
+            </Button>
+            <Button variant="secondary" onClick={handleLaunch} disabled={isLaunching || isExporting}>
+              {isLaunching ? 'Lançando…' : 'Lançar'}
             </Button>
           </div>
         </div>

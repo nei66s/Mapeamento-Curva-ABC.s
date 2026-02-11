@@ -213,7 +213,7 @@ export default function AppSidebar({ visible, onRequestClose, onMouseEnter, onMo
   const renderedGroups = [...visibleGroups, ...(adminGroup.links.length ? [adminGroup] : [])].filter(group => group.links.length > 0);
 
   const sidebarClasses = cn(
-    'fixed inset-y-0 left-0 z-50 w-72 md:w-80 bg-white border-r border-slate-200 text-slate-900 shadow-sm transition-transform duration-300',
+    'fixed inset-y-0 left-0 z-[9999] w-72 md:w-80 bg-white border-r border-slate-200 text-slate-900 shadow-sm transition-transform duration-300',
     // avoid SSR/client class mismatch by applying translate only after hydration
     hydrated ? (visible ? 'translate-x-0' : '-translate-x-full') : '-translate-x-full'
   );
@@ -344,7 +344,7 @@ export default function AppSidebar({ visible, onRequestClose, onMouseEnter, onMo
   }
 
   const backdropClass = cn(
-    'fixed inset-0 bg-black/40 z-40 lg:hidden',
+    'fixed inset-0 bg-black/40 z-[9998] lg:hidden',
     hasMounted && visible ? 'block' : 'hidden'
   );
 

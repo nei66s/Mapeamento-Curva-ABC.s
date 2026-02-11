@@ -4,6 +4,10 @@
     "chatgpt.openOnStartup": true,
     "chat.tools.terminal.autoApprove": {
         "&": true,
-        "npm install": true
+        "npm install": true,
+        "/^powershell -NoProfile -ExecutionPolicy Bypass -Command \"echo 'DATABASE_URL:'; echo \\$env:DATABASE_URL; echo 'SUPABASE_DB_URL:'; echo \\$env:SUPABASE_DB_URL; echo 'SUPABASE_URL:'; echo \\$env:SUPABASE_URL\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }

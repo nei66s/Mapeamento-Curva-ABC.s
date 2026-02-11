@@ -338,13 +338,13 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
         <div
           className={"rounded-2xl bg-white border border-gray-200 flex flex-col overflow-hidden " + styles.chatBox + " " + styles.chatCompact}
         >
-          <ChatHeader name="Zeca" status={activeProfile ? 'online' : 'offline'} avatarUrl={'/ai-avatar.png'} onNewChat={clearChat} onHistory={() => {}} />
+          <ChatHeader name="Zeca" status={activeProfile ? 'online' : 'offline'} avatarUrl={'/uploads/avatars/zeca.png'} onNewChat={clearChat} onHistory={() => {}} />
           <ChatMessages
             messages={messages}
             loading={loading}
             reportLoading={reportLoading}
             userAvatar={user?.avatarUrl ?? null}
-            assistantAvatar={'/ai-avatar.png'}
+            assistantAvatar={'/uploads/avatars/zeca.png'}
             endRef={endRef}
           />
           <div className="flex-shrink-0 p-2">
@@ -372,13 +372,13 @@ export function ChatWindow({ initialProfileId, compact = false, onBusyChange }: 
       <div
         className={"bg-white border border-gray-200 rounded-[14px] w-full max-w-[480px] flex flex-col overflow-hidden " + styles.chatBox + " " + styles.chatDefaultHeight}
       >
-        <ChatHeader name="Zeca" status={activeProfile ? 'online' : 'offline'} avatarUrl={'/ai-avatar.png'} onNewChat={clearChat} onHistory={() => {}} />
+        <ChatHeader name="Zeca" status={activeProfile ? 'online' : 'offline'} avatarUrl={'/uploads/avatars/zeca.png'} onNewChat={clearChat} onHistory={() => {}} />
         <ChatMessages
           messages={messages}
           loading={loading}
           reportLoading={reportLoading}
           userAvatar={user?.avatarUrl ?? null}
-          assistantAvatar={'/ai-avatar.png'}
+          assistantAvatar={'/uploads/avatars/zeca.png'}
           endRef={endRef}
         />
         <div className="flex-shrink-0 px-3 py-2">
